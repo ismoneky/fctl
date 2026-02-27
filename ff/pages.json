@@ -1,0 +1,67 @@
+{
+	"pages": [
+		{
+			"path": "pages/index/index",
+			"style": {
+				"navigationBarTitleText": "风车天路",
+				"navigationBarBackgroundColor": "#667eea",
+				"navigationBarTextStyle": "white"
+			}
+		},
+		{
+			"path": "pages/booking/booking",
+			"style": {
+				"navigationBarTitleText": "预约记录",
+				"navigationBarBackgroundColor": "#667eea",
+				"navigationBarTextStyle": "white"
+			}
+		},
+		{
+			"path": "pages/profile/profile",
+			"style": {
+				"navigationBarTitleText": "个人中心",
+				"navigationBarBackgroundColor": "#667eea",
+				"navigationBarTextStyle": "white"
+			}
+		},
+		{
+			"path": "pages/booking-form/booking-form",
+			"style": {
+				"navigationBarTitleText": "立即预约",
+				"navigationBarBackgroundColor": "#667eea",
+				"navigationBarTextStyle": "white"
+			}
+		}
+	],
+	"globalStyle": {
+		"navigationBarTextStyle": "white",
+		"navigationBarTitleText": "风车天路预约系统",
+		"navigationBarBackgroundColor": "#667eea",
+		"backgroundColor": "#F8F8F8",
+		"navigationStyle": "default",
+		"enablePullDownRefresh": false
+	},
+	"tabBar": {
+		"color": "#7A7E83",
+		"selectedColor": "#667eea",
+		"borderStyle": "white",
+		"backgroundColor": "#ffffff",
+		"fontSize": "12px",
+		"height": "50px",
+		"list": [
+			{
+				"pagePath": "pages/index/index",
+				"text": "🌬️ 首页"
+			},
+			{
+				"pagePath": "pages/booking/booking",
+				"text": "📋 预约"
+			},
+			{
+				"pagePath": "pages/profile/profile",
+				"text": "👤 我的"
+			}
+		]
+	},
+	"uniIdRouter": {}
+}

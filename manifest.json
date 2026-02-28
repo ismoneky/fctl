@@ -1,7 +1,7 @@
 {
-    "name" : "ff",
-    "appid" : "",
-    "description" : "",
+    "name" : "fctl",
+    "appid" : "__UNI__E55D2C7",
+    "description" : "鹤壁风车天路预约程序",
     "versionName" : "1.0.0",
     "versionCode" : "100",
     "transformPx" : false,

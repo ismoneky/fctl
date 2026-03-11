@@ -4,7 +4,6 @@
 			console.log('App Launch')
 		},
 		onShow: function() {
-			console.log('App Show')
 		},
 		onHide: function() {
 			console.log('App Hide')
@@ -14,7 +13,7 @@
 
 <style>
 	/*每个页面公共css */
-* {
+page, view, text, image, button {
 	box-sizing: border-box;
 	margin: 0;
 	padding: 0;

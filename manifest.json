@@ -1,4 +1,4 @@
-{
+	{
     "name" : "fctl",
     "appid" : "__UNI__E55D2C7",
     "description" : "鹤壁风车天路预约程序",
@@ -50,9 +50,10 @@
     "quickapp" : {},
     /* 小程序特有相关 */
     "mp-weixin" : {
-        "appid" : "",
+        "appid" : "wxdaecd30407f65635",
         "setting" : {
-            "urlCheck" : false
+            "urlCheck" : false,
+            "es6" : false
         },
         "usingComponents" : true
     },

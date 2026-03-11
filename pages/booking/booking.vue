@@ -7,22 +7,18 @@
 				<view class="tab-line" v-if="currentTab === 0"></view>
 			</view>
 			<view class="tab-item" :class="{ active: currentTab === 1 }" @click="switchTab(1)">
-				<text class="tab-text">待使用</text>
+				<text class="tab-text">已完成</text>
 				<view class="tab-line" v-if="currentTab === 1"></view>
 			</view>
 			<view class="tab-item" :class="{ active: currentTab === 2 }" @click="switchTab(2)">
-				<text class="tab-text">已完成</text>
-				<view class="tab-line" v-if="currentTab === 2"></view>
-			</view>
-			<view class="tab-item" :class="{ active: currentTab === 3 }" @click="switchTab(3)">
 				<text class="tab-text">已取消</text>
-				<view class="tab-line" v-if="currentTab === 3"></view>
+				<view class="tab-line" v-if="currentTab === 2"></view>
 			</view>
 		</view>
 
 		<!-- 预约列表 -->
-		<scroll-view scroll-y class="booking-list" v-if="filteredList.length > 0">
-			<view class="booking-item" v-for="(item, index) in filteredList" :key="item.id">
+		<scroll-view scroll-y class="booking-list" v-if="bookingList.length > 0">
+			<view class="booking-item" v-for="(item, index) in bookingList" :key="item.id">
 				<view class="booking-header">
 					<view class="booking-type">
 						<text class="type-icon">🌬️</text>
@@ -36,7 +32,7 @@
 				<view class="booking-content">
 					<view class="content-row">
 						<text class="label">预约时间:</text>
-						<text class="value">{{ item.bookingDate }} {{ item.bookingTime }}</text>
+						<text class="value">{{ formatDate(item.bookingDate, 'YYYY年MM月DD日') }} {{ item.timeSlot === "morning" ? '上午' : '下午' }}</text>
 					</view>
 					<view class="content-row">
 						<text class="label">预约人数:</text>
@@ -48,11 +44,11 @@
 					</view>
 					<view class="content-row">
 						<text class="label">订单号:</text>
-						<text class="value order-no">{{ item.orderNo }}</text>
+						<text class="value order-no">{{ item.bookingId }}</text>
 					</view>
 				</view>
 
-				<view class="booking-footer" v-if="item.status === 'pending'">
+				<view class="booking-footer" v-if="item.status === 'none'">
 					<button class="btn btn-cancel" @click="showCancelDialog(item)">取消预约</button>
 					<button class="btn btn-primary" @click="viewDetail(item)">查看详情</button>
 				</view>
@@ -70,7 +66,7 @@
 		<view class="empty-state" v-else>
 			<text class="empty-icon">📋</text>
 			<text class="empty-text">暂无预约记录</text>
-			<button class="btn btn-primary" @click="goToHome">去预约</button>
+			<button class="btn btn-to-home" @click="goToHome">去预约</button>
 		</view>
 
 		<!-- 取消预约对话框 -->
@@ -84,8 +80,8 @@
 					<text class="modal-desc">取消后可能需要重新预约</text>
 				</view>
 				<view class="modal-footer">
-					<button class="modal-btn" @click="showCancel = false">再想想</button>
-					<button class="modal-btn modal-btn-primary" @click="confirmCancel">确认取消</button>
+					<view class="modal-btn" @click="showCancel = false">再想想</view>
+					<view class="modal-btn modal-btn-primary" @click="confirmCancel">确认取消</view>
 				</view>
 			</view>
 		</view>
@@ -93,98 +89,76 @@
 </template>
 
 <script>
+import { request } from '../../utils/request.js';
 	export default {
 		data() {
 			return {
 				currentTab: 0,
 				showCancel: false,
 				currentCancelItem: null,
-				bookingList: [
-					{
-						id: 1,
-						type: 'scenic',
-						scenicName: '风车天路',
-						bookingDate: '2026-03-15',
-						bookingTime: '上午 (08:00-12:00)',
-						personCount: 3,
-						orderNo: 'BK202603150001',
-						status: 'pending'
-					},
-					{
-						id: 2,
-						type: 'scenic',
-						scenicName: '风车天路',
-						bookingDate: '2026-03-20',
-						bookingTime: '下午 (12:00-18:00)',
-						personCount: 2,
-						plateNumber: '京A12345',
-						orderNo: 'BK202603200002',
-						status: 'pending'
-					},
-					{
-						id: 3,
-						type: 'scenic',
-						scenicName: '风车天路',
-						bookingDate: '2026-02-10',
-						bookingTime: '上午 (08:00-12:00)',
-						personCount: 4,
-						orderNo: 'BK202602100003',
-						status: 'completed'
-					},
-					{
-						id: 4,
-						type: 'scenic',
-						scenicName: '风车天路',
-						bookingDate: '2026-02-05',
-						bookingTime: '下午 (12:00-18:00)',
-						personCount: 2,
-						plateNumber: '浙B88888',
-						orderNo: 'BK202602050004',
-						status: 'cancelled'
-					}
-				]
+				bookingList: []
 			}
 		},
 		computed: {
-			filteredList() {
-				if (this.currentTab === 0) {
-					return this.bookingList;
-				} else if (this.currentTab === 1) {
-					return this.bookingList.filter(item => item.status === 'pending');
-				} else if (this.currentTab === 2) {
-					return this.bookingList.filter(item => item.status === 'completed');
-				} else {
-					return this.bookingList.filter(item => item.status === 'cancelled');
-				}
-			}
 		},
-		// 分享给好友
-		onShareAppMessage() {
-			return {
-				title: '风车天路 - 浪漫风车之旅等你来',
-				path: '/pages/index/index',
-				imageUrl: ''
-			}
-		},
-		// 分享到朋友圈
-		onShareTimeline() {
-			return {
-				title: '风车天路 - 浪漫风车之旅等你来',
-				query: '',
-				imageUrl: ''
-			}
-		},
+		// // 分享给好友
+		// onShareAppMessage() {
+		// 	return {
+		// 		title: '风车天路 - 浪漫风车之旅等你来',
+		// 		path: '/pages/index/index',
+		// 		imageUrl: ''
+		// 	}
+		// },
+		// // 分享到朋友圈
+		// onShareTimeline() {
+		// 	return {
+		// 		title: '风车天路 - 浪漫风车之旅等你来',
+		// 		query: '',
+		// 		imageUrl: ''
+		// 	}
+		// },
+                onLoad() {
+                    console.log('Booking page loaded');
+                    this.getList();
+                },
+                onShow() {
+                    console.log('Booking page shown');
+                    this.getList();
+                },
 		methods: {
+                        getList() {
+                            const openid = uni.getStorageSync('openid');
+                            request({
+                                method: 'GET',
+                                url: '/bookings',
+                                data: {
+                                    wechatOpenId: openid,
+                                    page: 1,
+                                    pageSize: 99,
+                                    status: this.currentTab === 0 ? "none" : this.currentTab === 1 ? 'completed' : 'cancelled'
+                                }
+                            }).then(res => {
+                                console.log("订单列表", res);
+                                if (res.success && res.data) {
+                                    this.bookingList = res.data;
+                                } else {
+                                    this.bookingList = [];
+                                }
+                            }).catch(err => {
+                                uni.showToast({ title: '订单获取失败，请稍后再试', icon: 'none' });
+                                this.bookingList = [];
+                            });
+                        },
 			switchTab(index) {
-				this.currentTab = index;
+			    this.currentTab = index;
+                            this.getList();
 			},
 			getStatusText(status) {
 				const statusMap = {
-					pending: '待使用',
 					completed: '已完成',
 					cancelled: '已取消'
 				};
-				return statusMap[status] || status;
+				return statusMap[status] || '';
 			},
 			showCancelDialog(item) {
 				this.currentCancelItem = item;
@@ -192,23 +166,33 @@
 			},
 			confirmCancel() {
 				if (this.currentCancelItem) {
-					this.currentCancelItem.status = 'cancelled';
-					uni.showToast({
-						title: '预约已取消',
-						icon: 'success'
-					});
+				    this.currentCancelItem.status = 'cancelled';
+                                    request({
+                                        url: "/bookings/" + this.currentCancelItem.bookingId,
+                                        method: "PUT",
+                                        data: {
+                                            status: 'cancelled'
+                                        }
+                                    }).then(res => {
+                                        if (res.success) {
+                                            uni.showToast({ title: '预约已取消', icon: 'success' });
+                                            this.getList();
+                                        } else {
+                                            uni.showToast({ title: '取消预约失败，请稍后再试', icon: 'none' });
+                                        }
+                                        this.currentCancelItem = null;
+                                    }).catch(err => {
+                                        uni.showToast({ title: '取消预约失败，请稍后再试', icon: 'none' });
+                                        this.currentCancelItem = null;
+                                    });
 				}
 				this.showCancel = false;
-				this.currentCancelItem = null;
+				
 			},
 			viewDetail(item) {
-				uni.showToast({
-					title: '查看订单详情',
-					icon: 'none'
+				uni.navigateTo({
+					url: `/pages/booking-form/booking-form?bookingId=${item.bookingId}`
 				});
-				// uni.navigateTo({
-				//     url: `/pages/booking-detail/booking-detail?id=${item.id}`
-				// });
 			},
 			bookAgain(item) {
 				uni.showToast({
@@ -220,6 +204,14 @@
 				uni.switchTab({
 					url: '/pages/index/index'
 				});
+			},
+			formatDate(dateString, format = 'YYYY/MM/DD') {
+				const options = { year: 'numeric', month: '2-digit', day: '2-digit' };
+				const date = new Date(dateString);
+				if (format === 'YYYY年MM月DD日') {
+					return `${date.getFullYear()}年${(date.getMonth() + 1).toString().padStart(2, '0')}月${date.getDate().toString().padStart(2, '0')}日`;
+				}
+				return date.toLocaleDateString('zh-CN', options);
 			}
 		}
 	}
@@ -271,6 +263,7 @@
 	.booking-list {
 		height: calc(100vh - 120rpx);
 		padding: 20rpx 30rpx;
+		box-sizing: border-box;
 	}
 
 	.booking-item {
@@ -382,9 +375,15 @@
 	}
 
 	.btn-primary {
-		background: #667eea;
-		color: #fff;
+	    background: #667eea;
+	    color: #fff;
 	}
+        .btn-to-home {
+            flex: none;
+            width: 300rpx;
+            background: #667eea;
+	    color: #fff;
+        }
 
 	/* 空状态 */
 	.empty-state {
@@ -462,7 +461,7 @@
 
 	.modal-footer {
 		display: flex;
-		border-top: 1rpx solid #f0f0f0;
+                border-top: solid 1rpx #f0f0f0;
 	}
 
 	.modal-btn {

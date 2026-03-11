@@ -82,6 +82,7 @@
 </template>
 
 <script>
+	import { request } from '../../utils/request.js';
 	export default {
 		data() {
 			return {
@@ -156,8 +157,45 @@
 				]
 			}
 		},
-		onLoad() {
-
+		async onLoad() {
+			// 检查本地是否有 token
+			const token = uni.getStorageSync('token');
+			if (!token) {
+				// 未登录，自动执行微信登录
+				uni.login({
+					provider: 'weixin',
+					success: async (loginRes) => {
+						try {
+                                                    console.log('微信登录成功，code:', loginRes.code);
+							const res = await request({
+								url: '/users/wx-login', // 后端登录接口
+								method: 'POST',
+								data: {
+									code: loginRes.code
+								}
+							});
+							// 适配后端返回格式
+							if (res.success && res.data && res.data.openid) {
+								// 可根据需要保存 openid、session_key
+								uni.setStorageSync('openid', res.data.openid);
+								uni.setStorageSync('session_key', res.data.session_key);
+								// 你可以自定义 token 逻辑，这里用 openid 作为登录标识
+								uni.setStorageSync('token', res.data.openid);
+							} else {
+								uni.showToast({ title: '微信登录失败', icon: 'none' });
+							}
+						} catch (err) {
+							uni.showToast({ title: '微信登录异常', icon: 'none' });
+						}
+					},
+					fail: (err) => {
+						uni.showToast({ title: '微信授权失败', icon: 'none' });
+						console.log('微信登录失败:', err);
+					}
+				});
+			} else {
+				console.log('已登录，token:', token);
+			}
 		},
 		// 分享给好友
 		onShareAppMessage() {

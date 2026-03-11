@@ -25,7 +25,7 @@
 				<view class="form-item required">
 					<text class="label">联系人姓名</text>
 					<view class="input-wrapper">
-						<input class="input" v-model="formData.contactName" placeholder="请输入联系人姓名" />
+						<input class="input" v-model="formData.name" placeholder="请输入联系人姓名" />
 					</view>
 				</view>
 
@@ -46,17 +46,6 @@
 					</view>
 				</view>
 
-				<!-- 年龄段 -->
-				<view class="form-item">
-					<text class="label">年龄段</text>
-					<view class="input-wrapper">
-						<picker mode="selector" :range="ageRanges" @change="onAgeRangeChange">
-							<view class="picker">
-								{{ formData.ageRange || '请选择年龄段' }}
-							</view>
-						</picker>
-					</view>
-				</view>
 
 				<!-- 预约日期 -->
 				<view class="form-item required">
@@ -74,23 +63,21 @@
 				<view class="form-item required">
 					<text class="label">预约时间段</text>
 					<view class="time-period-group">
-						<view class="time-period-item" :class="{ active: formData.timePeriod === 'morning' }"
+						<view class="time-period-item" :class="{ active: formData.timeSlot === 'morning' }"
 							@click="onTimePeriodChange('morning')">
-							<text class="period-icon">🌅</text>
 							<view class="period-info">
 								<text class="period-title">上午</text>
 								<text class="period-time">08:00-12:00</text>
 							</view>
-							<view class="period-check" v-if="formData.timePeriod === 'morning'">✓</view>
+							<view class="period-check" v-if="formData.timeSlot === 'morning'">✓</view>
 						</view>
-						<view class="time-period-item" :class="{ active: formData.timePeriod === 'afternoon' }"
+						<view class="time-period-item" :class="{ active: formData.timeSlot === 'afternoon' }"
 							@click="onTimePeriodChange('afternoon')">
-							<text class="period-icon">🌇</text>
 							<view class="period-info">
 								<text class="period-title">下午</text>
 								<text class="period-time">12:00-18:00</text>
 							</view>
-							<view class="period-check" v-if="formData.timePeriod === 'afternoon'">✓</view>
+							<view class="period-check" v-if="formData.timeSlot === 'afternoon'">✓</view>
 						</view>
 					</view>
 				</view>
@@ -106,18 +93,18 @@
 				<view class="form-item">
 					<text class="label required-label">选择出行方式</text>
 					<view class="travel-type-group">
-						<view class="travel-type-item" :class="{ active: formData.travelType === item.value }"
-							v-for="item in travelTypes" :key="item.value" @click="onTravelTypeChange(item.value)">
+						<view class="travel-type-item" :class="{ active: formData.travelMode === item.value }"
+							v-for="item in travelModeList" :key="item.value" @click="onTravelTypeChange(item.value)">
 							<text class="travel-icon">{{ item.icon }}</text>
 							<text class="travel-label">{{ item.label }}</text>
-							<view class="travel-check" v-if="formData.travelType === item.value">✓</view>
+							<view class="travel-check" v-if="formData.travelMode === item.value">✓</view>
 						</view>
 					</view>
 				</view>
 			</view>
 
 			<!-- 自驾信息 -->
-			<view class="form-section" v-if="formData.travelType === 'self-driving'">
+			<view class="form-section" v-if="formData.travelMode === 'selfDriving'">
 				<view class="section-title">
 					<text class="title-icon">🚙</text>
 					<text class="title-text">车辆信息</text>
@@ -127,8 +114,7 @@
 				<view class="form-item required">
 					<text class="label">车辆类型</text>
 					<view class="input-wrapper">
-						<picker mode="selector" :range="vehicleTypes" range-key="label"
-							@change="onVehicleTypeChange">
+						<picker mode="selector" :range="vehicleTypes" range-key="label" @change="onVehicleTypeChange">
 							<view class="picker">
 								{{ getVehicleTypeLabel() || '请选择车辆类型' }}
 							</view>
@@ -140,22 +126,13 @@
 				<view class="form-item required">
 					<text class="label">车牌号</text>
 					<view class="input-wrapper">
-						<input class="input" v-model="formData.vehicleInfo.plateNumber"
-							placeholder="请输入车牌号，如：京A12345" />
-					</view>
-				</view>
-
-				<!-- 车辆颜色 -->
-				<view class="form-item">
-					<text class="label">车辆颜色</text>
-					<view class="input-wrapper">
-						<input class="input" v-model="formData.vehicleInfo.color" placeholder="请输入车辆颜色" />
+						<input class="input" v-model="formData.licensePlate" placeholder="请输入车牌号" />
 					</view>
 				</view>
 			</view>
 
 			<!-- 观光团信息 -->
-			<view class="form-section" v-if="formData.travelType === 'tour-group'">
+			<view class="form-section" v-if="formData.travelMode === 'tourGroup'">
 				<view class="section-title">
 					<text class="title-icon">👥</text>
 					<text class="title-text">观光团信息</text>
@@ -165,7 +142,7 @@
 				<view class="form-item required">
 					<text class="label">旅行社名称</text>
 					<view class="input-wrapper">
-						<input class="input" v-model="formData.tourInfo.agencyName" placeholder="请输入旅行社名称" />
+						<input class="input" v-model="formData.tourGroupName" placeholder="请输入旅行社名称" />
 					</view>
 				</view>
 
@@ -173,33 +150,7 @@
 				<view class="form-item required">
 					<text class="label">团队编号</text>
 					<view class="input-wrapper">
-						<input class="input" v-model="formData.tourInfo.groupNumber" placeholder="请输入团队编号" />
-					</view>
-				</view>
-
-				<!-- 导游姓名 -->
-				<view class="form-item">
-					<text class="label">导游姓名</text>
-					<view class="input-wrapper">
-						<input class="input" v-model="formData.tourInfo.guideName" placeholder="请输入导游姓名" />
-					</view>
-				</view>
-
-				<!-- 导游电话 -->
-				<view class="form-item">
-					<text class="label">导游电话</text>
-					<view class="input-wrapper">
-						<input class="input" type="number" maxlength="11" v-model="formData.tourInfo.guidePhone"
-							placeholder="请输入导游电话" />
-					</view>
-				</view>
-
-				<!-- 旅游大巴车牌号 -->
-				<view class="form-item required">
-					<text class="label">大巴车牌号</text>
-					<view class="input-wrapper">
-						<input class="input" v-model="formData.tourInfo.busPlateNumber"
-							placeholder="请输入大巴车牌号" />
+						<input class="input" v-model="formData.tourNumber" placeholder="请输入团队编号" />
 					</view>
 				</view>
 			</view>
@@ -212,15 +163,14 @@
 				</view>
 
 				<view class="form-item">
-					<textarea class="textarea" v-model="formData.remark" placeholder="请输入备注信息（选填）"
-						maxlength="200" />
-					<text class="char-count">{{ formData.remark.length }}/200</text>
+					<textarea class="textarea" v-model="formData.remarks" placeholder="请输入备注信息（选填）" maxlength="200" />
+					<text class="char-count">{{ formData.remarks.length }}/200</text>
 				</view>
 			</view>
 		</view>
 
 		<!-- 提交按钮 -->
-		<view class="submit-section">
+		<view class="submit-section" v-if="!formData.bookingId">
 			<button class="submit-btn" @click="handleSubmit">
 				<text class="submit-icon">🌬️</text>
 				<text>立即预约</text>
@@ -230,84 +180,70 @@
 </template>
 
 <script>
+	import {
+		request
+	} from '../../utils/request';
+
 	export default {
 		data() {
 			return {
-				scenicId: '', // 景区ID，从路由参数获取
+				id: '', // 景区ID，从路由参数获取
 				formData: {
-					personCount: 1,
-					contactName: '',
-					phone: '',
-					idCard: '',
-					ageRange: '',
-					bookingDate: '',
-					timePeriod: '', // morning: 上午, afternoon: 下午
-					travelType: '', // shuttle-bus: 景区摆渡车, self-driving: 自驾, tour-group: 观光团
-					vehicleInfo: {
-						type: '',
-						plateNumber: '',
-						color: ''
-					},
-					tourInfo: {
-						agencyName: '',
-						groupNumber: '',
-						guideName: '',
-						guidePhone: '',
-						busPlateNumber: ''
-					},
-					remark: ''
+					name: 'zhang', // 联系人姓名
+					phone: '13261732722', // 联系人手机号
+					idCard: '410621200008210019', // 联系人身份证号
+					bookingDate: '', // 预约日期
+					timeSlot: 'morning', // 预约时间段（morning/afternoon）
+					travelMode: 'selfDriving', // 出行方式（scenicBus/selfDriving/tour_group）
+					licensePlate: '京A12345', // 车牌号（自驾时必填）
+					vehicleType: 'wheelMotorcycle', // 车辆类型（自驾时必填）
+					tourGroupName: '', // 旅游团名称（旅游团时必填）
+					tourOrderNumber: '', // 旅游团订单编号（旅游团时必填）
+					personCount: 1, // 预约人数
+					remarks: '' // 备注信息
 				},
-				ageRanges: ['18岁以下', '18-30岁', '31-45岁', '46-60岁', '60岁以上'],
-				travelTypes: [{
+				travelModeList: [{
 						label: '景区摆渡车',
-						value: 'shuttle-bus',
+						value: 'scenicBus',
 						icon: '🚌'
 					},
 					{
 						label: '自驾出行',
-						value: 'self-driving',
+						value: 'selfDriving',
 						icon: '🚗'
 					},
-					{
-						label: '观光团',
-						value: 'tour-group',
-						icon: '👥'
-					}
+					// {
+					// 	label: '观光团',
+					// 	value: 'tourGroup',
+					// 	icon: '👥'
+					// }
 				],
 				vehicleTypes: [{
-						label: '轿车',
-						value: 'car'
+						label: '摩托',
+						value: 'wheelMotorcycle'
 					},
 					{
-						label: 'SUV',
-						value: 'suv'
+						label: '小型客车',
+						value: 'smallCar'
 					},
-					{
-						label: '商务车',
-						value: 'van'
-					},
-					{
-						label: '客车',
-						value: 'bus'
-					}
 				],
 				minDate: '',
 				maxDate: ''
 			}
 		},
 		onLoad(options) {
-			// 获取景区ID
-			if (options.scenicId) {
-				this.scenicId = options.scenicId;
+			// 检查是否携带 bookingId 参数
+			if (options.bookingId) {
+				this.getBookingDetail(options.bookingId);
+			} else {
+				// 设置日期范围（今天到3个月后）
+				const today = new Date();
+				const maxDay = new Date();
+				maxDay.setMonth(maxDay.getMonth() + 3);
+
+				this.minDate = this.formatDate(today);
+				this.maxDate = this.formatDate(maxDay);
 			}
-
-			// 设置日期范围（今天到3个月后）
-			const today = new Date();
-			const maxDay = new Date();
-			maxDay.setMonth(maxDay.getMonth() + 3);
-
-			this.minDate = this.formatDate(today);
-			this.maxDate = this.formatDate(maxDay);
 		},
 		// 分享配置
 		onShareAppMessage() {
@@ -346,19 +282,19 @@
 			},
 			// 时间段选择
 			onTimePeriodChange(period) {
-				this.formData.timePeriod = period;
+				this.formData.timeSlot = period;
 			},
 			// 出行方式选择
 			onTravelTypeChange(value) {
-				this.formData.travelType = value;
+				this.formData.travelMode = value;
 			},
 			// 车辆类型选择
 			onVehicleTypeChange(e) {
-				this.formData.vehicleInfo.type = this.vehicleTypes[e.detail.value].value;
+				this.formData.vehicleType = this.vehicleTypes[e.detail.value].value;
 			},
 			// 获取车辆类型标签
 			getVehicleTypeLabel() {
-				const type = this.vehicleTypes.find(item => item.value === this.formData.vehicleInfo.type);
+				const type = this.vehicleTypes.find(item => item.value === this.formData.vehicleType);
 				return type ? type.label : '';
 			},
 			// 格式化日期
@@ -395,7 +331,7 @@
 				}
 
 				// 验证联系人姓名
-				if (!this.formData.contactName.trim()) {
+				if (!this.formData.name.trim()) {
 					uni.showToast({
 						title: '请输入联系人姓名',
 						icon: 'none'
@@ -445,40 +381,30 @@
 				}
 
 				// 验证预约时间段
-				if (!this.formData.timePeriod) {
+				if (!this.formData.timeSlot) {
 					uni.showToast({
 						title: '请选择预约时间段',
 						icon: 'none'
 					});
 					return false;
 				}
-
-				// 验证出行方式
-				if (!this.formData.travelType) {
-					uni.showToast({
-						title: '请选择出行方式',
-						icon: 'none'
-					});
-					return false;
-				}
-
 				// 如果是自驾，验证车辆信息
-				if (this.formData.travelType === 'self-driving') {
-					if (!this.formData.vehicleInfo.type) {
+				if (this.formData.travelType === 'selfDriving') {
+					if (!this.formData.vehicleType) {
 						uni.showToast({
 							title: '请选择车辆类型',
 							icon: 'none'
 						});
 						return false;
 					}
-					if (!this.formData.vehicleInfo.plateNumber) {
+					if (!this.formData.licensePlate) {
 						uni.showToast({
 							title: '请输入车牌号',
 							icon: 'none'
 						});
 						return false;
 					}
-					if (!this.validatePlateNumber(this.formData.vehicleInfo.plateNumber)) {
+					if (!this.validatePlateNumber(this.formData.licensePlate)) {
 						uni.showToast({
 							title: '请输入正确的车牌号',
 							icon: 'none'
@@ -487,37 +413,37 @@
 					}
 				}
 
-				// 如果是观光团，验证观光团信息
-				if (this.formData.travelType === 'tour-group') {
-					if (!this.formData.tourInfo.agencyName.trim()) {
-						uni.showToast({
-							title: '请输入旅行社名称',
-							icon: 'none'
-						});
-						return false;
-					}
-					if (!this.formData.tourInfo.groupNumber.trim()) {
-						uni.showToast({
-							title: '请输入团队编号',
-							icon: 'none'
-						});
-						return false;
-					}
-					if (!this.formData.tourInfo.busPlateNumber) {
-						uni.showToast({
-							title: '请输入大巴车牌号',
-							icon: 'none'
-						});
-						return false;
-					}
-					if (!this.validatePlateNumber(this.formData.tourInfo.busPlateNumber)) {
-						uni.showToast({
-							title: '请输入正确的大巴车牌号',
-							icon: 'none'
-						});
-						return false;
-					}
-				}
+				// // 如果是观光团，验证观光团信息
+				// if (this.formData.travelType === 'tour-group') {
+				// 	if (!this.formData.tourInfo.agencyName.trim()) {
+				// 		uni.showToast({
+				// 			title: '请输入旅行社名称',
+				// 			icon: 'none'
+				// 		});
+				// 		return false;
+				// 	}
+				// 	if (!this.formData.tourInfo.groupNumber.trim()) {
+				// 		uni.showToast({
+				// 			title: '请输入团队编号',
+				// 			icon: 'none'
+				// 		});
+				// 		return false;
+				// 	}
+				// 	if (!this.formData.tourInfo.busPlateNumber) {
+				// 		uni.showToast({
+				// 			title: '请输入大巴车牌号',
+				// 			icon: 'none'
+				// 		});
+				// 		return false;
+				// 	}
+				// 	if (!this.validatePlateNumber(this.formData.tourInfo.busPlateNumber)) {
+				// 		uni.showToast({
+				// 			title: '请输入正确的大巴车牌号',
+				// 			icon: 'none'
+				// 		});
+				// 		return false;
+				// 	}
+				// }
 
 				return true;
 			},
@@ -532,37 +458,54 @@
 				uni.showLoading({
 					title: '提交中...'
 				});
-
-				// 模拟提交
-				setTimeout(() => {
-					uni.hideLoading();
-
-					// 提交成功
-					uni.showModal({
-						title: '预约成功',
-						content: '您的预约已提交，请在预约记录中查看',
-						showCancel: false,
-						success: () => {
-							// 跳转到预约记录页面
-							uni.switchTab({
-								url: '/pages/booking/booking'
-							});
-						}
-					});
-
-					// 实际项目中，这里应该调用API提交数据
-					// uni.request({
-					//     url: 'your-api-url',
-					//     method: 'POST',
-					//     data: this.formData,
-					//     success: (res) => {
-					//         // 处理成功
-					//     },
-					//     fail: (err) => {
-					//         // 处理失败
-					//     }
-					// });
-				}, 1500);
+				// 直接提交 formData，字段与后端保持一致
+				const submitData = {
+				    ...this.formData,
+				    wechatOpenId: uni.getStorageSync('openid')
+				};
+				request({
+					method: 'POST',
+					url: '/bookings',
+					data: submitData
+				}).then(res => {
+                                    if(res.success) {
+                                        uni.showToast({
+                                            title: '预约成功',
+                                            icon: 'success'
+                                        });
+                                        uni.switchTab({
+                                            url: '/pages/booking/booking'
+                                        });
+                                    } else {
+                                        uni.showToast({
+                                            title: '预约失败，请稍后再试',
+                                            icon: 'error'
+                                        });
+                                    }
+				}).catch(err => {
+                                    console.log('预约提交失败:', err);
+                                    uni.showToast({
+                                        title: err.data?.message || '预约失败，请稍后再试',
+                                        icon: 'error'
+                                    });
+                                }).finally(() => {
+                                    uni.hideLoading();
+                                });
+			},
+			// 获取预约详情
+			getBookingDetail(bookingId) {
+				request({
+					method: 'GET',
+					url: `/bookings/${bookingId}`
+				}).then(res => {
+					if (res.success && res.data) {
+						this.formData = res.data;
+					} else {
+						uni.showToast({ title: '加载详情失败', icon: 'none' });
+					}
+				}).catch(err => {
+					uni.showToast({ title: '加载详情失败', icon: 'none' });
+				});
 			}
 		}
 	}

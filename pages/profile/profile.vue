@@ -8,40 +8,22 @@
 					<text class="username">{{ userInfo.name }}</text>
 					<text class="user-phone">{{ userInfo.phone }}</text>
 				</view>
-				<button class="edit-btn" @click="editProfile">编辑</button>
 			</view>
 
 			<view class="user-stats">
 				<view class="stat-item" @click="goToBooking(1)">
 					<text class="stat-number">{{ userStats.pending }}</text>
-					<text class="stat-label">待使用</text>
+					<text class="stat-label">已完成</text>
 				</view>
 				<view class="stat-divider"></view>
 				<view class="stat-item" @click="goToBooking(2)">
 					<text class="stat-number">{{ userStats.completed }}</text>
-					<text class="stat-label">已完成</text>
+					<text class="stat-label">已取消</text>
 				</view>
-				<view class="stat-divider"></view>
-				<view class="stat-item" @click="goToCollection">
-					<text class="stat-number">{{ userStats.collection }}</text>
-					<text class="stat-label">收藏</text>
-				</view>
+
 			</view>
 		</view>
 
-		<!-- 会员卡片 -->
-		<view class="vip-card">
-			<view class="vip-content">
-				<view class="vip-left">
-					<text class="vip-title">{{ userInfo.vipLevel }}</text>
-					<text class="vip-desc">享受专属优惠</text>
-				</view>
-				<view class="vip-right">
-					<text class="vip-points">积分: {{ userInfo.points }}</text>
-					<button class="vip-btn" @click="goToVip">升级 ›</button>
-				</view>
-			</view>
-		</view>
 
 		<!-- 功能菜单 -->
 		<view class="menu-section">
@@ -53,42 +35,7 @@
 					</view>
 					<text class="menu-arrow">›</text>
 				</view>
-				<view class="menu-item" @click="handleMenuClick('collection')">
-					<view class="menu-left">
-						<text class="menu-icon">⭐</text>
-						<text class="menu-text">我的收藏</text>
-					</view>
-					<text class="menu-arrow">›</text>
-				</view>
-				<view class="menu-item" @click="handleMenuClick('coupon')">
-					<view class="menu-left">
-						<text class="menu-icon">🎫</text>
-						<text class="menu-text">优惠券</text>
-						<view class="badge" v-if="couponCount > 0">{{ couponCount }}</view>
-					</view>
-					<text class="menu-arrow">›</text>
-				</view>
-			</view>
-
-			<view class="menu-group">
-				<view class="menu-item" @click="handleMenuClick('id-card')">
-					<view class="menu-left">
-						<text class="menu-icon">🪪</text>
-						<text class="menu-text">常用证件</text>
-					</view>
-					<text class="menu-arrow">›</text>
-				</view>
-				<view class="menu-item" @click="handleMenuClick('address')">
-					<view class="menu-left">
-						<text class="menu-icon">📍</text>
-						<text class="menu-text">地址管理</text>
-					</view>
-					<text class="menu-arrow">›</text>
-				</view>
-			</view>
-
-			<view class="menu-group">
-				<view class="menu-item" @click="handleMenuClick('help')">
+                                <view class="menu-item" @click="handleMenuClick('help')">
 					<view class="menu-left">
 						<text class="menu-icon">❓</text>
 						<text class="menu-text">帮助中心</text>
@@ -102,16 +49,9 @@
 					</view>
 					<text class="menu-arrow">›</text>
 				</view>
-				<view class="menu-item" @click="handleMenuClick('about')">
-					<view class="menu-left">
-						<text class="menu-icon">ℹ️</text>
-						<text class="menu-text">关于我们</text>
-					</view>
-					<text class="menu-arrow">›</text>
-				</view>
 			</view>
 
-			<view class="menu-group">
+			<!-- <view class="menu-group">
 				<view class="menu-item" @click="handleMenuClick('settings')">
 					<view class="menu-left">
 						<text class="menu-icon">⚙️</text>
@@ -119,12 +59,7 @@
 					</view>
 					<text class="menu-arrow">›</text>
 				</view>
-			</view>
-		</view>
-
-		<!-- 退出登录按钮 -->
-		<view class="logout-section">
-			<button class="logout-btn" @click="handleLogout">退出登录</button>
+			</view> -->
 		</view>
 	</view>
 </template>

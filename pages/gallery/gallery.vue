@@ -95,19 +95,19 @@ export default {
 					{
 						id: 3,
 						name: '日落观景点',
-						image: '/static/image3.jpg',
+						image: 'https://s41.ax1x.com/2026/03/12/peAEG8K.jpg',
 						desc: '观日出最佳位置'
 					},
 					{
 						id: 4,
 						name: '云海平台',
-						image: '/static/image7.jpg',
+						image: 'https://s41.ax1x.com/2026/03/12/peAENKe.jpg',
 						desc: '云雾缭绕仙境'
 					},
                                         {
 						id: 1,
 						name: '风车观景台',
-						image: '/static/image2.jpg',
+						image: 'https://s41.ax1x.com/2026/03/12/peAE14x.jpg',
 						desc: '最佳观赏点'
 					},
 				]

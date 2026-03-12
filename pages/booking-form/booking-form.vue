@@ -172,7 +172,7 @@
 		<!-- 提交按钮 -->
 		<view class="submit-section" v-if="!formData.bookingId">
 			<button class="submit-btn" @click="handleSubmit">
-				<text class="submit-icon">🌬️</text>
+				<text class="submit-icon"></text>
 				<text>立即预约</text>
 			</button>
 		</view>
@@ -473,7 +473,7 @@
                                             title: '预约成功',
                                             icon: 'success'
                                         });
-                                        uni.switchTab({
+                                        uni.reLaunch({
                                             url: '/pages/booking/booking'
                                         });
                                     } else {

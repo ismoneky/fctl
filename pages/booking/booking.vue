@@ -210,7 +210,7 @@ export default {
             });
         },
         goToHome() {
-            uni.switchTab({
+            uni.reLaunch({
                 url: '/pages/index/index'
             });
         },

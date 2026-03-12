@@ -127,7 +127,7 @@ export default {
             // });
         },
         goToBooking(tabIndex) {
-            uni.switchTab({
+            uni.reLaunch({
                 url: '/pages/booking/booking'
             });
             // 可以通过事件总线传递tab索引

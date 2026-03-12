@@ -13,6 +13,7 @@
 
 <style>
 	/*每个页面公共css */
+@import '/static/iconfont.css';
 page, view, text, image, button {
 	box-sizing: border-box;
 	margin: 0;

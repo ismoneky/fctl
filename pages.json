@@ -31,6 +31,22 @@
 				"navigationBarBackgroundColor": "#667eea",
 				"navigationBarTextStyle": "white"
 			}
+		},
+		{
+			"path": "pages/booking-detail/booking-detail",
+			"style": {
+				"navigationBarTitleText": "预约详情",
+				"navigationBarBackgroundColor": "#667eea",
+				"navigationBarTextStyle": "white"
+			}
+		},
+		{
+			"path": "pages/gallery/gallery",
+			"style": {
+				"navigationBarTitleText": "风车美景",
+				"navigationBarBackgroundColor": "#667eea",
+				"navigationBarTextStyle": "white"
+			}
 		}
 	],
 	"globalStyle": {
@@ -40,28 +56,5 @@
 		"backgroundColor": "#F8F8F8",
 		"navigationStyle": "default",
 		"enablePullDownRefresh": false
-	},
-	"tabBar": {
-		"color": "#7A7E83",
-		"selectedColor": "#667eea",
-		"borderStyle": "white",
-		"backgroundColor": "#ffffff",
-		"fontSize": "12px",
-		"height": "50px",
-		"list": [
-			{
-				"pagePath": "pages/index/index",
-				"text": "🌬️ 首页"
-			},
-			{
-				"pagePath": "pages/booking/booking",
-				"text": "📋 预约"
-			},
-			{
-				"pagePath": "pages/profile/profile",
-				"text": "👤 我的"
-			}
-		]
-	},
-	"uniIdRouter": {}
+	}
 }

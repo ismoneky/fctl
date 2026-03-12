@@ -3,7 +3,9 @@
     "pages/index/index",
     "pages/booking/booking",
     "pages/profile/profile",
-    "pages/booking-form/booking-form"
+    "pages/booking-form/booking-form",
+    "pages/booking-detail/booking-detail",
+    "pages/gallery/gallery"
   ],
   "window": {
     "navigationBarTextStyle": "white",
@@ -12,26 +14,6 @@
     "backgroundColor": "#F8F8F8",
     "navigationStyle": "default",
     "enablePullDownRefresh": false
-  },
-  "tabBar": {
-    "color": "#7A7E83",
-    "selectedColor": "#667eea",
-    "borderStyle": "white",
-    "backgroundColor": "#ffffff",
-    "list": [
-      {
-        "pagePath": "pages/index/index",
-        "text": "🌬️ 首页"
-      },
-      {
-        "pagePath": "pages/booking/booking",
-        "text": "📋 预约"
-      },
-      {
-        "pagePath": "pages/profile/profile",
-        "text": "👤 我的"
-      }
-    ]
   },
   "usingComponents": {}
 }

@@ -2,5 +2,7 @@
   "navigationBarTitleText": "预约记录",
   "navigationBarBackgroundColor": "#667eea",
   "navigationBarTextStyle": "white",
-  "usingComponents": {}
+  "usingComponents": {
+    "my-tab-bar": "../../components/my-tab-bar"
+  }
 }

@@ -2,5 +2,7 @@
   "navigationBarTitleText": "个人中心",
   "navigationBarBackgroundColor": "#667eea",
   "navigationBarTextStyle": "white",
-  "usingComponents": {}
+  "usingComponents": {
+    "my-tab-bar": "../../components/my-tab-bar"
+  }
 }

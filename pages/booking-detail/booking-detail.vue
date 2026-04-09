@@ -116,6 +116,18 @@
 					<view class="detail-value">{{ formData.remarks }}</view>
 				</view>
 			</view>
+
+			<!-- 核验二维码 - 仅已支付状态显示 -->
+			<view class="form-section qr-section" v-if="formData.status === 'confirmed' && formData.verifyUrl">
+				<view class="section-title">
+					<text class="title-icon">🔍</text>
+					<text class="title-text">入场核验</text>
+				</view>
+				<view class="qr-container">
+					<image class="qr-code" :src="qrCodeUrl" mode="aspectFit" />
+					<text class="qr-tip">请向管理员出示此二维码进行核验</text>
+				</view>
+			</view>
 		</view>
 	</view>
 </template>
@@ -140,7 +152,9 @@
 					tourGroupName: '', // 旅游团名称（旅游团时必填）
 					tourOrderNumber: '', // 旅游团订单编号（旅游团时必填）
 					personCount: 1, // 预约人数
-					remarks: '' // 备注信息
+					remarks: '', // 备注信息
+					status: '', // 订单状态
+					verifyUrl: '' // 核验链接
 				},
 				vehicleTypes: [{
 						label: '摩托',
@@ -151,6 +165,16 @@
 						value: 'smallCar'
 					},
 				],
+			}
+		},
+		computed: {
+			// 生成二维码图片URL
+			qrCodeUrl() {
+				if (!this.formData.verifyUrl) return '';
+				// 使用微信小程序二维码生成API
+				// 将核验链接编码后生成二维码图片
+				const encodedUrl = encodeURIComponent(this.formData.verifyUrl);
+				return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodedUrl}`;
 			}
 		},
 		onLoad(options) {
@@ -302,5 +326,41 @@
 		word-break: break-all;
 		text-align: left;
 		flex: 1;
+	}
+
+	/* 二维码区域 */
+	.qr-section {
+		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	}
+
+	.qr-section .section-title {
+		border-bottom-color: rgba(255, 255, 255, 0.2);
+	}
+
+	.qr-section .title-text {
+		color: #fff;
+	}
+
+	.qr-container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		padding: 20rpx 0;
+	}
+
+	.qr-code {
+		width: 400rpx;
+		height: 400rpx;
+		background: #fff;
+		border-radius: 20rpx;
+		padding: 20rpx;
+		box-shadow: 0 8rpx 30rpx rgba(0, 0, 0, 0.2);
+	}
+
+	.qr-tip {
+		margin-top: 30rpx;
+		font-size: 28rpx;
+		color: #fff;
+		text-align: center;
 	}
 </style>

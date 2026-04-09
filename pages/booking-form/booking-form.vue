@@ -468,29 +468,130 @@
 					url: '/bookings',
 					data: submitData
 				}).then(res => {
-                                    if(res.success) {
-                                        uni.showToast({
-                                            title: '预约成功',
-                                            icon: 'success'
-                                        });
-                                        uni.reLaunch({
-                                            url: '/pages/booking/booking'
-                                        });
-                                    } else {
-                                        uni.showToast({
-                                            title: '预约失败，请稍后再试',
-                                            icon: 'error'
-                                        });
-                                    }
+				                    if(res.success) {
+				                        const bookingId = res.data.bookingId;
+				                        // 调用支付接口
+				                        this.handlePayment(bookingId);
+				                    } else {
+				                        uni.showToast({
+				                            title: '预约失败，请稍后再试',
+				                            icon: 'error'
+				                        });
+				                    }
 				}).catch(err => {
-                                    console.log('预约提交失败:', err);
-                                    uni.showToast({
-                                        title: err.data?.message || '预约失败，请稍后再试',
-                                        icon: 'error'
-                                    });
-                                }).finally(() => {
-                                    uni.hideLoading();
-                                });
+				                    console.log('预约提交失败:', err);
+				                    uni.showToast({
+				                        title: err.data?.message || '预约失败，请稍后再试',
+				                        icon: 'error'
+				                    });
+				                }).finally(() => {
+				                    uni.hideLoading();
+				                });
+			},
+			// 处理支付
+			handlePayment(bookingId) {
+				uni.showLoading({
+					title: '准备支付...'
+				});
+				request({
+					method: 'POST',
+					url: `/bookings/${bookingId}/pay`,
+					data: {
+						wechatOpenId: uni.getStorageSync('openid')
+					}
+				}).then(res => {
+					if (res.success) {
+						const payParams = res.data;
+						// 发起微信支付
+						uni.requestPayment({
+							provider: 'wxpay',
+							timeStamp: payParams.timeStamp,
+							nonceStr: payParams.nonceStr,
+							package: payParams.package,
+							signType: payParams.signType,
+							paySign: payParams.paySign,
+							success: (res) => {
+								// 支付成功，开始轮询支付状态
+								this.pollPaymentStatus(bookingId);
+							},
+							fail: (err) => {
+								uni.showToast({
+									title: '支付失败',
+									icon: 'error'
+								});
+							}
+						});
+					} else {
+						uni.showToast({
+							title: '获取支付参数失败',
+							icon: 'error'
+						});
+					}
+				}).catch(err => {
+					console.log('获取支付参数失败:', err);
+					uni.showToast({
+						title: '获取支付参数失败，请稍后再试',
+						icon: 'error'
+					});
+				}).finally(() => {
+					uni.hideLoading();
+				});
+			},
+			// 轮询支付状态
+			pollPaymentStatus(bookingId) {
+				const maxAttempts = 30;
+				let attempts = 0;
+				const pollInterval = 1000;
+
+				const poll = () => {
+					if (attempts >= maxAttempts) {
+						uni.showToast({
+							title: '支付状态查询超时',
+							icon: 'error'
+						});
+						return;
+					}
+
+					request({
+						method: 'GET',
+						url: `/bookings/${bookingId}/pay-status`
+					}).then(res => {
+						if (res.success) {
+							const status = res.data.status;
+							if (status === 'SUCCESS') {
+								uni.showToast({
+									title: '支付成功',
+									icon: 'success'
+								});
+								// 跳转到预约列表
+								uni.reLaunch({
+									url: '/pages/booking/booking'
+								});
+							} else if (status === 'FAILED') {
+								uni.showToast({
+									title: '支付失败',
+									icon: 'error'
+								});
+							} else {
+								// 继续轮询
+								attempts++;
+								setTimeout(poll, pollInterval);
+							}
+						} else {
+							// 继续轮询
+							attempts++;
+							setTimeout(poll, pollInterval);
+						}
+					}).catch(err => {
+						console.log('查询支付状态失败:', err);
+						// 继续轮询
+						attempts++;
+						setTimeout(poll, pollInterval);
+					});
+				};
+
+				// 开始轮询
+				poll();
 			},
 			// 获取预约详情
 			getBookingDetail(bookingId) {

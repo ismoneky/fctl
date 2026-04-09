@@ -2,5 +2,7 @@
   "navigationBarTitleText": "风车天路",
   "navigationBarBackgroundColor": "#667eea",
   "navigationBarTextStyle": "white",
-  "usingComponents": {}
+  "usingComponents": {
+    "my-tab-bar": "../../components/my-tab-bar"
+  }
 }

@@ -2,7 +2,7 @@
 
 // 通用请求封装
 export const request = (options) => {
-    const baseURL = 'http://localhost:3000'; // 根据环境切换
+    const baseURL = 'http://hbfctl.com.cn/api'; // 根据环境切换
     return new Promise((resolve, reject) => {
         uni.request({
             url: baseURL + options.url, // 请求地址

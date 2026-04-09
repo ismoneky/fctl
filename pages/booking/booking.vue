@@ -8,12 +8,20 @@
                     <view class="tab-line" v-if="currentTab === 0"></view>
                 </view>
                 <view class="tab-item" :class="{ active: currentTab === 1 }" @click="switchTab(1)">
-                    <text class="tab-text">已完成</text>
+                    <text class="tab-text">待支付</text>
                     <view class="tab-line" v-if="currentTab === 1"></view>
                 </view>
                 <view class="tab-item" :class="{ active: currentTab === 2 }" @click="switchTab(2)">
-                    <text class="tab-text">已取消</text>
+                    <text class="tab-text">已支付</text>
                     <view class="tab-line" v-if="currentTab === 2"></view>
+                </view>
+                <view class="tab-item" :class="{ active: currentTab === 3 }" @click="switchTab(3)">
+                    <text class="tab-text">已完成</text>
+                    <view class="tab-line" v-if="currentTab === 3"></view>
+                </view>
+                <view class="tab-item" :class="{ active: currentTab === 4 }" @click="switchTab(4)">
+                    <text class="tab-text">已取消</text>
+                    <view class="tab-line" v-if="currentTab === 4"></view>
                 </view>
             </view>
 
@@ -50,9 +58,12 @@
                         </view>
                     </view>
 
-                    <view class="booking-footer" v-if="item.status === 'none'">
+                    <view class="booking-footer" v-if="item.status === 'pending'">
                         <button class="btn btn-cancel" @click="showCancelDialog(item)">取消预约</button>
                         <button class="btn btn-primary" @click="viewDetail(item)">查看详情</button>
+                    </view>
+                    <view class="booking-footer" v-else-if="item.status === 'confirmed'">
+                        <button class="btn btn-default" @click="viewDetail(item)">查看详情</button>
                     </view>
                     <view class="booking-footer" v-else-if="item.status === 'completed'">
                         <button class="btn btn-default" @click="viewDetail(item)">查看详情</button>
@@ -137,6 +148,23 @@ export default {
     methods: {
         getList() {
             const openid = uni.getStorageSync('openid');
+            let status = null;
+            switch (this.currentTab) {
+                case 1:
+                    status = 'pending';
+                    break;
+                case 2:
+                    status = 'confirmed';
+                    break;
+                case 3:
+                    status = 'completed';
+                    break;
+                case 4:
+                    status = 'cancelled';
+                    break;
+                default:
+                    status = null;
+            }
             request({
                 method: 'GET',
                 url: '/bookings',
@@ -144,7 +172,7 @@ export default {
                     wechatOpenId: openid,
                     page: 1,
                     pageSize: 99,
-                    status: this.currentTab === 0 ? "none" : this.currentTab === 1 ? 'completed' : 'cancelled'
+                    status: status
                 }
             }).then(res => {
                 console.log("订单列表", res);
@@ -164,8 +192,11 @@ export default {
         },
         getStatusText(status) {
             const statusMap = {
+                pending: '待支付',
+                confirmed: '已支付',
                 completed: '已完成',
-                cancelled: '已取消'
+                cancelled: '已取消',
+                refunded: '已退款'
             };
             return statusMap[status] || '';
         },
@@ -325,6 +356,11 @@ export default {
     color: #ff9800;
 }
 
+.status-confirmed {
+    background: #e3f2fd;
+    color: #2196f3;
+}
+
 .status-completed {
     background: #e8f5e9;
     color: #4caf50;
@@ -333,6 +369,11 @@ export default {
 .status-cancelled {
     background: #fce4ec;
     color: #e91e63;
+}
+
+.status-refunded {
+    background: #f3e5f5;
+    color: #9c27b0;
 }
 
 .booking-content {

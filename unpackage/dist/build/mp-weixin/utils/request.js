@@ -1,0 +1,1 @@
+"use strict";const e=require("../common/vendor.js");exports.request=t=>new Promise(((s,o)=>{e.index.request({url:"http://localhost:3000"+t.url,method:t.method||"GET",data:t.data||{},header:t.header||{},timeout:t.timeout||6e4,success:e=>{e.statusCode>=200&&e.statusCode<300?s(e.data):o(e)},fail:e=>{o(e)}})}));

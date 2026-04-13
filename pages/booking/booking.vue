@@ -163,17 +163,19 @@ export default {
                     status = 'cancelled';
                     break;
                 default:
-                    status = null;
+                    status = '';
             }
+			const parmas = {
+                    page: 1,
+                    pageSize: 99,
+            }
+			if(status) {
+				parmas.status = status
+			}
             request({
                 method: 'GET',
                 url: '/bookings',
-                data: {
-                    wechatOpenId: openid,
-                    page: 1,
-                    pageSize: 99,
-                    status: status
-                }
+                data: parmas
             }).then(res => {
                 console.log("订单列表", res);
                 if (res.success && res.data) {

@@ -198,12 +198,12 @@ export default {
                             }
                         });
                         // 适配后端返回格式
-                        if (res.success && res.data && res.data.openid) {
+                        if (res.success && res.data) {
                             // 可根据需要保存 openid、session_key
-                            uni.setStorageSync('openid', res.data.openid);
-                            uni.setStorageSync('session_key', res.data.session_key);
+                            // uni.setStorageSync('openid', res.data.openid);
+                            // uni.setStorageSync('session_key', res.data.session_key);
                             // 你可以自定义 token 逻辑，这里用 openid 作为登录标识
-                            uni.setStorageSync('token', res.data.openid);
+                            uni.setStorageSync('token', res.data.token);
                         } else {
                             uni.showToast({ title: '微信登录失败', icon: 'none' });
                         }

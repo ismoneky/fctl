@@ -494,9 +494,9 @@ export default {
 			});
 			request({
 				method: 'POST',
-				url: `/bookings/${bookingId}/pay`,
+				url: `bookings/${bookingId}/pay`,
 				data: {
-					wechatOpenId: uni.getStorageSync('openid')
+				    wechatOpenId: uni.getStorageSync('openid')
 				}
 			}).then(res => {
 				if (res.success) {
@@ -552,7 +552,7 @@ export default {
 				retries++;
 				request({
 					method: 'GET',
-					url: `/bookings/${bookingId}/pay-status`
+					url: `bookings/${bookingId}/pay-status`
 				}).then(res => {
 					if (res.success) {
 						const status = res.data.status;

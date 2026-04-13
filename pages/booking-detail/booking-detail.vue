@@ -31,7 +31,7 @@
 					<text class="label">身份证号</text>
 					<view class="detail-value">{{ formData.idCard }}</view>
 				</view>
-
+                
 				<!-- 预约日期 -->
 				<view class="form-item">
 					<text class="label">预约日期</text>

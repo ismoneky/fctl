@@ -137,12 +137,18 @@ export default {
     // 		imageUrl: ''
     // 	}
     // },
-    onLoad() {
-        console.log('Booking page loaded');
+    onLoad(options) {
+        if (options.tab !== undefined) {
+            this.currentTab = parseInt(options.tab) || 0;
+        }
         this.getList();
     },
     onShow() {
-        console.log('Booking page shown');
+        const tab = uni.getStorageSync('bookingInitTab');
+        if (tab !== '' && tab !== undefined) {
+            this.currentTab = parseInt(tab);
+            uni.removeStorageSync('bookingInitTab');
+        }
         this.getList();
     },
     methods: {

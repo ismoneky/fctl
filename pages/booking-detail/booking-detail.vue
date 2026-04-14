@@ -154,7 +154,7 @@
 					personCount: 1, // 预约人数
 					remarks: '', // 备注信息
 					status: '', // 订单状态
-					verifyUrl: '' // 核验链接
+					bookingId: '' // 核验链接
 				},
 				vehicleTypes: [{
 						label: '摩托',
@@ -170,10 +170,10 @@
 		computed: {
 			// 生成二维码图片URL
 			qrCodeUrl() {
-				if (!this.formData.verifyUrl) return '';
+				if (!this.formData.bookingId) return '';
 				// 使用微信小程序二维码生成API
 				// 将核验链接编码后生成二维码图片
-				const encodedUrl = encodeURIComponent(this.formData.verifyUrl);
+				const encodedUrl = encodeURIComponent(this.formData.bookingId);
 				return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodedUrl}`;
 			}
 		},

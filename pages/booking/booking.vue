@@ -12,7 +12,7 @@
                     <view class="tab-line" v-if="currentTab === 1"></view>
                 </view>
                 <view class="tab-item" :class="{ active: currentTab === 2 }" @click="switchTab(2)">
-                    <text class="tab-text">已支付</text>
+                    <text class="tab-text">待使用</text>
                     <view class="tab-line" v-if="currentTab === 2"></view>
                 </view>
                 <view class="tab-item" :class="{ active: currentTab === 3 }" @click="switchTab(3)">
@@ -201,7 +201,7 @@ export default {
         getStatusText(status) {
             const statusMap = {
                 pending: '待支付',
-                confirmed: '已支付',
+                confirmed: '待使用',
                 completed: '已完成',
                 cancelled: '已取消',
                 refunded: '已退款'

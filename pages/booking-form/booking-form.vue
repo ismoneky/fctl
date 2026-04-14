@@ -182,6 +182,7 @@
 import {
 	request
 } from '../../utils/request';
+import { handlePayment, pollPaymentStatus } from '../../utils/payment';
 
 export default {
 	data() {
@@ -487,113 +488,9 @@ export default {
 				uni.hideLoading();
 			});
 		},
-		// 处理支付
+		// 处理支付（使用公共方法）
 		handlePayment(bookingId) {
-			uni.showLoading({
-				title: '准备支付...'
-			});
-			request({
-				method: 'POST',
-				url: `bookings/${bookingId}/pay`,
-				data: {
-				    wechatOpenId: uni.getStorageSync('openid')
-				}
-			}).then(res => {
-				if (res.success) {
-					const payParams = res.data;
-					// 发起微信支付
-					uni.requestPayment({
-						provider: 'wxpay',
-						appId: payParams.appId,
-						timeStamp: payParams.timeStamp,
-						nonceStr: payParams.nonceStr,
-						package: payParams.package,
-						signType: payParams.signType,
-						paySign: payParams.paySign,
-						success: () => {
-							// wx.requestPayment success 不等于支付成功，需调后端查单确认
-							this.pollPaymentStatus(bookingId);
-						},
-						fail: (err) => {
-							if (err.errMsg && err.errMsg.includes('cancel')) {
-								uni.showToast({
-									title: '已取消支付',
-									icon: 'none'
-								});
-							} else {
-								// 其他失败也需查单确认实际状态
-								this.pollPaymentStatus(bookingId);
-							}
-						}
-					});
-				} else {
-					uni.showToast({
-						title: '获取支付参数失败',
-						icon: 'error'
-					});
-				}
-			}).catch(err => {
-				console.log('获取支付参数失败:', err);
-				uni.showToast({
-					title: '获取支付参数失败，请稍后再试',
-					icon: 'error'
-				});
-			}).finally(() => {
-				uni.hideLoading();
-			});
-		},
-		// 轮询支付状态
-		pollPaymentStatus(bookingId) {
-			const MAX_RETRIES = 5;
-			const INTERVAL = 3000;
-			let retries = 0;
-
-			const timer = setInterval(() => {
-				retries++;
-				request({
-					method: 'GET',
-					url: `bookings/${bookingId}/pay-status`
-				}).then(res => {
-					if (res.success) {
-						const status = res.data.status;
-						if (status === 'paid') {
-							clearInterval(timer);
-							uni.showToast({
-								title: '支付成功',
-								icon: 'success'
-							});
-							// 跳转到预约列表
-							uni.reLaunch({
-								url: '/pages/booking/booking'
-							});
-						} else if (retries >= MAX_RETRIES) {
-							clearInterval(timer);
-							uni.showToast({
-								title: '支付状态确认中，请稍后刷新订单页面查看',
-								icon: 'none',
-								duration: 3000
-							});
-						}
-					} else if (retries >= MAX_RETRIES) {
-						clearInterval(timer);
-						uni.showToast({
-							title: '支付状态确认中，请稍后刷新订单页面查看',
-							icon: 'none',
-							duration: 3000
-						});
-					}
-				}).catch(err => {
-					console.log('查询支付状态失败:', err);
-					if (retries >= MAX_RETRIES) {
-						clearInterval(timer);
-						uni.showToast({
-							title: '支付状态确认中，请稍后刷新订单页面查看',
-							icon: 'none',
-							duration: 3000
-						});
-					}
-				});
-			}, INTERVAL);
+			handlePayment(bookingId);
 		},
 		// 获取预约详情
 		getBookingDetail(bookingId) {

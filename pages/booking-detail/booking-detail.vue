@@ -1,6 +1,32 @@
 <template>
 	<view class="container">
 		<view class="form-container">
+
+			<!-- 订单状态栏 -->
+			<view class="status-bar" :class="'status-bar-' + formData.status" v-if="formData.status">
+				<text class="status-bar-icon">{{ statusConfig[formData.status].icon }}</text>
+				<view class="status-bar-info">
+					<text class="status-bar-label">{{ statusConfig[formData.status].label }}</text>
+					<text class="status-bar-desc">{{ statusConfig[formData.status].desc }}</text>
+				</view>
+			</view>
+
+			<!-- 待支付倒计时 -->
+			<view class="countdown-card" v-if="formData.status === 'pending' && countdown > 0">
+				<text class="countdown-tip">请在以下时间内完成支付，超时订单将自动关闭</text>
+				<view class="countdown-time">
+					<view class="time-block">
+						<text class="time-num">{{ countdownDisplay.mm }}</text>
+						<text class="time-unit">分</text>
+					</view>
+					<text class="time-sep">:</text>
+					<view class="time-block">
+						<text class="time-num">{{ countdownDisplay.ss }}</text>
+						<text class="time-unit">秒</text>
+					</view>
+				</view>
+			</view>
+
 			<!-- 基本信息 -->
 			<view class="form-section">
 				<view class="section-title">
@@ -117,16 +143,24 @@
 				</view>
 			</view>
 
-			<!-- 核验二维码 - 仅已支付状态显示 -->
-			<view class="form-section qr-section" v-if="formData.status === 'confirmed' && formData.verifyUrl">
-				<view class="section-title">
-					<text class="title-icon">🔍</text>
-					<text class="title-text">入场核验</text>
+			<!-- 核验二维码 - 仅待使用状态显示 -->
+			<view class="qr-section" v-if="formData.status === 'confirmed' && formData.bookingId">
+				<view class="qr-card">
+					<text class="qr-card-title">入场核验码</text>
+					<text class="qr-card-subtitle">请向管理员出示此二维码</text>
+					<view class="qr-code-wrap">
+						<image class="qr-code" :src="qrCodeUrl" mode="aspectFit" />
+					</view>
+					<text class="qr-booking-id">订单号：{{ formData.bookingId }}</text>
 				</view>
-				<view class="qr-container">
-					<image class="qr-code" :src="qrCodeUrl" mode="aspectFit" />
-					<text class="qr-tip">请向管理员出示此二维码进行核验</text>
+				<view class="action-bar">
+					<view class="refund-btn" @tap="onRefund">申请退款</view>
 				</view>
+			</view>
+
+			<!-- 待支付 - 支付按钮 -->
+			<view class="action-bar" v-if="formData.status === 'pending'">
+				<view class="pay-btn" @tap="onPay">立即支付</view>
 			</view>
 		</view>
 	</view>
@@ -136,51 +170,63 @@
 	import {
 		request
 	} from '../../utils/request';
+	import { handlePayment } from '../../utils/payment';
 
 	export default {
 		data() {
 			return {
 				formData: {
-					name: '', // 联系人姓名
-					phone: '', // 联系人手机号
-					idCard: '', // 联系人身份证号
-					bookingDate: '', // 预约日期
-					timeSlot: '', // 预约时间段（morning/afternoon）
-					travelMode: '', // 出行方式（scenicBus/selfDriving/tour_group）
-					licensePlate: '', // 车牌号（自驾时必填）
-					vehicleType: '', // 车辆类型（自驾时必填）
-					tourGroupName: '', // 旅游团名称（旅游团时必填）
-					tourOrderNumber: '', // 旅游团订单编号（旅游团时必填）
-					personCount: 1, // 预约人数
-					remarks: '', // 备注信息
-					status: '', // 订单状态
-					bookingId: '' // 核验链接
+					name: '',
+					phone: '',
+					idCard: '',
+					bookingDate: '',
+					timeSlot: '',
+					travelMode: '',
+					licensePlate: '',
+					vehicleType: '',
+					tourGroupName: '',
+					tourOrderNumber: '',
+					personCount: 1,
+					remarks: '',
+					status: '',
+					bookingId: '',
+					paymentExpiredAt: null
 				},
-				vehicleTypes: [{
-						label: '摩托',
-						value: 'wheelMotorcycle'
-					},
-					{
-						label: '小型客车',
-						value: 'smallCar'
-					},
+				vehicleTypes: [
+					{ label: '摩托', value: 'wheelMotorcycle' },
+					{ label: '小型客车', value: 'smallCar' },
 				],
+				statusConfig: {
+					pending:   { icon: '⏳', label: '待支付',  desc: '请尽快完成支付，超时订单将自动关闭' },
+					confirmed: { icon: '✅', label: '待使用',  desc: '支付成功，请凭核验码入场' },
+					completed: { icon: '🎉', label: '已完成',  desc: '感谢您的光临，期待再次相见' },
+					cancelled: { icon: '❌', label: '已取消',  desc: '订单已取消' },
+					refunded:  { icon: '💸', label: '已退款',  desc: '退款将原路返回，请耐心等待' },
+				},
+				countdown: 0,       // 剩余秒数
+				countdownTimer: null
 			}
 		},
 		computed: {
-			// 生成二维码图片URL
 			qrCodeUrl() {
 				if (!this.formData.bookingId) return '';
-				// 使用微信小程序二维码生成API
-				// 将核验链接编码后生成二维码图片
 				const encodedUrl = encodeURIComponent(this.formData.bookingId);
 				return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodedUrl}`;
+			},
+			countdownDisplay() {
+				const total = Math.max(0, this.countdown);
+				const mm = String(Math.floor(total / 60)).padStart(2, '0');
+				const ss = String(total % 60).padStart(2, '0');
+				return { mm, ss };
 			}
 		},
 		onLoad(options) {
 			if (options.bookingId) {
 				this.getBookingDetail(options.bookingId);
 			}
+		},
+		onUnload() {
+			this.clearCountdown();
 		},
 		methods: {
 			formatDateText(dateStr) {
@@ -218,6 +264,58 @@
 				const type = this.vehicleTypes.find(item => item.value === this.formData.vehicleType);
 				return type ? type.label : this.formData.vehicleType;
 			},
+			// 启动倒计时
+			startCountdown() {
+				this.clearCountdown();
+				if (!this.formData.paymentExpiredAt || this.formData.status !== 'pending') return;
+				const expiredAt = new Date(this.formData.paymentExpiredAt).getTime();
+				const calc = () => Math.max(0, Math.floor((expiredAt - Date.now()) / 1000));
+				this.countdown = calc();
+				if (this.countdown <= 0) {
+					this.getBookingDetail(this.formData.bookingId);
+					return;
+				}
+				this.countdownTimer = setInterval(() => {
+					this.countdown = calc();
+					if (this.countdown <= 0) {
+						this.clearCountdown();
+						this.getBookingDetail(this.formData.bookingId);
+					}
+				}, 1000);
+			},
+			clearCountdown() {
+				if (this.countdownTimer) {
+					clearInterval(this.countdownTimer);
+					this.countdownTimer = null;
+				}
+			},
+			onPay() {
+				handlePayment(this.formData.bookingId);
+			},
+			onRefund() {
+				uni.showModal({
+					title: '申请退款',
+					content: '确认申请退款？退款将原路返回，请耐心等待',
+					confirmText: '确认退款',
+					confirmColor: '#f5515f',
+					success: (res) => {
+						if (!res.confirm) return;
+						uni.showLoading({ title: '退款申请中...' });
+						request({
+							method: 'POST',
+							url: `bookings/${this.formData.bookingId}/refund`
+						}).then(() => {
+							uni.showToast({ title: '退款申请已提交', icon: 'success' });
+							// 刷新订单状态
+							this.getBookingDetail(this.formData.bookingId);
+						}).catch(() => {
+							uni.showToast({ title: '退款申请失败，请稍后重试', icon: 'none' });
+						}).finally(() => {
+							uni.hideLoading();
+						});
+					}
+				});
+			},
 			// 获取预约详情
 			getBookingDetail(bookingId) {
 				uni.showLoading({
@@ -229,17 +327,12 @@
 				}).then(res => {
 					if (res.success && res.data) {
 						this.formData = res.data;
+						this.startCountdown();
 					} else {
-						uni.showToast({
-							title: '加载详情失败',
-							icon: 'none'
-						});
+						uni.showToast({ title: '加载详情失败', icon: 'none' });
 					}
-				}).catch(err => {
-					uni.showToast({
-						title: '加载详情失败',
-						icon: 'none'
-					});
+				}).catch(() => {
+					uni.showToast({ title: '加载详情失败', icon: 'none' });
 				}).finally(() => {
 					uni.hideLoading();
 				});
@@ -259,6 +352,100 @@
 	.form-container {
 		padding: 20rpx 30rpx 0;
 		box-sizing: border-box;
+	}
+
+	/* 订单状态栏 */
+	.status-bar {
+		display: flex;
+		align-items: center;
+		border-radius: 20rpx;
+		padding: 28rpx 30rpx;
+		margin-bottom: 20rpx;
+		box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.06);
+	}
+
+	.status-bar-pending   { background: linear-gradient(135deg, #ff9800, #f57c00); }
+	.status-bar-confirmed { background: linear-gradient(135deg, #667eea, #764ba2); }
+	.status-bar-completed { background: linear-gradient(135deg, #43e97b, #38f9d7); }
+	.status-bar-cancelled { background: linear-gradient(135deg, #bbb, #999); }
+	.status-bar-refunded  { background: linear-gradient(135deg, #f5515f, #f7971e); }
+
+	.status-bar-icon {
+		font-size: 56rpx;
+		margin-right: 24rpx;
+		flex-shrink: 0;
+	}
+
+	.status-bar-info {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.status-bar-label {
+		font-size: 34rpx;
+		font-weight: bold;
+		color: #fff;
+		margin-bottom: 6rpx;
+	}
+
+	.status-bar-desc {
+		font-size: 24rpx;
+		color: rgba(255, 255, 255, 0.85);
+		line-height: 1.5;
+	}
+
+	/* 倒计时卡片 */
+	.countdown-card {
+		background: #fff;
+		border-radius: 20rpx;
+		padding: 30rpx;
+		margin-bottom: 20rpx;
+		box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.05);
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+	}
+
+	.countdown-tip {
+		font-size: 24rpx;
+		color: #999;
+		margin-bottom: 20rpx;
+		text-align: center;
+	}
+
+	.countdown-time {
+		display: flex;
+		align-items: center;
+	}
+
+	.time-block {
+		display: flex;
+		align-items: baseline;
+		background: #fff8f0;
+		border-radius: 12rpx;
+		padding: 10rpx 24rpx;
+	}
+
+	.time-num {
+		font-size: 64rpx;
+		font-weight: bold;
+		color: #f57c00;
+		line-height: 1;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.time-unit {
+		font-size: 24rpx;
+		color: #f57c00;
+		margin-left: 6rpx;
+	}
+
+	.time-sep {
+		font-size: 48rpx;
+		font-weight: bold;
+		color: #f57c00;
+		margin: 0 16rpx;
+		line-height: 1;
 	}
 
 	/* 表单区块 */
@@ -330,37 +517,78 @@
 
 	/* 二维码区域 */
 	.qr-section {
+		margin-bottom: 20rpx;
+	}
+
+	.qr-card {
 		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-	}
-
-	.qr-section .section-title {
-		border-bottom-color: rgba(255, 255, 255, 0.2);
-	}
-
-	.qr-section .title-text {
-		color: #fff;
-	}
-
-	.qr-container {
+		border-radius: 20rpx;
+		padding: 40rpx 30rpx 36rpx;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		padding: 20rpx 0;
+		box-shadow: 0 8rpx 30rpx rgba(102, 126, 234, 0.3);
 	}
 
-	.qr-code {
-		width: 400rpx;
-		height: 400rpx;
+	.qr-card-title {
+		font-size: 34rpx;
+		font-weight: bold;
+		color: #fff;
+		margin-bottom: 10rpx;
+	}
+
+	.qr-card-subtitle {
+		font-size: 24rpx;
+		color: rgba(255, 255, 255, 0.75);
+		margin-bottom: 36rpx;
+	}
+
+	.qr-code-wrap {
 		background: #fff;
 		border-radius: 20rpx;
 		padding: 20rpx;
-		box-shadow: 0 8rpx 30rpx rgba(0, 0, 0, 0.2);
+		box-shadow: 0 8rpx 30rpx rgba(0, 0, 0, 0.15);
 	}
 
-	.qr-tip {
-		margin-top: 30rpx;
-		font-size: 28rpx;
-		color: #fff;
+	.qr-code {
+		width: 360rpx;
+		height: 360rpx;
+		display: block;
+	}
+
+	.qr-booking-id {
+		margin-top: 28rpx;
+		font-size: 22rpx;
+		color: rgba(255, 255, 255, 0.6);
+		letter-spacing: 1px;
+	}
+
+	/* 操作按钮栏 */
+	.action-bar {
+		padding: 20rpx 0 10rpx;
+	}
+
+	.pay-btn {
+		height: 90rpx;
+		line-height: 90rpx;
 		text-align: center;
+		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		color: #fff;
+		font-size: 34rpx;
+		font-weight: bold;
+		border-radius: 45rpx;
+		box-shadow: 0 8rpx 24rpx rgba(102, 126, 234, 0.35);
+	}
+
+	.refund-btn {
+		height: 90rpx;
+		line-height: 90rpx;
+		text-align: center;
+		background: #fff;
+		color: #f5515f;
+		font-size: 32rpx;
+		font-weight: bold;
+		border-radius: 45rpx;
+		border: 2rpx solid #f5515f;
 	}
 </style>

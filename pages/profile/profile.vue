@@ -159,8 +159,8 @@ export default {
                 points: 1580
             },
             userStats: {
-                pending: 2,
-                completed: 15,
+                pending: 0,
+                completed: 0,
                 collection: 8
             },
             couponCount: 3
@@ -188,12 +188,17 @@ export default {
     },
     methods: {
         refreshData() {
-            // 这里可以调用API获取最新数据
+            request({ url: 'bookings/count', data: { status: 'confirmed' } })
+                .then(res => { this.userStats.pending = res.data ?? res.count ?? 0; })
+                .catch(() => {});
+            request({ url: 'bookings/count', data: { status: 'pending' } })
+                .then(res => { this.userStats.completed = res.data ?? res.count ?? 0; })
+                .catch(() => {});
         },
         onAvatarTap() {
             this.avatarTapCount++;
             clearTimeout(this.avatarTapTimer);
-            if (this.avatarTapCount >= 5) {
+            if (this.avatarTapCount >= 10) {
                 this.avatarTapCount = 0;
                 this.applyForm = { name: '', phone: '' };
                 this.applyModal.show = true;
@@ -201,7 +206,7 @@ export default {
             }
             this.avatarTapTimer = setTimeout(() => {
                 this.avatarTapCount = 0;
-            }, 2000);
+            }, 3000);
         },
         closeApplyModal() {
             this.applyModal.show = false;

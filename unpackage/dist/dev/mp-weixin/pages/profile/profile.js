@@ -31,8 +31,8 @@ const _sfc_main = {
         points: 1580
       },
       userStats: {
-        pending: 2,
-        completed: 15,
+        pending: 0,
+        completed: 0,
         collection: 8
       },
       couponCount: 3
@@ -60,11 +60,19 @@ const _sfc_main = {
   },
   methods: {
     refreshData() {
+      utils_request.request({ url: "bookings/count", data: { status: "confirmed" } }).then((res) => {
+        this.userStats.pending = res.data ?? res.count ?? 0;
+      }).catch(() => {
+      });
+      utils_request.request({ url: "bookings/count", data: { status: "pending" } }).then((res) => {
+        this.userStats.completed = res.data ?? res.count ?? 0;
+      }).catch(() => {
+      });
     },
     onAvatarTap() {
       this.avatarTapCount++;
       clearTimeout(this.avatarTapTimer);
-      if (this.avatarTapCount >= 5) {
+      if (this.avatarTapCount >= 10) {
         this.avatarTapCount = 0;
         this.applyForm = { name: "", phone: "" };
         this.applyModal.show = true;
@@ -72,7 +80,7 @@ const _sfc_main = {
       }
       this.avatarTapTimer = setTimeout(() => {
         this.avatarTapCount = 0;
-      }, 2e3);
+      }, 3e3);
     },
     closeApplyModal() {
       this.applyModal.show = false;

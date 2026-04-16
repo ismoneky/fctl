@@ -24,7 +24,7 @@ const _sfc_main = {
         message: ""
       },
       userInfo: {
-        avatar: "https://picsum.photos/200/200?random=10",
+        avatar: "/static/avatar.svg",
         name: "微信用户",
         phone: "138****8888",
         vipLevel: "黄金会员",

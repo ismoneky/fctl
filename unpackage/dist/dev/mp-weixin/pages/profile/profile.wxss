@@ -25,7 +25,7 @@
 .avatar.data-v-dd383ca2 {
     width: 120rpx;
     height: 120rpx;
-    border-radius: 60rpx;
+    border-radius: 20rpx;
     border: 4rpx solid rgba(255, 255, 255, 0.3);
     margin-right: 20rpx;
 }

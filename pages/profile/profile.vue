@@ -152,7 +152,7 @@ export default {
                 message: ''
             },
             userInfo: {
-                avatar: 'https://picsum.photos/200/200?random=10',
+                avatar: '/static/avatar.svg',
                 name: '微信用户',
                 phone: '138****8888',
                 vipLevel: '黄金会员',
@@ -368,7 +368,7 @@ export default {
 .avatar {
     width: 120rpx;
     height: 120rpx;
-    border-radius: 60rpx;
+    border-radius: 20rpx;
     border: 4rpx solid rgba(255, 255, 255, 0.3);
     margin-right: 20rpx;
 }

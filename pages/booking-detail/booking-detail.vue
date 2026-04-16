@@ -204,7 +204,8 @@
 					refunded:  { icon: '💸', label: '已退款',  desc: '退款将原路返回，请耐心等待' },
 				},
 				countdown: 0,       // 剩余秒数
-				countdownTimer: null
+				countdownTimer: null,
+				_lastClickTime: 0   // 防抖时间戳
 			}
 		},
 		computed: {
@@ -289,10 +290,21 @@
 					this.countdownTimer = null;
 				}
 			},
+			_throttle(fn, interval = 2000) {
+				const now = Date.now();
+				if (now - this._lastClickTime < interval) return;
+				this._lastClickTime = now;
+				fn();
+			},
 			onPay() {
-				handlePayment(this.formData.bookingId);
+				this._throttle(() => {
+					handlePayment(this.formData.bookingId);
+				});
 			},
 			onRefund() {
+				this._throttle(() => { this._doRefund(); });
+			},
+			_doRefund() {
 				uni.showModal({
 					title: '申请退款',
 					content: '确认申请退款？退款将原路返回，请耐心等待',
@@ -306,8 +318,9 @@
 							url: `bookings/${this.formData.bookingId}/refund`
 						}).then(() => {
 							uni.showToast({ title: '退款申请已提交', icon: 'success' });
-							// 刷新订单状态
-							this.getBookingDetail(this.formData.bookingId);
+							setTimeout(() => {
+								uni.reLaunch({ url: '/pages/booking/booking' });
+							}, 1500);
 						}).catch(() => {
 							uni.showToast({ title: '退款申请失败，请稍后重试', icon: 'none' });
 						}).finally(() => {

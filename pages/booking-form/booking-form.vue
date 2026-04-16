@@ -124,9 +124,13 @@
 				<!-- 车牌号 -->
 				<view class="form-item required">
 					<text class="label">车牌号</text>
-					<view class="input-wrapper">
-						<input class="input" v-model="formData.licensePlate" placeholder="请输入车牌号" />
+					<view class="plate-input-trigger" @click="showPlateKeyboard">
+						<text class="plate-value" :class="formData.licensePlate ? 'plate-value--filled' : 'plate-value--placeholder'">
+							{{ formData.licensePlate ? formatPlate(formData.licensePlate) : '请选择/输入车牌号' }}
+						</text>
+						<text class="plate-arrow">›</text>
 					</view>
+					<xm-keyboard-v2 ref="plateKeyboard" title="请输入车牌号" type="plate" :max="8" :cursor="true" @confirm="onPlateConfirm"></xm-keyboard-v2>
 				</view>
 			</view>
 
@@ -218,17 +222,19 @@ export default {
 				// 	icon: '👥'
 				// }
 			],
-			vehicleTypes: [{
-				label: '摩托',
-				value: 'wheelMotorcycle'
-			},
-			{
-				label: '小型客车',
-				value: 'smallCar'
-			},
+			vehicleTypes: [
+				{
+					label: '小型客车',
+					value: 'smallCar'
+				},
+				{
+					label: '摩托',
+					value: 'wheelMotorcycle'
+				},
 			],
 			minDate: '',
-			maxDate: ''
+			maxDate: '',
+			_lastClickTime: 0   // 防抖时间戳
 		}
 	},
 	onLoad(options) {
@@ -291,6 +297,19 @@ export default {
 		// 车辆类型选择
 		onVehicleTypeChange(e) {
 			this.formData.vehicleType = this.vehicleTypes[e.detail.value].value;
+		},
+		// 显示车牌键盘
+		showPlateKeyboard() {
+			this.$refs.plateKeyboard.toShow(this.formData.licensePlate);
+		},
+		// 车牌号确认
+		onPlateConfirm(value) {
+			this.formData.licensePlate = value;
+		},
+		// 车牌号格式化显示（省份·号码）
+		formatPlate(value) {
+			if (!value) return '';
+			return [value.substring(0, 2), value.substring(2)].filter(x => x).join('·');
 		},
 		// 获取车辆类型标签
 		getVehicleTypeLabel() {
@@ -449,6 +468,10 @@ export default {
 		},
 		// 提交表单
 		handleSubmit() {
+			const now = Date.now();
+			if (now - this._lastClickTime < 2000) return;
+			this._lastClickTime = now;
+
 			// 验证表单
 			if (!this.validateForm()) {
 				return;
@@ -826,6 +849,41 @@ export default {
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
+}
+
+/* 车牌号触发器 */
+.plate-input-trigger {
+	width: 100%;
+	height: 80rpx;
+	line-height: 80rpx;
+	padding: 0 25rpx;
+	background: #f8f8f8;
+	border-radius: 12rpx;
+	box-sizing: border-box;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.plate-value {
+	font-size: 28rpx;
+	flex: 1;
+}
+
+.plate-value--filled {
+	color: #333;
+	font-weight: 500;
+	letter-spacing: 4rpx;
+}
+
+.plate-value--placeholder {
+	color: #999;
+}
+
+.plate-arrow {
+	font-size: 36rpx;
+	color: #ccc;
+	line-height: 1;
 }
 
 /* 提交区域 */

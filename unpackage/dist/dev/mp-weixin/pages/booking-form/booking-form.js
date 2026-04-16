@@ -1,2 +1,395 @@
-"use strict";const e=require("../../common/vendor.js"),l=require("../../utils/request.js"),m={data(){return{id:"",formData:{name:"zhang",phone:"13261732722",idCard:"410621200008210019",bookingDate:"",timeSlot:"morning",travelMode:"selfDriving",licensePlate:"京A12345",vehicleType:"wheelMotorcycle",tourGroupName:"",tourOrderNumber:"",personCount:1,remarks:""},travelModeList:[{label:"景区摆渡车",value:"scenicBus",icon:"🚌"},{label:"自驾出行",value:"selfDriving",icon:"🚗"}],vehicleTypes:[{label:"摩托",value:"wheelMotorcycle"},{label:"小型客车",value:"smallCar"}],minDate:"",maxDate:""}},onLoad(a){if(a.bookingId)this.getBookingDetail(a.bookingId);else{const n=new Date,i=new Date;i.setMonth(i.getMonth()+3),this.minDate=this.formatDate(n),this.maxDate=this.formatDate(i)}},onShareAppMessage(){return{title:"风车天路 - 浪漫风车之旅等你来",path:"/pages/index/index"}},methods:{increasePerson(){this.formData.personCount<99&&this.formData.personCount++},decreasePerson(){this.formData.personCount>1&&this.formData.personCount--},onPersonCountInput(a){let n=parseInt(a.detail.value)||1;n<1&&(n=1),n>99&&(n=99),this.formData.personCount=n},onAgeRangeChange(a){this.formData.ageRange=this.ageRanges[a.detail.value]},onDateChange(a){this.formData.bookingDate=a.detail.value},onTimePeriodChange(a){this.formData.timeSlot=a},onTravelTypeChange(a){this.formData.travelMode=a},onVehicleTypeChange(a){this.formData.vehicleType=this.vehicleTypes[a.detail.value].value},getVehicleTypeLabel(){const a=this.vehicleTypes.find(n=>n.value===this.formData.vehicleType);return a?a.label:""},formatDate(a){const n=a.getFullYear(),i=String(a.getMonth()+1).padStart(2,"0"),s=String(a.getDate()).padStart(2,"0");return`${n}-${i}-${s}`},validatePhone(a){return/^1[3-9]\d{9}$/.test(a)},validateIdCard(a){return/(^\d{15}$)|(^\d{18}$)|(^\d{17}(\d|X|x)$)/.test(a)},validatePlateNumber(a){return/^[京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤青藏川宁琼使领][A-Z][A-Z0-9]{4,5}[A-Z0-9挂学警港澳]$/.test(a)},validateForm(){if(!this.formData.personCount||this.formData.personCount<1)return e.index.showToast({title:"请输入预约人数",icon:"none"}),!1;if(!this.formData.name.trim())return e.index.showToast({title:"请输入联系人姓名",icon:"none"}),!1;if(!this.formData.phone)return e.index.showToast({title:"请输入手机号码",icon:"none"}),!1;if(!this.validatePhone(this.formData.phone))return e.index.showToast({title:"请输入正确的手机号码",icon:"none"}),!1;if(!this.formData.idCard)return e.index.showToast({title:"请输入身份证号码",icon:"none"}),!1;if(!this.validateIdCard(this.formData.idCard))return e.index.showToast({title:"请输入正确的身份证号码",icon:"none"}),!1;if(!this.formData.bookingDate)return e.index.showToast({title:"请选择预约日期",icon:"none"}),!1;if(!this.formData.timeSlot)return e.index.showToast({title:"请选择预约时间段",icon:"none"}),!1;if(this.formData.travelMode==="selfDriving"){if(!this.formData.vehicleType)return e.index.showToast({title:"请选择车辆类型",icon:"none"}),!1;if(!this.formData.licensePlate)return e.index.showToast({title:"请输入车牌号",icon:"none"}),!1;if(!this.validatePlateNumber(this.formData.licensePlate))return e.index.showToast({title:"请输入正确的车牌号",icon:"none"}),!1}return!0},handleSubmit(){if(!this.validateForm())return;e.index.showLoading({title:"提交中..."});const a={...this.formData,wechatOpenId:e.index.getStorageSync("openid")};l.request({method:"POST",url:"/bookings",data:a}).then(n=>{if(n.success){const i=n.data.bookingId;this.handlePayment(i)}else e.index.showToast({title:"预约失败，请稍后再试",icon:"error"})}).catch(n=>{var i;e.index.__f__("log","at pages/booking-form/booking-form.vue:481","预约提交失败:",n),e.index.showToast({title:((i=n.data)==null?void 0:i.message)||"预约失败，请稍后再试",icon:"error"})}).finally(()=>{e.index.hideLoading()})},handlePayment(a){e.index.showLoading({title:"准备支付..."}),l.request({method:"POST",url:`bookings/${a}/pay`,data:{wechatOpenId:e.index.getStorageSync("openid")}}).then(n=>{if(n.success){const i=n.data;e.index.requestPayment({provider:"wxpay",appId:i.appId,timeStamp:i.timeStamp,nonceStr:i.nonceStr,package:i.package,signType:i.signType,paySign:i.paySign,success:()=>{this.pollPaymentStatus(a)},fail:s=>{s.errMsg&&s.errMsg.includes("cancel")?e.index.showToast({title:"已取消支付",icon:"none"}):this.pollPaymentStatus(a)}})}else e.index.showToast({title:"获取支付参数失败",icon:"error"})}).catch(n=>{e.index.__f__("log","at pages/booking-form/booking-form.vue:536","获取支付参数失败:",n),e.index.showToast({title:"获取支付参数失败，请稍后再试",icon:"error"})}).finally(()=>{e.index.hideLoading()})},pollPaymentStatus(a){let s=0;const t=setInterval(()=>{s++,l.request({method:"GET",url:`bookings/${a}/pay-status`}).then(r=>{r.success?r.data.status==="paid"?(clearInterval(t),e.index.showToast({title:"支付成功",icon:"success"}),e.index.reLaunch({url:"/pages/booking/booking"})):s>=5&&(clearInterval(t),e.index.showToast({title:"支付状态确认中，请稍后刷新订单页面查看",icon:"none",duration:3e3})):s>=5&&(clearInterval(t),e.index.showToast({title:"支付状态确认中，请稍后刷新订单页面查看",icon:"none",duration:3e3}))}).catch(r=>{e.index.__f__("log","at pages/booking-form/booking-form.vue:586","查询支付状态失败:",r),s>=5&&(clearInterval(t),e.index.showToast({title:"支付状态确认中，请稍后刷新订单页面查看",icon:"none",duration:3e3}))})},3e3)},getBookingDetail(a){l.request({method:"GET",url:`/bookings/${a}`}).then(n=>{n.success&&n.data?this.formData=n.data:e.index.showToast({title:"加载详情失败",icon:"none"})}).catch(n=>{e.index.showToast({title:"加载详情失败",icon:"none"})})}}};function f(a,n,i,s,t,r){return e.e({a:e.o((...o)=>r.decreasePerson&&r.decreasePerson(...o),"04"),b:e.o([e.m(o=>t.formData.personCount=o.detail.value,{number:!0}),(...o)=>r.onPersonCountInput&&r.onPersonCountInput(...o)],"f5"),c:t.formData.personCount,d:e.o((...o)=>r.increasePerson&&r.increasePerson(...o),"a8"),e:t.formData.name,f:e.o(o=>t.formData.name=o.detail.value,"82"),g:t.formData.phone,h:e.o(o=>t.formData.phone=o.detail.value,"47"),i:t.formData.idCard,j:e.o(o=>t.formData.idCard=o.detail.value,"33"),k:e.t(t.formData.bookingDate||"请选择预约日期"),l:t.minDate,m:t.maxDate,n:e.o((...o)=>r.onDateChange&&r.onDateChange(...o),"13"),o:t.formData.timeSlot==="morning"},t.formData.timeSlot==="morning"?{}:{},{p:t.formData.timeSlot==="morning"?1:"",q:e.o(o=>r.onTimePeriodChange("morning"),"3a"),r:t.formData.timeSlot==="afternoon"},t.formData.timeSlot==="afternoon"?{}:{},{s:t.formData.timeSlot==="afternoon"?1:"",t:e.o(o=>r.onTimePeriodChange("afternoon"),"af"),v:e.f(t.travelModeList,(o,u,c)=>e.e({a:e.t(o.icon),b:e.t(o.label),c:t.formData.travelMode===o.value},t.formData.travelMode===o.value?{}:{},{d:t.formData.travelMode===o.value?1:"",e:o.value,f:e.o(d=>r.onTravelTypeChange(o.value),o.value)})),w:t.formData.travelMode==="selfDriving"},t.formData.travelMode==="selfDriving"?{x:e.t(r.getVehicleTypeLabel()||"请选择车辆类型"),y:t.vehicleTypes,z:e.o((...o)=>r.onVehicleTypeChange&&r.onVehicleTypeChange(...o),"36"),A:t.formData.licensePlate,B:e.o(o=>t.formData.licensePlate=o.detail.value,"c0")}:{},{C:t.formData.travelMode==="tourGroup"},t.formData.travelMode==="tourGroup"?{D:t.formData.tourGroupName,E:e.o(o=>t.formData.tourGroupName=o.detail.value,"34"),F:t.formData.tourNumber,G:e.o(o=>t.formData.tourNumber=o.detail.value,"11")}:{},{H:t.formData.remarks,I:e.o(o=>t.formData.remarks=o.detail.value,"8a"),J:e.t(t.formData.remarks.length),K:!t.formData.bookingId},t.formData.bookingId?{}:{L:e.o((...o)=>r.handleSubmit&&r.handleSubmit(...o),"1d")})}const h=e._export_sfc(m,[["render",f],["__scopeId","data-v-802e1f99"]]);m.__runtimeHooks=2;wx.createPage(h);
+"use strict";
+const common_vendor = require("../../common/vendor.js");
+const utils_request = require("../../utils/request.js");
+const utils_payment = require("../../utils/payment.js");
+const _sfc_main = {
+  data() {
+    return {
+      id: "",
+      // 景区ID，从路由参数获取
+      formData: {
+        name: "zhang",
+        // 联系人姓名
+        phone: "13261732722",
+        // 联系人手机号
+        idCard: "410621200008210019",
+        // 联系人身份证号
+        bookingDate: "",
+        // 预约日期
+        timeSlot: "morning",
+        // 预约时间段（morning/afternoon）
+        travelMode: "selfDriving",
+        // 出行方式（scenicBus/selfDriving/tour_group）
+        licensePlate: "京A12345",
+        // 车牌号（自驾时必填）
+        vehicleType: "wheelMotorcycle",
+        // 车辆类型（自驾时必填）
+        tourGroupName: "",
+        // 旅游团名称（旅游团时必填）
+        tourOrderNumber: "",
+        // 旅游团订单编号（旅游团时必填）
+        personCount: 1,
+        // 预约人数
+        remarks: ""
+        // 备注信息
+      },
+      travelModeList: [
+        {
+          label: "景区摆渡车",
+          value: "scenicBus",
+          icon: "🚌"
+        },
+        {
+          label: "自驾出行",
+          value: "selfDriving",
+          icon: "🚗"
+        }
+        // {
+        // 	label: '观光团',
+        // 	value: 'tourGroup',
+        // 	icon: '👥'
+        // }
+      ],
+      vehicleTypes: [
+        {
+          label: "小型客车",
+          value: "smallCar"
+        },
+        {
+          label: "摩托",
+          value: "wheelMotorcycle"
+        }
+      ],
+      minDate: "",
+      maxDate: "",
+      _lastClickTime: 0
+      // 防抖时间戳
+    };
+  },
+  onLoad(options) {
+    if (options.bookingId) {
+      this.getBookingDetail(options.bookingId);
+    } else {
+      const today = /* @__PURE__ */ new Date();
+      const maxDay = /* @__PURE__ */ new Date();
+      maxDay.setMonth(maxDay.getMonth() + 3);
+      this.minDate = this.formatDate(today);
+      this.maxDate = this.formatDate(maxDay);
+    }
+  },
+  // 分享配置
+  onShareAppMessage() {
+    return {
+      title: "风车天路 - 浪漫风车之旅等你来",
+      path: "/pages/index/index"
+    };
+  },
+  methods: {
+    // 人数增加
+    increasePerson() {
+      if (this.formData.personCount < 99) {
+        this.formData.personCount++;
+      }
+    },
+    // 人数减少
+    decreasePerson() {
+      if (this.formData.personCount > 1) {
+        this.formData.personCount--;
+      }
+    },
+    // 人数输入
+    onPersonCountInput(e) {
+      let value = parseInt(e.detail.value) || 1;
+      if (value < 1)
+        value = 1;
+      if (value > 99)
+        value = 99;
+      this.formData.personCount = value;
+    },
+    // 年龄段选择
+    onAgeRangeChange(e) {
+      this.formData.ageRange = this.ageRanges[e.detail.value];
+    },
+    // 日期选择
+    onDateChange(e) {
+      this.formData.bookingDate = e.detail.value;
+    },
+    // 时间段选择
+    onTimePeriodChange(period) {
+      this.formData.timeSlot = period;
+    },
+    // 出行方式选择
+    onTravelTypeChange(value) {
+      this.formData.travelMode = value;
+    },
+    // 车辆类型选择
+    onVehicleTypeChange(e) {
+      this.formData.vehicleType = this.vehicleTypes[e.detail.value].value;
+    },
+    // 显示车牌键盘
+    showPlateKeyboard() {
+      this.$refs.plateKeyboard.toShow(this.formData.licensePlate);
+    },
+    // 车牌号确认
+    onPlateConfirm(value) {
+      this.formData.licensePlate = value;
+    },
+    // 车牌号格式化显示（省份·号码）
+    formatPlate(value) {
+      if (!value)
+        return "";
+      return [value.substring(0, 2), value.substring(2)].filter((x) => x).join("·");
+    },
+    // 获取车辆类型标签
+    getVehicleTypeLabel() {
+      const type = this.vehicleTypes.find((item) => item.value === this.formData.vehicleType);
+      return type ? type.label : "";
+    },
+    // 格式化日期
+    formatDate(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    },
+    // 验证手机号
+    validatePhone(phone) {
+      const reg = /^1[3-9]\d{9}$/;
+      return reg.test(phone);
+    },
+    // 验证身份证号
+    validateIdCard(idCard) {
+      const reg = /(^\d{15}$)|(^\d{18}$)|(^\d{17}(\d|X|x)$)/;
+      return reg.test(idCard);
+    },
+    // 验证车牌号
+    validatePlateNumber(plateNumber) {
+      const reg = /^[京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤青藏川宁琼使领][A-Z][A-Z0-9]{4,5}[A-Z0-9挂学警港澳]$/;
+      return reg.test(plateNumber);
+    },
+    // 表单验证
+    validateForm() {
+      if (!this.formData.personCount || this.formData.personCount < 1) {
+        common_vendor.index.showToast({
+          title: "请输入预约人数",
+          icon: "none"
+        });
+        return false;
+      }
+      if (!this.formData.name.trim()) {
+        common_vendor.index.showToast({
+          title: "请输入联系人姓名",
+          icon: "none"
+        });
+        return false;
+      }
+      if (!this.formData.phone) {
+        common_vendor.index.showToast({
+          title: "请输入手机号码",
+          icon: "none"
+        });
+        return false;
+      }
+      if (!this.validatePhone(this.formData.phone)) {
+        common_vendor.index.showToast({
+          title: "请输入正确的手机号码",
+          icon: "none"
+        });
+        return false;
+      }
+      if (!this.formData.idCard) {
+        common_vendor.index.showToast({
+          title: "请输入身份证号码",
+          icon: "none"
+        });
+        return false;
+      }
+      if (!this.validateIdCard(this.formData.idCard)) {
+        common_vendor.index.showToast({
+          title: "请输入正确的身份证号码",
+          icon: "none"
+        });
+        return false;
+      }
+      if (!this.formData.bookingDate) {
+        common_vendor.index.showToast({
+          title: "请选择预约日期",
+          icon: "none"
+        });
+        return false;
+      }
+      if (!this.formData.timeSlot) {
+        common_vendor.index.showToast({
+          title: "请选择预约时间段",
+          icon: "none"
+        });
+        return false;
+      }
+      if (this.formData.travelMode === "selfDriving") {
+        if (!this.formData.vehicleType) {
+          common_vendor.index.showToast({
+            title: "请选择车辆类型",
+            icon: "none"
+          });
+          return false;
+        }
+        if (!this.formData.licensePlate) {
+          common_vendor.index.showToast({
+            title: "请输入车牌号",
+            icon: "none"
+          });
+          return false;
+        }
+        if (!this.validatePlateNumber(this.formData.licensePlate)) {
+          common_vendor.index.showToast({
+            title: "请输入正确的车牌号",
+            icon: "none"
+          });
+          return false;
+        }
+      }
+      return true;
+    },
+    // 提交表单
+    handleSubmit() {
+      const now = Date.now();
+      if (now - this._lastClickTime < 2e3)
+        return;
+      this._lastClickTime = now;
+      if (!this.validateForm()) {
+        return;
+      }
+      common_vendor.index.showLoading({
+        title: "提交中..."
+      });
+      const submitData = {
+        ...this.formData,
+        wechatOpenId: common_vendor.index.getStorageSync("openid")
+      };
+      utils_request.request({
+        method: "POST",
+        url: "/bookings",
+        data: submitData
+      }).then((res) => {
+        if (res.success) {
+          const bookingId = res.data.bookingId;
+          this.handlePayment(bookingId);
+        } else {
+          common_vendor.index.showToast({
+            title: "预约失败，请稍后再试",
+            icon: "error"
+          });
+        }
+      }).catch((err) => {
+        var _a;
+        common_vendor.index.__f__("log", "at pages/booking-form/booking-form.vue:505", "预约提交失败:", err);
+        common_vendor.index.showToast({
+          title: ((_a = err.data) == null ? void 0 : _a.message) || "预约失败，请稍后再试",
+          icon: "error"
+        });
+      }).finally(() => {
+        common_vendor.index.hideLoading();
+      });
+    },
+    // 处理支付（使用公共方法）
+    handlePayment(bookingId) {
+      utils_payment.handlePayment(bookingId);
+    },
+    // 获取预约详情
+    getBookingDetail(bookingId) {
+      utils_request.request({
+        method: "GET",
+        url: `/bookings/${bookingId}`
+      }).then((res) => {
+        if (res.success && res.data) {
+          this.formData = res.data;
+        } else {
+          common_vendor.index.showToast({ title: "加载详情失败", icon: "none" });
+        }
+      }).catch((err) => {
+        common_vendor.index.showToast({ title: "加载详情失败", icon: "none" });
+      });
+    }
+  }
+};
+if (!Array) {
+  const _easycom_xm_keyboard_v22 = common_vendor.resolveComponent("xm-keyboard-v2");
+  _easycom_xm_keyboard_v22();
+}
+const _easycom_xm_keyboard_v2 = () => "../../uni_modules/xm-keyboard/components/xm-keyboard-v2/xm-keyboard-v2.js";
+if (!Math) {
+  _easycom_xm_keyboard_v2();
+}
+function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
+  return common_vendor.e({
+    a: common_vendor.o((...args) => $options.decreasePerson && $options.decreasePerson(...args), "04"),
+    b: common_vendor.o([common_vendor.m(($event) => $data.formData.personCount = $event.detail.value, {
+      number: true
+    }), (...args) => $options.onPersonCountInput && $options.onPersonCountInput(...args)], "f5"),
+    c: $data.formData.personCount,
+    d: common_vendor.o((...args) => $options.increasePerson && $options.increasePerson(...args), "a8"),
+    e: $data.formData.name,
+    f: common_vendor.o(($event) => $data.formData.name = $event.detail.value, "82"),
+    g: $data.formData.phone,
+    h: common_vendor.o(($event) => $data.formData.phone = $event.detail.value, "47"),
+    i: $data.formData.idCard,
+    j: common_vendor.o(($event) => $data.formData.idCard = $event.detail.value, "33"),
+    k: common_vendor.t($data.formData.bookingDate || "请选择预约日期"),
+    l: $data.minDate,
+    m: $data.maxDate,
+    n: common_vendor.o((...args) => $options.onDateChange && $options.onDateChange(...args), "13"),
+    o: $data.formData.timeSlot === "morning"
+  }, $data.formData.timeSlot === "morning" ? {} : {}, {
+    p: $data.formData.timeSlot === "morning" ? 1 : "",
+    q: common_vendor.o(($event) => $options.onTimePeriodChange("morning"), "3a"),
+    r: $data.formData.timeSlot === "afternoon"
+  }, $data.formData.timeSlot === "afternoon" ? {} : {}, {
+    s: $data.formData.timeSlot === "afternoon" ? 1 : "",
+    t: common_vendor.o(($event) => $options.onTimePeriodChange("afternoon"), "af"),
+    v: common_vendor.f($data.travelModeList, (item, k0, i0) => {
+      return common_vendor.e({
+        a: common_vendor.t(item.icon),
+        b: common_vendor.t(item.label),
+        c: $data.formData.travelMode === item.value
+      }, $data.formData.travelMode === item.value ? {} : {}, {
+        d: $data.formData.travelMode === item.value ? 1 : "",
+        e: item.value,
+        f: common_vendor.o(($event) => $options.onTravelTypeChange(item.value), item.value)
+      });
+    }),
+    w: $data.formData.travelMode === "selfDriving"
+  }, $data.formData.travelMode === "selfDriving" ? {
+    x: common_vendor.t($options.getVehicleTypeLabel() || "请选择车辆类型"),
+    y: $data.vehicleTypes,
+    z: common_vendor.o((...args) => $options.onVehicleTypeChange && $options.onVehicleTypeChange(...args), "36"),
+    A: common_vendor.t($data.formData.licensePlate ? $options.formatPlate($data.formData.licensePlate) : "请选择/输入车牌号"),
+    B: common_vendor.n($data.formData.licensePlate ? "plate-value--filled" : "plate-value--placeholder"),
+    C: common_vendor.o((...args) => $options.showPlateKeyboard && $options.showPlateKeyboard(...args), "e1"),
+    D: common_vendor.sr("plateKeyboard", "802e1f99-0"),
+    E: common_vendor.o($options.onPlateConfirm, "07"),
+    F: common_vendor.p({
+      title: "请输入车牌号",
+      type: "plate",
+      max: 8,
+      cursor: true
+    })
+  } : {}, {
+    G: $data.formData.travelMode === "tourGroup"
+  }, $data.formData.travelMode === "tourGroup" ? {
+    H: $data.formData.tourGroupName,
+    I: common_vendor.o(($event) => $data.formData.tourGroupName = $event.detail.value, "44"),
+    J: $data.formData.tourNumber,
+    K: common_vendor.o(($event) => $data.formData.tourNumber = $event.detail.value, "8d")
+  } : {}, {
+    L: $data.formData.remarks,
+    M: common_vendor.o(($event) => $data.formData.remarks = $event.detail.value, "c0"),
+    N: common_vendor.t($data.formData.remarks.length),
+    O: !$data.formData.bookingId
+  }, !$data.formData.bookingId ? {
+    P: common_vendor.o((...args) => $options.handleSubmit && $options.handleSubmit(...args), "63")
+  } : {});
+}
+const MiniProgramPage = /* @__PURE__ */ common_vendor._export_sfc(_sfc_main, [["render", _sfc_render], ["__scopeId", "data-v-802e1f99"]]);
+_sfc_main.__runtimeHooks = 2;
+wx.createPage(MiniProgramPage);
 //# sourceMappingURL=../../../.sourcemap/mp-weixin/pages/booking-form/booking-form.js.map

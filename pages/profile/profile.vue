@@ -55,14 +55,14 @@
                 </view>
 
                 <view class="user-stats">
-                    <view class="stat-item" @click="goToBooking(3)">
+                    <view class="stat-item" @click="goToBooking(2)">
                         <text class="stat-number">{{ userStats.pending }}</text>
-                        <text class="stat-label">已完成</text>
+                        <text class="stat-label">待使用</text>
                     </view>
                     <view class="stat-divider"></view>
-                    <view class="stat-item" @click="goToBooking(4)">
+                    <view class="stat-item" @click="goToBooking(1)">
                         <text class="stat-number">{{ userStats.completed }}</text>
-                        <text class="stat-label">已取消</text>
+                        <text class="stat-label">待支付</text>
                     </view>
 
                 </view>

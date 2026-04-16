@@ -98,90 +98,79 @@
 		data() {
 			return {
 				bannerList: [{
-						image: "https://s41.ax1x.com/2026/03/12/peAEQER.jpg"
+						image: "https://cdn.hbfctl.com.cn/index/1.jpg"
 					},
 					{
-						image: "https://s41.ax1x.com/2026/03/12/peAE14x.jpg"
+						image: "https://cdn.hbfctl.com.cn/index/2.jpg"
 					},
 					{
-						image: "https://s41.ax1x.com/2026/03/12/peAEG8K.jpg"
+						image: "https://cdn.hbfctl.com.cn/index/3.jpg"
 					},
 					{
-						image: "https://s41.ax1x.com/2026/03/12/peAEJgO.jpg"
+						image: "https://cdn.hbfctl.com.cn/index/4.jpg"
 					},
 					{
-						image: "https://s41.ax1x.com/2026/03/12/peAEYvD.jpg"
+						image: "https://cdn.hbfctl.com.cn/index/5.jpg"
 					},
 					{
-						image: "https://s41.ax1x.com/2026/03/12/peAEZgU.jpg"
+						image: "https://cdn.hbfctl.com.cn/index/6.jpg"
 					}
 				],
 				featureList: [{
 						icon: 'icon-Energy-',
 						name: '风车奇观',
 						desc: '百余座风力发电机',
-						image: 'https://picsum.photos/300/200?random=10'
+						image: 'https://cdn.hbfctl.com.cn/index/7.jpg'
 					},
 					{
 						icon: '🏔️',
 						name: '天路美景',
 						desc: '蜿蜒曲折的山路风光',
-						image: 'https://picsum.photos/300/200?random=11'
+						image: 'https://cdn.hbfctl.com.cn/index/3.jpg'
 					},
 					{
 						icon: '📸',
 						name: '打卡圣地',
 						desc: '网红拍照取景地',
-						image: 'https://picsum.photos/300/200?random=12'
+						image: 'https://cdn.hbfctl.com.cn/index/8.jpg'
 					},
 					{
 						icon: '🌤️',
 						name: '四季皆宜',
 						desc: '一年四季风景各异',
-						image: 'https://picsum.photos/300/200?random=13'
+						image: 'https://cdn.hbfctl.com.cn/index/9.jpg'
 					}
 				],
 				scenicList: [{
 						id: 2,
 						name: '天路盘山道',
-						image: '/static/image10.jpg',
+						image: 'https://cdn.hbfctl.com.cn/index/7.jpg',
 						desc: '自驾天堂'
 					},
 					{
 						id: 3,
 						name: '日落观景点',
-						image: 'https://s41.ax1x.com/2026/03/12/peAEG8K.jpg',
+						image: 'https://cdn.hbfctl.com.cn/index/3.jpg',
 						desc: '观日出最佳位置'
 					},
 					{
 						id: 4,
 						name: '云海平台',
-						image: 'https://s41.ax1x.com/2026/03/12/peAENKe.jpg',
+						image: 'https://cdn.hbfctl.com.cn/index/8.jpg',
 						desc: '云雾缭绕仙境'
 					},
 					{
 						id: 1,
 						name: '风车观景台',
-						image: 'https://s41.ax1x.com/2026/03/12/peAE14x.jpg',
+						image: 'https://cdn.hbfctl.com.cn/index/9.jpg',
 						desc: '最佳观赏点'
 					},
 				],
-				noticeList: [{
-						content: '风车天路实行实名制预约，请提前预约',
-						time: '02-20'
-					},
-					{
-						content: '山路弯道较多，自驾游客请注意安全',
-						time: '02-15'
-					},
-					{
-						content: '天气变化较快，请携带保暖衣物',
-						time: '02-10'
-					}
-				]
+				noticeList: []
 			}
 		},
 		async onLoad() {
+			this.loadAnnouncements();
 			uni.login({
 				provider: 'weixin',
 				success: async (loginRes) => {
@@ -237,6 +226,25 @@
 			}
 		},
 		methods: {
+			// 获取公告列表
+			loadAnnouncements() {
+				request({ method: 'GET', url: '/announcements' }).then(res => {
+					if (res.success && Array.isArray(res.data)) {
+						this.noticeList = res.data.map(item => ({
+							content: item.content,
+							time: this.formatNoticeDate(item.updatedAt)
+						}));
+					}
+				}).catch(() => {});
+			},
+			// 格式化公告日期为 MM-DD
+			formatNoticeDate(dateStr) {
+				if (!dateStr) return '';
+				const d = new Date(dateStr);
+				const mm = String(d.getMonth() + 1).padStart(2, '0');
+				const dd = String(d.getDate()).padStart(2, '0');
+				return `${mm}-${dd}`;
+			},
 			// 跳转到预约页面
 			goToBooking() {
 				uni.navigateTo({

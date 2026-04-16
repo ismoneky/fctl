@@ -5,7 +5,8 @@
     "pages/profile/profile",
     "pages/booking-form/booking-form",
     "pages/booking-detail/booking-detail",
-    "pages/gallery/gallery"
+    "pages/gallery/gallery",
+    "pages/feedback/feedback"
   ],
   "window": {
     "navigationBarTextStyle": "white",

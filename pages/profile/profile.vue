@@ -189,10 +189,10 @@ export default {
     methods: {
         refreshData() {
             request({ url: 'bookings/count', data: { status: 'confirmed' } })
-                .then(res => { this.userStats.pending = res.data ?? res.count ?? 0; })
+                .then(res => { this.userStats.pending = res.data ?? res.data.count ?? 0; })
                 .catch(() => {});
             request({ url: 'bookings/count', data: { status: 'pending' } })
-                .then(res => { this.userStats.completed = res.data ?? res.count ?? 0; })
+                .then(res => { this.userStats.completed = res.data ?? res.data.count ?? 0; })
                 .catch(() => {});
         },
         onAvatarTap() {

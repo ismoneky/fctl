@@ -1,5 +1,6 @@
 <template>
 	<view class="container">
+		<view class="tip">预约订单将收取车位、卫生管理费：10元</view>
 		<view class="form-container">
 			<!-- 基本信息 -->
 			<view class="form-section">
@@ -540,6 +541,11 @@ export default {
 	background-color: #f5f5f5;
 	padding-bottom: 140rpx;
 	box-sizing: border-box;
+}
+
+.tip {
+	font-size: 34rpx;
+	padding: 20rpx 30rpx 0;
 }
 
 .form-container {

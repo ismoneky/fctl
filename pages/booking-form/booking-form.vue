@@ -1,6 +1,6 @@
 <template>
 	<view class="container">
-		<view class="tip">预约订单将收取车位、卫生管理费：10元</view>
+		<view class="tip" v-if="paymentAmount != null">预约订单将收取车位、卫生管理费：{{ paymentAmount / 100 }}元</view>
 		<view class="form-container">
 			<!-- 基本信息 -->
 			<view class="form-section">
@@ -235,7 +235,8 @@ export default {
 			],
 			minDate: '',
 			maxDate: '',
-			_lastClickTime: 0   // 防抖时间戳
+			_lastClickTime: 0,  // 防抖时间戳
+			paymentAmount: 1000 // 单次支付金额（分），从接口获取
 		}
 	},
 	onLoad(options) {
@@ -251,6 +252,12 @@ export default {
 			this.minDate = this.formatDate(today);
 			this.maxDate = this.formatDate(maxDay);
 		}
+		// 获取支付金额配置
+		request({ method: 'GET', url: '/system-config/payment-config' }).then(res => {
+			if (res.data?.paymentAmount != null) {
+				this.paymentAmount = res.data.paymentAmount;
+			}
+		}).catch(() => {});
 	},
 	// 分享配置
 	onShareAppMessage() {

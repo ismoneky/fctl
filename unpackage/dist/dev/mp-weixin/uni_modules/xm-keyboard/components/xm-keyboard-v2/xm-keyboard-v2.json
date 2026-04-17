@@ -1,8 +1,0 @@
-{
-  "component": true,
-  "usingComponents": {
-    "xm-keyboard-input": "../xm-keyboard-input/xm-keyboard-input",
-    "xm-keyboard-box": "../xm-keyboard-box/xm-keyboard-box",
-    "xm-popup": "../xm-popup/xm-popup"
-  }
-}

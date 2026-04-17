@@ -1,6 +1,0 @@
-{
-  "component": true,
-  "usingComponents": {
-    "xm-square": "../xm-square/xm-square"
-  }
-}

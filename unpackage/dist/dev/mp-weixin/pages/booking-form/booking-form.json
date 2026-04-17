@@ -1,8 +1,0 @@
-{
-  "navigationBarTitleText": "立即预约",
-  "navigationBarBackgroundColor": "#667eea",
-  "navigationBarTextStyle": "white",
-  "usingComponents": {
-    "xm-keyboard-v2": "../../uni_modules/xm-keyboard/components/xm-keyboard-v2/xm-keyboard-v2"
-  }
-}

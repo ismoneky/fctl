@@ -317,10 +317,15 @@
 							method: 'POST',
 							url: `bookings/${this.formData.bookingId}/refund`
 						}).then(() => {
-							uni.showToast({ title: '退款申请已提交', icon: 'success' });
-							setTimeout(() => {
-								uni.reLaunch({ url: '/pages/booking/booking' });
-							}, 1500);
+							uni.showModal({
+								title: '退款申请已提交',
+								content: '退款成功！微信将自动返还回您的账户，请您耐心等待。',
+								showCancel: false,
+								confirmText: '我知道了',
+								success: () => {
+									uni.reLaunch({ url: '/pages/booking/booking' });
+								}
+							});
 						}).catch(() => {
 							uni.showToast({ title: '退款申请失败，请稍后重试', icon: 'none' });
 						}).finally(() => {

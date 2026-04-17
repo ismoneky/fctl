@@ -1,1 +1,0 @@
-<view class="xm-square data-v-63ff8420" style="{{'padding-bottom:' + a}}"><view class="xm-square-box data-v-63ff8420"><slot></slot></view></view>

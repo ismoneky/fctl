@@ -194,14 +194,14 @@ export default {
 		return {
 			id: '', // 景区ID，从路由参数获取
 			formData: {
-				name: 'zhang', // 联系人姓名
-				phone: '13261732722', // 联系人手机号
-				idCard: '410621200008210019', // 联系人身份证号
+				name: '', // 联系人姓名
+				phone: '', // 联系人手机号
+				idCard: '', // 联系人身份证号
 				bookingDate: '', // 预约日期
 				timeSlot: 'morning', // 预约时间段（morning/afternoon）
 				travelMode: 'selfDriving', // 出行方式（scenicBus/selfDriving/tour_group）
-				licensePlate: '京A12345', // 车牌号（自驾时必填）
-				vehicleType: 'wheelMotorcycle', // 车辆类型（自驾时必填）
+				licensePlate: '', // 车牌号（自驾时必填）
+				vehicleType: 'smallCar', // 车辆类型（自驾时必填）
 				tourGroupName: '', // 旅游团名称（旅游团时必填）
 				tourOrderNumber: '', // 旅游团订单编号（旅游团时必填）
 				personCount: 1, // 预约人数
@@ -486,7 +486,7 @@ export default {
 			}
 
 			// 显示加载提示
-			uni.showLoading({
+			const loading = uni.showLoading({
 				title: '提交中...'
 			});
 			// 直接提交 formData，字段与后端保持一致
@@ -504,20 +504,23 @@ export default {
 					// 调用支付接口
 					this.handlePayment(bookingId);
 				} else {
-					uni.showToast({
-						title: '预约失败，请稍后再试',
-						icon: 'error'
-					});
+                                    uni.showModal({
+                                        title: "预约失败",
+                                        content: err.data?.message,
+                                        showCancel: false,
+                                        confirmText: "我知道了",
+                                    });
 				}
 			}).catch(err => {
-				console.log('预约提交失败:', err);
-				uni.showToast({
-					title: err.data?.message || '预约失败，请稍后再试',
-					icon: 'error'
-				});
-			}).finally(() => {
-				uni.hideLoading();
-			});
+                                uni.showModal({
+                                    title: "预约失败",
+                                    content: err.data?.message,
+                                    showCancel: false,
+                                    confirmText: "我知道了",
+                                });
+			}).finally(() =>{
+                            uni.hideLoading();
+            })
 		},
 		// 处理支付（使用公共方法）
 		handlePayment(bookingId) {

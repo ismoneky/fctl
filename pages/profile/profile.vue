@@ -152,7 +152,7 @@
       </view>
 
       <!-- 联系方式 -->
-      <text class="contact-tip">如有问题可直接联系：17639204705</text>
+      <text class="contact-tip">如有问题可直接联系：18639220123</text>
     </view>
     <my-tab-bar :current="2"></my-tab-bar>
   </view>

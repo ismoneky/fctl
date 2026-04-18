@@ -249,9 +249,7 @@ export default {
             });
         },
         goToHome() {
-            uni.reLaunch({
-                url: '/pages/index/index'
-            });
+             uni.navigateTo({ url: "/pages/booking-form/booking-form" });
         },
         formatDate(dateString, format = 'YYYY/MM/DD') {
             const options = { year: 'numeric', month: '2-digit', day: '2-digit' };

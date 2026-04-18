@@ -304,8 +304,8 @@ export default {
           }
         })
         .catch(() => {
-          // 接口异常不阻断，直接放行
-          uni.navigateTo({ url: "/pages/booking-form/booking-form" });
+          // 接口异常不阻断，直接放行，在提交时拦截
+              uni.navigateTo({ url: "/pages/booking-form/booking-form" });
         })
         .finally(() => {
           uni.hideLoading();

@@ -243,13 +243,10 @@ export default {
             });
         },
         bookAgain(item) {
-            uni.showToast({
-                title: '再次预约',
-                icon: 'none'
-            });
+            uni.navigateTo({ url: `/pages/booking-form/booking-form?bookingId=${item.bookingId}`});
         },
         goToHome() {
-             uni.navigateTo({ url: "/pages/booking-form/booking-form" });
+            uni.navigateTo({ url: "/pages/booking-form/booking-form" });
         },
         formatDate(dateString, format = 'YYYY/MM/DD') {
             const options = { year: 'numeric', month: '2-digit', day: '2-digit' };

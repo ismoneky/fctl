@@ -174,7 +174,7 @@
 		</view>
 
 		<!-- 提交按钮 -->
-		<view class="submit-section" v-if="!formData.bookingId">
+		<view class="submit-section">
 			<button class="submit-btn" @click="handleSubmit">
 				<text class="submit-icon"></text>
 				<text>立即预约</text>
@@ -533,13 +533,14 @@ export default {
 				url: `/bookings/${bookingId}`
 			}).then(res => {
 				if (res.success && res.data) {
-					this.formData = res.data;
-				} else {
-					uni.showToast({ title: '加载详情失败', icon: 'none' });
+					this.formData.name =  res.data.name
+					this.formData.phone = res.data.phone
+					this.formData.idCard = res.data.idCard
+					this.formData.licensePlate = res.data.licensePlate
+					this.formData.vehicleType = res.data.vehicleType
+					this.formData.personCount = res.data.personCount
 				}
-			}).catch(err => {
-				uni.showToast({ title: '加载详情失败', icon: 'none' });
-			});
+			})
 		}
 	}
 }

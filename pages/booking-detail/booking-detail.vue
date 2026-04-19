@@ -265,7 +265,7 @@
 				const type = this.vehicleTypes.find(item => item.value === this.formData.vehicleType);
 				return type ? type.label : this.formData.vehicleType;
 			},
-			// 启动倒计时
+			// 带支付状态启动倒计时
 			startCountdown() {
 				this.clearCountdown();
 				if (!this.formData.paymentExpiredAt || this.formData.status !== 'pending') return;
@@ -346,6 +346,7 @@
 					if (res.success && res.data) {
 						this.formData = res.data;
 						this.startCountdown();
+						this.loopDetail();
 					} else {
 						uni.showToast({ title: '加载详情失败', icon: 'none' });
 					}
@@ -354,6 +355,21 @@
 				}).finally(() => {
 					uni.hideLoading();
 				});
+			},
+			loopDetail() {
+				if(this.formData.status === 'confirmed') {
+					this.timer = setTimeout(() => {
+						request({
+							method: 'GET',
+							url: `/bookings/${this.formData.bookingId}`
+						}).then(res => {
+							if (res.success && res.data) {
+								this.formData = res.data;
+								this.loopDetail();
+							}
+						})
+					}, 5000)
+				}
 			}
 		}
 	}

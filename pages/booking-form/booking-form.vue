@@ -52,7 +52,7 @@
 							<text class="picker-text" :class="formData.bookingDate ? 'picker-text--filled' : ''">
 								{{ formData.bookingDate || '请选择预约日期' }}
 							</text>
-							<image class="picker-icon-svg" src="/static/svg/date.svg" mode="aspectFit" />
+							<image class="picker-icon-svg" src="/static/svg/rili.svg" mode="aspectFit" />
 						</view>
 					</picker>
 				</view>
@@ -661,18 +661,18 @@ export default {
 
 .notice-icon {
 	font-size: 22rpx;
-	color: #5a6bea;
+	color: #7c8ef0;
 }
 
 .notice-text {
 	font-size: 22rpx;
-	color: #5a6bea;
+	color: #7c8ef0;
 	font-weight: 500;
 }
 
 .notice-arrow {
 	font-size: 24rpx;
-	color: #5a6bea;
+	color: #7c8ef0;
 	font-weight: 300;
 }
 
@@ -763,7 +763,7 @@ export default {
 
 .required-star::before {
 	content: '* ';
-	color: #5a6bea;
+	color: #7c8ef0;
 }
 
 /* ===== 输入框容器 ===== */
@@ -811,8 +811,8 @@ export default {
 }
 
 .picker-icon-svg {
-	width: 50rpx;
-	height: 50rpx;
+	width: 38rpx;
+	height: 38rpx;
 	flex-shrink: 0;
 }
 
@@ -840,7 +840,7 @@ export default {
 	line-height: 80rpx;
 	text-align: center;
 	background: #f5f6fb;
-	color: #5a6bea;
+	color: #7c8ef0;
 	font-size: 36rpx;
 	border: none;
 	padding: 0;
@@ -849,7 +849,7 @@ export default {
 }
 
 .stepper-btn--plus {
-	color: #5a6bea;
+	color: #7c8ef0;
 }
 
 .stepper-btn::after {
@@ -887,7 +887,7 @@ export default {
 }
 
 .time-item--active {
-	border-color: #5a6bea;
+	border-color: #7c8ef0;
 	background: #f0f2ff;
 }
 
@@ -904,7 +904,7 @@ export default {
 }
 
 .time-item__title--active {
-	color: #5a6bea;
+	color: #7c8ef0;
 }
 
 .time-item__sub {
@@ -913,7 +913,7 @@ export default {
 }
 
 .time-item__sub--active {
-	color: #5a6bea;
+	color: #7c8ef0;
 }
 
 /* 单选圆圈 */
@@ -929,8 +929,8 @@ export default {
 }
 
 .radio-circle--checked {
-	background: #5a6bea;
-	border-color: #5a6bea;
+	background: #7c8ef0;
+	border-color: #7c8ef0;
 }
 
 .radio-check {
@@ -1041,8 +1041,8 @@ export default {
 }
 
 .agree-checkbox--checked {
-	background: #5a6bea;
-	border-color: #5a6bea;
+	background: #7c8ef0;
+	border-color: #7c8ef0;
 }
 
 .agree-check-icon {
@@ -1058,7 +1058,7 @@ export default {
 
 .agree-link {
 	font-size: 26rpx;
-	color: #5a6bea;
+	color: #7c8ef0;
 	font-weight: 500;
 }
 
@@ -1083,14 +1083,14 @@ export default {
 
 .price-symbol {
 	font-size: 26rpx;
-	color: #5a6bea;
+	color: #7c8ef0;
 	font-weight: 600;
 	line-height: 1;
 }
 
 .price-value {
 	font-size: 56rpx;
-	color: #5a6bea;
+	color: #7c8ef0;
 	font-weight: 700;
 	line-height: 1;
 }
@@ -1216,7 +1216,7 @@ export default {
 
 .notice-tag--blue {
 	background: #e8ecff;
-	color: #5a6bea;
+	color: #7c8ef0;
 }
 
 .notice-row__label {

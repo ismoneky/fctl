@@ -119,7 +119,7 @@
         <view class="menu-group">
           <view class="menu-item" @click="goToBooking(0)">
             <view class="menu-left">
-              <text class="menu-icon">📋</text>
+              <text class="menu-icon iconfont icon-dingdan"></text>
               <text class="menu-text">我的订单</text>
             </view>
             <text class="menu-arrow">›</text>
@@ -133,7 +133,7 @@
                     </view> -->
           <view class="menu-item" @click="goToFeedback">
             <view class="menu-left">
-              <text class="menu-icon">💬</text>
+              <image class="menu-icon-svg" src="/static/svg/message.svg" mode="aspectFit" />
               <text class="menu-text">意见反馈</text>
             </view>
             <text class="menu-arrow">›</text>
@@ -582,6 +582,18 @@ export default {
 .menu-icon {
   font-size: 40rpx;
   margin-right: 20rpx;
+}
+
+.icon-dingdan {
+	font-size: 37rpx;
+	margin-top: 4rpx;
+}
+
+.menu-icon-svg {
+  width: 40rpx;
+  height: 40rpx;
+  margin-right: 20rpx;
+  flex-shrink: 0;
 }
 
 .menu-text {

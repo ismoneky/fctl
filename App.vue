@@ -14,9 +14,10 @@
 <style>
 	/*每个页面公共css */
 @import '/static/iconfont.css';
-page, view, text, image, button {
+page, view, text, image, button, input, textarea {
 	box-sizing: border-box;
 	margin: 0;
 	padding: 0;
+	font-family: "PingFang SC", "苹方", "Helvetica Neue", Arial, sans-serif;
 }
 </style>

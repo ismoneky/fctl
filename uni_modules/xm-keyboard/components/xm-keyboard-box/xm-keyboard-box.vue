@@ -265,11 +265,11 @@
 
 		&-btn-over {
 			// position: absolute;
-			background-color: #f37b1d;
+			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 			color: #fff;
 
 			&:active {
-				background-color: rgba(243, 123, 29, 0.8);
+				opacity: 0.8;
 			}
 		}
 

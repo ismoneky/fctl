@@ -30,8 +30,8 @@
                 <view class="booking-item" v-for="(item, index) in bookingList" :key="item.id">
                     <view class="booking-header">
                         <view class="booking-type">
-                            <text class="type-icon">🌬️</text>
-                            <text class="type-text">风车天路预约</text>
+                            <text class="iconfont icon-Energy- type-icon"></text>
+                            <text class="type-name">风车天路</text>
                         </view>
                         <view class="booking-status" :class="'status-' + item.status">
                             {{ getStatusText(item.status) }}
@@ -52,9 +52,12 @@
                             <text class="label">车牌号:</text>
                             <text class="value">{{ item.plateNumber }}</text>
                         </view>
-                        <view class="content-row">
+                        <view class="content-row" @click="copyOrderId(item.bookingId)">
                             <text class="label">订单号:</text>
-                            <text class="value order-no">{{ item.bookingId }}</text>
+                            <view class="order-no-wrap">
+                                <text class="value order-no">{{ item.bookingId }}</text>
+                                <text class="copy-btn">复制</text>
+                            </view>
                         </view>
                     </view>
 
@@ -152,6 +155,14 @@ export default {
         this.getList();
     },
     methods: {
+        copyOrderId(bookingId) {
+            uni.setClipboardData({
+                data: bookingId,
+                success: () => {
+                    uni.showToast({ title: '订单号已复制', icon: 'success' });
+                }
+            });
+        },
         getList() {
             const openid = uni.getStorageSync('openid');
             let status = null;
@@ -338,14 +349,32 @@ export default {
 }
 
 .type-icon {
-    font-size: 40rpx;
-    margin-right: 10rpx;
+    font-size: 32rpx;
+    color: #7c8ef0;
+    margin-right: 16rpx;
+    flex-shrink: 0;
 }
 
-.type-text {
-    font-size: 32rpx;
-    font-weight: bold;
-    color: #333;
+.type-name {
+    font-size: 30rpx;
+    font-weight: 700;
+    color: #1a1a2e;
+}
+
+.order-no-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12rpx;
+    flex: 1;
+}
+
+.copy-btn {
+    font-size: 22rpx;
+    color: #7c8ef0;
+    border: 1rpx solid #7c8ef0;
+    border-radius: 8rpx;
+    padding: 2rpx 12rpx;
+    flex-shrink: 0;
 }
 
 .booking-status {

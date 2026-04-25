@@ -156,37 +156,40 @@
 		<view class="notice-mask" v-if="noticeVisible" @click="noticeVisible = false"></view>
 		<view class="notice-popup" :class="{ 'notice-popup--show': noticeVisible }">
 			<view class="notice-popup__header">
-				<text class="notice-popup__title">预约须知</text>
+				<text class="notice-popup__title">风车天路预约须知</text>
 				<text class="notice-popup__close" @click="noticeVisible = false">✕</text>
 			</view>
 			<scroll-view class="notice-popup__body" scroll-y>
-				<!-- 预订须知 -->
-				<text class="notice-group-title">预订须知</text>
-				<view class="notice-row">
-					<view class="notice-left">
-						<view class="notice-tag notice-tag--blue">可订今天</view>
-					</view>
-					<text class="notice-row__text">23:59前可订今天</text>
-				</view>
-				<view class="notice-row">
-					<view class="notice-left">
-						<view class="notice-tag notice-tag--blue">有效期内可验</view>
-					</view>
-					<text class="notice-row__text">出游日期当天有效</text>
-				</view>
-				<view class="notice-row">
-					<view class="notice-left">
-						<view class="notice-tag notice-tag--blue">有条件退</view>
-					</view>
-					<text class="notice-row__text">有效期后1天23:30前未使用可申请退款，逾期不可退。</text>
-				</view>
+				<text class="notice-intro">欢迎您计划前往风车天路游览！为确保您拥有安全、愉快的游玩体验，同时保护当地生态环境与道路秩序，请您仔细阅读并遵守以下预约须知：</text>
 
-				<!-- 其他说明 -->
-				<text class="notice-group-title" style="margin-top:36rpx">其他说明</text>
-				<view class="notice-row">
-					<text class="notice-row__label">其他须知</text>
-					<text class="notice-row__text">适用人群：年龄19周岁（包含）~60周岁（不含）{{ '\n\n' }}一、门票仅限当日当次使用！{{ '\n' }}二、退票政策：实行限时退票规则，即在预订日、门票使用日和门票使用日的后一天，可以对未使用的门票进行退票，已使用或超过规定时限的门票无法退票。{{ '\n' }}三、符合半票优惠政策的游客需持相应证件在现场售票窗口购票；符合免票优惠政策的游客持相应证件在检票口直接办理入山。{{ '\n\n' }}四、预订成功的门票无需换取纸质票，直接凭本人身份证验票入山。</text>
-				</view>
+				<text class="notice-group-title">一、预约方式</text>
+				<text class="notice-body">1. 所有车辆及游客需提前通过官方指定平台（如微信公众号/小程序/APP）进行实名制预约。{{ '\n' }}2. 预约时需填写车牌号、驾驶人及随行人员身份信息、联系方式、预计通行时段。{{ '\n' }}3. 每日预约名额有限，约满即止。建议您至少提前1-3天预约，节假日请尽早安排。</text>
+
+				<text class="notice-group-title">二、开放与通行时间</text>
+				<text class="notice-body">· 开放时段：旺季（4月-10月）淡季（11月-3月）{{ '\n' }}· 最晚入园：关闭时间前1小时停止检票及车辆进入{{ '\n' }}· 如遇恶劣天气（大雾、暴雨、冰雪、强风等）、道路维护或突发情况，天路将临时关闭，已预约订单可全额退款或改期。</text>
+
+				<text class="notice-group-title">三、车辆及驾驶要求</text>
+				<text class="notice-body">1. 仅允许7座及以下小型客车和摩托、非机动车通行，房车、拖挂车、货车禁止进入。{{ '\n' }}2. 驾驶员需有2年以上实际驾龄，且无严重交通违法记录。{{ '\n' }}3. 山路弯多坡陡，建议选择SUV或底盘较高车型；纯电动车请确保续航充足。{{ '\n' }}4. 全程限速30km/h，严禁弯道超车、占道行驶、逆向行驶。</text>
+
+				<text class="notice-group-title">四、安全与行为规范</text>
+				<text class="notice-body">1. 全程系好安全带，乘客请勿将身体探出车外或车顶天窗。{{ '\n' }}2. 禁止下车徒步穿越非指定观景台区域（部分路段临崖、落石风险）。{{ '\n' }}3. 观景台停车请有序入位，严禁在弯道、坡道、窄路边停车拍照或赏景。{{ '\n' }}4. 严禁携带易燃易爆物品、无人机（除提前获批的航拍许可外）、宠物（需全程放在车内且不扰他人）。{{ '\n' }}5. 禁止明火、野炊、露营、吸烟（含电子烟）—— 山区防火，至关重要。</text>
+
+				<text class="notice-group-title">五、天气与穿着建议</text>
+				<text class="notice-body">· 天路海拔较高，气温比山下低5-10℃，且天气多变。建议携带外套、雨具、防晒用品。{{ '\n' }}· 若遇大雾或强侧风，请开启雾灯/双闪，减速并保持在车道中间行驶。</text>
+
+				<text class="notice-group-title">六、费用与退改</text>
+				<text class="notice-body">· 预约时需支付车辆预约服务费（具体金额以平台公示为准）及卫生管理费。{{ '\n' }}· 取消与退款规则：{{ '\n' }}  · 在预约日的前一天（含）之前申请取消，可全额退款。{{ '\n' }}  · 在预约日当天、且尚未完成核验（核验指入口处扫码验证或车牌识别入园）之前申请取消，也可全额退款。{{ '\n' }}  · 一旦完成核验（即车辆及人员已进入风车天路景区），无论是否完整游览，均不予退款。{{ '\n' }}  · 超过预约日期未使用（未在预约日当天开放时段内完成核验），视为自动放弃，不予退款。{{ '\n' }}· 因恶劣天气、道路封闭等不可抗力导致天路临时关闭，已预约订单可联系工作人员。{{ '\n' }}· 须知最终解释权归河南省云玺旅游有限公司所有，内容如有调整以最新公告为准。</text>
+
+				<text class="notice-group-title">七、环保与文明游览</text>
+				<text class="notice-body">1. 请自觉带走所有垃圾（车内请自备垃圾袋）。天路沿线不设垃圾桶。{{ '\n' }}2. 禁止采摘花草、挖掘植物、惊扰野生动物。{{ '\n' }}3. 请勿使用音响外放、大声喧哗，共同维护宁静的自然环境。</text>
+
+				<text class="notice-group-title">八、责任声明</text>
+				<text class="notice-body">进入风车天路即表示您已知晓并自愿承担户外自驾活动可能存在的风险（包括但不限于落石、侧风、路面湿滑、野生动物突发等）。如因违反本须知规定或因自身疾病、操作不当等引发的人身或财产损害，责任由游客自行承担。管理方已尽安全提示义务，将提供必要协助但不承担直接赔偿。</text>
+
+				<text class="notice-group-title">九、咨询与紧急联络</text>
+				<text class="notice-body">· 预约及票务咨询：18639220123（工作时间 09:00-18:00）{{ '\n' }}· 投诉建议：18639220123</text>
+
+				<text class="notice-footer">感谢您的配合与理解。让我们一起守护风车天路的纯净与壮美，平安出行，尽兴而归！</text>
 			</scroll-view>
 		</view>
 	</view>
@@ -1107,7 +1110,7 @@ export default {
 	z-index: 201;
 	display: flex;
 	flex-direction: column;
-	max-height: 75vh;
+	height: 75vh;
 	transform: translateY(100%);
 	transition: transform 0.3s ease;
 }
@@ -1143,6 +1146,16 @@ export default {
 	padding: 28rpx 40rpx;
 	padding-bottom: calc(28rpx + env(safe-area-inset-bottom));
 	box-sizing: border-box;
+	overflow: hidden;
+	height: 0;
+}
+
+.notice-intro {
+	display: block;
+	font-size: 26rpx;
+	color: #555;
+	line-height: 1.7;
+	margin-bottom: 32rpx;
 }
 
 .notice-group-title {
@@ -1150,7 +1163,26 @@ export default {
 	font-size: 28rpx;
 	font-weight: 700;
 	color: #1a1a2e;
-	margin-bottom: 20rpx;
+	margin-top: 32rpx;
+	margin-bottom: 14rpx;
+}
+
+.notice-body {
+	display: block;
+	font-size: 26rpx;
+	color: #555;
+	line-height: 1.7;
+	margin-bottom: 4rpx;
+}
+
+.notice-footer {
+	display: block;
+	font-size: 24rpx;
+	color: #999;
+	line-height: 1.7;
+	margin-top: 40rpx;
+	padding-top: 24rpx;
+	border-top: 1.5rpx solid #f0f0f0;
 }
 
 .notice-row {

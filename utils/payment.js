@@ -53,50 +53,50 @@ export function handlePayment(bookingId, onSuccess) {
  */
 export function pollPaymentStatus(bookingId, onSuccess) {
     const MAX_RETRIES = 5;
-    const INTERVAL = 3000;
+    const INTERVAL = 1500;
     let retries = 0;
+    let timer = null;
 
-    const timer = setInterval(() => {
+    uni.showLoading({ title: '支付确认中...', mask: true });
+
+    function done(success) {
+        clearInterval(timer);
+        uni.hideLoading();
+        if (success) {
+            uni.showToast({ title: '支付成功', icon: 'success' });
+            if (typeof onSuccess === 'function') {
+                onSuccess(bookingId);
+            } else {
+                uni.reLaunch({ url: '/pages/booking/booking' });
+            }
+        } else {
+            uni.showToast({
+                title: '支付状态确认中，请稍后刷新订单页面查看',
+                icon: 'none',
+                duration: 3000
+            });
+        }
+    }
+
+    function check() {
         retries++;
         request({
             method: 'GET',
             url: `bookings/${bookingId}/pay-status`
         }).then(res => {
-            if (res.success) {
-                const status = res.data.status;
-                if (status === 'paid') {
-                    clearInterval(timer);
-                    uni.showToast({ title: '支付成功', icon: 'success' });
-                    if (typeof onSuccess === 'function') {
-                        onSuccess(bookingId);
-                    } else {
-                        uni.reLaunch({ url: '/pages/booking/booking' });
-                    }
-                } else if (retries >= MAX_RETRIES) {
-                    clearInterval(timer);
-                    uni.showToast({
-                        title: '支付状态确认中，请稍后刷新订单页面查看',
-                        icon: 'none',
-                        duration: 3000
-                    });
-                }
+            if (res.success && res.data.status === 'paid') {
+                done(true);
             } else if (retries >= MAX_RETRIES) {
-                clearInterval(timer);
-                uni.showToast({
-                    title: '支付状态确认中，请稍后刷新订单页面查看',
-                    icon: 'none',
-                    duration: 3000
-                });
+                done(false);
             }
         }).catch(() => {
             if (retries >= MAX_RETRIES) {
-                clearInterval(timer);
-                uni.showToast({
-                    title: '支付状态确认中，请稍后刷新订单页面查看',
-                    icon: 'none',
-                    duration: 3000
-                });
+                done(false);
             }
         });
-    }, INTERVAL);
+    }
+
+    // 立即查一次，再按间隔轮询
+    check();
+    timer = setInterval(check, INTERVAL);
 }

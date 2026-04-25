@@ -57,32 +57,7 @@
 					</picker>
 				</view>
 
-				<!-- 预约时间段 -->
-				<view class="field-block">
-					<text class="field-label required-star">预约时间段</text>
-					<view class="time-group">
-						<view class="time-item" :class="{ 'time-item--active': formData.timeSlot === 'morning' }"
-							@click="onTimePeriodChange('morning')">
-							<view class="time-item__info">
-								<text class="time-item__title" :class="{ 'time-item__title--active': formData.timeSlot === 'morning' }">上午</text>
-								<text class="time-item__sub" :class="{ 'time-item__sub--active': formData.timeSlot === 'morning' }">08:00-12:00</text>
-							</view>
-							<view class="radio-circle" :class="{ 'radio-circle--checked': formData.timeSlot === 'morning' }">
-								<text v-if="formData.timeSlot === 'morning'" class="radio-check">✓</text>
-							</view>
-						</view>
-						<view class="time-item" :class="{ 'time-item--active': formData.timeSlot === 'afternoon' }"
-							@click="onTimePeriodChange('afternoon')">
-							<view class="time-item__info">
-								<text class="time-item__title" :class="{ 'time-item__title--active': formData.timeSlot === 'afternoon' }">下午</text>
-								<text class="time-item__sub" :class="{ 'time-item__sub--active': formData.timeSlot === 'afternoon' }">12:00-18:00</text>
-							</view>
-							<view class="radio-circle" :class="{ 'radio-circle--checked': formData.timeSlot === 'afternoon' }">
-								<text v-if="formData.timeSlot === 'afternoon'" class="radio-check">✓</text>
-							</view>
-						</view>
-					</view>
-				</view>
+				<!-- 预约时间段（隐藏展示，字段保留） -->
 			</view>
 
 			<!-- 出行方式 + 车辆/观光团信息 -->
@@ -150,19 +125,7 @@
 				</template>
 			</view>
 
-			<!-- 备注信息 -->
-			<view class="form-section">
-				<view class="section-title">
-					<view class="title-icon-wrap">
-						<image class="title-icon-svg beizhu" src="/static/svg/24_beizhu.svg" mode="aspectFit" />
-					</view>
-					<text class="title-text">备注信息</text>
-				</view>
-				<view class="remarks-block">
-					<textarea class="remarks-textarea" v-model="formData.remarks" placeholder="请输入备注信息（选填）" placeholder-style="color:#c8c8c8" maxlength="200" />
-					<text class="char-count">{{ formData.remarks.length }}/200</text>
-				</view>
-			</view>
+			<!-- 备注信息（隐藏展示，字段保留） -->
 		</view>
 
 		<!-- 底部：勾选 + 金额 + 提交按钮 -->
@@ -180,7 +143,7 @@
 						<text class="price-symbol">¥</text>
 						<text class="price-value">{{ (paymentAmount / 100).toFixed(2) }}</text>
 					</view>
-					<text class="price-desc">预约收费（含卫生管理费）</text>
+					<!-- <text class="price-desc">预约收费（含卫生管理费）</text> -->
 				</view>
 				<view class="price-info" v-else>
 					<view style="flex:1"></view>
@@ -1024,7 +987,8 @@ export default {
 .agree-row {
 	display: flex;
 	align-items: center;
-	margin-bottom: 16rpx;
+	margin-bottom: 14rpx;
+	margin-top: 2rpx;
 }
 
 .agree-checkbox {

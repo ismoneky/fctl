@@ -30,7 +30,9 @@
 			<!-- 基本信息 -->
 			<view class="form-section">
 				<view class="section-title">
-					<text class="title-icon">👤</text>
+					<view class="title-icon-wrap">
+						<image class="title-icon-svg xinxi" src="/static/svg/renyuanxinxi.svg" mode="aspectFit" />
+					</view>
 					<text class="title-text">基本信息</text>
 				</view>
 
@@ -64,19 +66,15 @@
 					<view class="detail-value">{{ formatDateText(formData.bookingDate) }}</view>
 				</view>
 
-				<!-- 预约时间段 -->
-				<view class="form-item">
-					<text class="label">预约时间段</text>
-					<view class="detail-value">
-						<text>{{ formData.timeSlot === 'morning' ? '上午 (08:00-12:00)' : '下午 (12:00-18:00)' }}</text>
-					</view>
-				</view>
+				<!-- 预约时间段（隐藏展示，字段保留） -->
 			</view>
 
 			<!-- 出行方式 -->
 			<view class="form-section">
 				<view class="section-title">
-					<text class="title-icon">🚗</text>
+					<view class="title-icon-wrap">
+						<image class="title-icon-svg car" src="/static/svg/roadster-fill.svg" mode="aspectFit" />
+					</view>
 					<text class="title-text">出行方式</text>
 				</view>
 
@@ -89,34 +87,21 @@
 						<text v-else>{{ formData.travelMode }}</text>
 					</view>
 				</view>
-			</view>
 
-			<!-- 自驾信息 -->
-			<view class="form-section" v-if="formData.travelMode === 'selfDriving'">
-				<view class="section-title">
-					<text class="title-icon">🚙</text>
-					<text class="title-text">车辆信息</text>
-				</view>
-
-				<!-- 车辆类型 -->
-				<view class="form-item">
-					<text class="label">车辆类型</text>
-					<view class="detail-value">{{ getVehicleTypeLabel() }}</view>
-				</view>
-
-				<!-- 车牌号 -->
-				<view class="form-item">
-					<text class="label">车牌号</text>
-					<view class="detail-value">{{ formData.licensePlate }}</view>
-				</view>
-			</view>
+				<!-- 自驾：车辆类型 + 车牌号 -->
+				<template v-if="formData.travelMode === 'selfDriving'">
+					<view class="form-item">
+						<text class="label">车辆类型</text>
+						<view class="detail-value">{{ getVehicleTypeLabel() }}</view>
+					</view>
+					<view class="form-item">
+						<text class="label">车牌号</text>
+						<view class="detail-value">{{ formData.licensePlate }}</view>
+					</view>
+				</template>
 
 			<!-- 观光团信息 -->
-			<view class="form-section" v-if="formData.travelMode === 'tourGroup'">
-				<view class="section-title">
-					<text class="title-icon">👥</text>
-					<text class="title-text">观光团信息</text>
-				</view>
+			<template v-if="formData.travelMode === 'tourGroup'">
 
 				<!-- 旅行社名称 -->
 				<view class="form-item">
@@ -129,19 +114,11 @@
 					<text class="label">团队编号</text>
 					<view class="detail-value">{{ formData.tourNumber }}</view>
 				</view>
+			</template>
+
 			</view>
 
-			<!-- 备注信息 -->
-			<view class="form-section" v-if="formData.remarks">
-				<view class="section-title">
-					<text class="title-icon">📝</text>
-					<text class="title-text">备注信息</text>
-				</view>
-
-				<view class="form-item">
-					<view class="detail-value">{{ formData.remarks }}</view>
-				</view>
-			</view>
+			<!-- 备注信息（隐藏展示，字段保留） -->
 
 			<!-- 核验二维码 - 仅待使用状态显示 -->
 			<view class="qr-section" v-if="formData.status === 'confirmed' && formData.bookingId">
@@ -149,7 +126,18 @@
 					<text class="qr-card-title">入场核验码</text>
 					<text class="qr-card-subtitle">请向管理员出示此二维码</text>
 					<view class="qr-code-wrap">
-						<image class="qr-code" :src="qrCodeUrl" mode="aspectFit" />
+						<image v-if="qrImageUrl" class="qr-image" :src="qrImageUrl" mode="aspectFit" />
+						<view v-else class="qr-placeholder" />
+						<l-qrcode
+							class="qr-canvas-hidden"
+							:value="formData.bookingId"
+							size="360rpx"
+							color="#333333"
+							bgColor="#ffffff"
+							errorLevel="H"
+							:useCanvasToTempFilePath="true"
+							@success="onQrSuccess"
+						/>
 					</view>
 					<text class="qr-booking-id">订单号：{{ formData.bookingId }}</text>
 				</view>
@@ -203,17 +191,13 @@
 					cancelled: { icon: '❌', label: '已取消',  desc: '订单已取消' },
 					refunded:  { icon: '💸', label: '已退款',  desc: '退款将原路返回，请耐心等待' },
 				},
+				qrImageUrl: '',
 				countdown: 0,       // 剩余秒数
 				countdownTimer: null,
 				_lastClickTime: 0   // 防抖时间戳
 			}
 		},
 		computed: {
-			qrCodeUrl() {
-				if (!this.formData.bookingId) return '';
-				const encodedUrl = encodeURIComponent(this.formData.bookingId);
-				return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodedUrl}`;
-			},
 			countdownDisplay() {
 				const total = Math.max(0, this.countdown);
 				const mm = String(Math.floor(total / 60)).padStart(2, '0');
@@ -259,6 +243,9 @@
 				}
 				
 				return dateStr;
+			},
+			onQrSuccess(url) {
+				this.qrImageUrl = url;
 			},
 			// 获取车辆类型标签
 			getVehicleTypeLabel() {
@@ -316,18 +303,32 @@
 						request({
 							method: 'POST',
 							url: `bookings/${this.formData.bookingId}/refund`
-						}).then(() => {
+						}).then(res => {
+							if (res.success) {
+								uni.showModal({
+									title: '退款申请已提交',
+									content: '退款成功！微信将自动返还回您的账户，请您耐心等待。',
+									showCancel: false,
+									confirmText: '我知道了',
+									success: () => {
+										uni.reLaunch({ url: '/pages/booking/booking' });
+									}
+								});
+							} else {
+								uni.showModal({
+									title: '退款失败',
+									content: res.data?.message || '退款申请失败，请稍后重试',
+									showCancel: false,
+									confirmText: '我知道了'
+								});
+							}
+						}).catch(err => {
 							uni.showModal({
-								title: '退款申请已提交',
-								content: '退款成功！微信将自动返还回您的账户，请您耐心等待。',
+								title: '退款失败',
+								content: err.data?.message || '退款申请失败，请稍后重试',
 								showCancel: false,
-								confirmText: '我知道了',
-								success: () => {
-									uni.reLaunch({ url: '/pages/booking/booking' });
-								}
+								confirmText: '我知道了'
 							});
-						}).catch(() => {
-							uni.showToast({ title: '退款申请失败，请稍后重试', icon: 'none' });
 						}).finally(() => {
 							uni.hideLoading();
 						});
@@ -378,13 +379,13 @@
 <style scoped>
 	.container {
 		min-height: 100vh;
-		background-color: #f5f5f5;
+		background-color: #f0f2f8;
 		padding-bottom: 40rpx;
 		box-sizing: border-box;
 	}
 
 	.form-container {
-		padding: 20rpx 30rpx 0;
+		padding: 24rpx;
 		box-sizing: border-box;
 	}
 
@@ -486,36 +487,50 @@
 	.form-section {
 		background: #fff;
 		border-radius: 20rpx;
-		padding: 30rpx;
-		margin-bottom: 20rpx;
-		box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.05);
-		box-sizing: border-box;
-		width: 100%;
+		margin-bottom: 24rpx;
 		overflow: hidden;
 	}
 
 	.section-title {
 		display: flex;
 		align-items: center;
-		margin-bottom: 30rpx;
-		padding-bottom: 20rpx;
-		border-bottom: 2rpx solid #f0f0f0;
+		padding: 32rpx 30rpx 28rpx;
 	}
 
-	.title-icon {
-		font-size: 40rpx;
-		margin-right: 15rpx;
+	.title-icon-wrap {
+		width: 44rpx;
+		height: 44rpx;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		margin-right: 8rpx;
+		flex-shrink: 0;
+	}
+
+	.title-icon-svg {
+	}
+
+	.xinxi {
+		width: 38rpx;
+		height: 34rpx;
+		margin-bottom: 10rpx;
+	}
+
+	.car {
+		width: 36rpx;
+		height: 36rpx;
 	}
 
 	.title-text {
-		font-size: 32rpx;
-		font-weight: bold;
-		color: #333;
+		font-size: 28rpx;
+		font-weight: 700;
+		color: #1a1a2e;
 	}
 
 	/* 表单项 */
 	.form-item {
-		margin-bottom: 30rpx;
+		margin-bottom: 24rpx;
+		padding: 0 30rpx;
 		position: relative;
 		width: 100%;
 		box-sizing: border-box;
@@ -526,26 +541,26 @@
 	}
 
 	.form-item:last-child {
-		margin-bottom: 0;
+		margin-bottom: 30rpx;
 	}
 
 	.label {
 		display: block;
-		font-size: 28rpx;
-		color: #666;
+		font-size: 26rpx;
+		color: #444;
 		margin-bottom: 0;
-		font-weight: 400;
+		font-weight: 500;
 		width: 180rpx;
 		flex-shrink: 0;
 	}
 
 	.detail-value {
 		font-size: 28rpx;
-		color: #333;
+		color: #1a1a2e;
 		font-weight: 500;
 		line-height: 1.5;
 		word-break: break-all;
-		text-align: left;
+		text-align: right;
 		flex: 1;
 	}
 
@@ -582,12 +597,33 @@
 		border-radius: 20rpx;
 		padding: 20rpx;
 		box-shadow: 0 8rpx 30rpx rgba(0, 0, 0, 0.15);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 360rpx;
+		height: 360rpx;
+		box-sizing: content-box;
 	}
 
-	.qr-code {
+	.qr-image {
 		width: 360rpx;
 		height: 360rpx;
 		display: block;
+	}
+
+	.qr-placeholder {
+		width: 360rpx;
+		height: 360rpx;
+		background: #f0f0f0;
+		border-radius: 8rpx;
+	}
+
+	.qr-canvas-hidden {
+		position: fixed;
+		left: -9999rpx;
+		top: -9999rpx;
+		opacity: 0;
+		pointer-events: none;
 	}
 
 	.qr-booking-id {

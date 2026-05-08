@@ -121,26 +121,7 @@ export default {
   },
   data() {
     return {
-      bannerList: [
-        {
-          image: "https://cdn.hbfctl.com.cn/index/1.jpg",
-        },
-        {
-          image: "https://cdn.hbfctl.com.cn/index/2.jpg",
-        },
-        {
-          image: "https://cdn.hbfctl.com.cn/index/3.jpg",
-        },
-        {
-          image: "https://cdn.hbfctl.com.cn/index/4.jpg",
-        },
-        {
-          image: "https://cdn.hbfctl.com.cn/index/5.jpg",
-        },
-        {
-          image: "https://cdn.hbfctl.com.cn/index/6.jpg",
-        },
-      ],
+      bannerList: [],
       featureList: [
         {
           icon: "icon-Energy-",
@@ -197,6 +178,7 @@ export default {
     };
   },
   async onLoad() {
+    this.loadBanners();
     this.loadAnnouncements();
     uni.login({
       provider: "weixin",
@@ -253,6 +235,27 @@ export default {
     };
   },
   methods: {
+    loadBanners() {
+      const fallback = [
+        { image: 'https://cdn.hbfctl.com.cn/index/1.jpg' },
+        { image: 'https://cdn.hbfctl.com.cn/index/2.jpg' },
+        { image: 'https://cdn.hbfctl.com.cn/index/3.jpg' },
+        { image: 'https://cdn.hbfctl.com.cn/index/4.jpg' },
+        { image: 'https://cdn.hbfctl.com.cn/index/5.jpg' },
+        { image: 'https://cdn.hbfctl.com.cn/index/6.jpg' },
+      ];
+      request({ method: 'GET', url: '/system-config/banners' })
+        .then(res => {
+          if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+            this.bannerList = res.data.map(b => ({ image: b.imageUrl }));
+          } else {
+            this.bannerList = fallback;
+          }
+        })
+        .catch(() => {
+          this.bannerList = fallback;
+        });
+    },
     // 获取公告列表
     loadAnnouncements() {
       request({ method: "GET", url: "/announcements" })

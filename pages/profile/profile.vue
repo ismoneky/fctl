@@ -124,13 +124,13 @@
             </view>
             <text class="menu-arrow">›</text>
           </view>
-          <!-- <view class="menu-item" @click="handleMenuClick('help')">
-                        <view class="menu-left">
-                            <text class="menu-icon">❓</text>
-                            <text class="menu-text">帮助中心</text>
-                        </view>
-                        <text class="menu-arrow">›</text>
-                    </view> -->
+          <view class="menu-item" @click="goToProfiles">
+            <view class="menu-left">
+              <image class="menu-icon-svg" src="/static/svg/renyuanxinxi-dark.svg" mode="aspectFit" />
+              <text class="menu-text">常用信息</text>
+            </view>
+            <text class="menu-arrow">›</text>
+          </view>
           <view class="menu-item" @click="goToFeedback">
             <view class="menu-left">
               <image class="menu-icon-svg" src="/static/svg/message.svg" mode="aspectFit" />
@@ -339,6 +339,9 @@ export default {
           uni.reLaunch({ url: "/pages/booking/booking?tab=" + tabIndex });
         },
       });
+    },
+    goToProfiles() {
+      uni.navigateTo({ url: '/pages/profiles/profiles' });
     },
     goToFeedback() {
       uni.navigateTo({ url: "/pages/feedback/feedback" });

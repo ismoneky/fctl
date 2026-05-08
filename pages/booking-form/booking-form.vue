@@ -10,42 +10,44 @@
 					<text class="title-text">基本信息</text>
 				</view>
 
-				<!-- 人数 + 联系人姓名 同一行两列 -->
-				<view class="form-row-two">
-					<view class="field-col">
-						<text class="field-label required-star">预约人数</text>
-						<view class="stepper-box">
-							<button class="stepper-btn" @click="decreasePerson">－</button>
-							<input class="stepper-input" type="number" v-model.number="formData.personCount" @input="onPersonCountInput" />
-							<button class="stepper-btn stepper-btn--plus" @click="increasePerson">＋</button>
-						</view>
+				<!-- 人数选择 -->
+				<view class="field-block">
+					<text class="field-label required-star">预约人数</text>
+					<view class="stepper-box">
+						<button class="stepper-btn" @click="decreasePerson">－</button>
+						<input class="stepper-input" type="number" v-model.number="formData.personCount" @input="onPersonCountInput" />
+						<button class="stepper-btn stepper-btn--plus" @click="increasePerson">＋</button>
 					</view>
-					<view class="field-col">
-						<text class="field-label required-star">联系人姓名</text>
+				</view>
+
+				<!-- 动态出行人员列表 -->
+				<view class="passenger-card" v-for="(p, idx) in formData.passengers" :key="idx">
+					<view class="passenger-card-header">
+						<text class="passenger-index">{{ idx === 0 ? '联系人（第1位）' : `第${idx + 1}位出行人` }}</text>
+						<text class="passenger-quick-btn" @click="openProfilePicker(idx)">选择常用</text>
+					</view>
+					<view class="field-block">
+						<text class="field-label required-star">姓名</text>
 						<view class="input-box">
-							<input class="field-input" v-model="formData.name" placeholder="请输入" placeholder-style="color:#c8c8c8" />
+							<input class="field-input" v-model="p.name" placeholder="请输入姓名" placeholder-style="color:#c8c8c8" maxlength="20" />
 						</view>
 					</view>
-				</view>
-
-				<!-- 手机号 -->
-				<view class="field-block">
-					<text class="field-label required-star">手机号码</text>
-					<view class="input-box">
-						<input class="field-input" type="number" maxlength="11" v-model="formData.phone" placeholder="请输入手机号码" placeholder-style="color:#c8c8c8" />
+					<view class="field-block">
+						<text class="field-label required-star">手机号码</text>
+						<view class="input-box">
+							<input class="field-input" type="number" maxlength="11" v-model="p.phone" placeholder="请输入手机号码" placeholder-style="color:#c8c8c8" />
+						</view>
 					</view>
-				</view>
-
-				<!-- 身份证号 -->
-				<view class="field-block">
-					<text class="field-label required-star">身份证号</text>
-					<view class="input-box">
-						<input class="field-input" maxlength="18" v-model="formData.idCard" placeholder="请输入身份证号码" placeholder-style="color:#c8c8c8" />
+					<view class="field-block" style="margin-bottom:0">
+						<text class="field-label required-star">身份证号</text>
+						<view class="input-box">
+							<input class="field-input" maxlength="18" v-model="p.idCard" placeholder="请输入身份证号码" placeholder-style="color:#c8c8c8" />
+						</view>
 					</view>
 				</view>
 
 				<!-- 预约日期 -->
-				<view class="field-block">
+				<view class="field-block" style="margin-top:24rpx">
 					<text class="field-label required-star">预约日期</text>
 					<picker mode="date" :start="minDate" :end="maxDate" @change="onDateChange">
 						<view class="input-box input-box--picker">
@@ -58,6 +60,32 @@
 				</view>
 
 				<!-- 预约时间段（隐藏展示，字段保留） -->
+			</view>
+
+			<!-- 选择常用人员弹窗 -->
+			<view class="modal-mask" v-if="profilePickerVisible" @click="closeProfilePicker"></view>
+			<view class="profile-picker-popup" :class="{ 'profile-picker-popup--show': profilePickerVisible }">
+				<view class="profile-picker-header">
+					<text class="profile-picker-title">选择常用人员</text>
+					<text class="profile-picker-close" @click="closeProfilePicker">✕</text>
+				</view>
+				<scroll-view class="profile-picker-body" scroll-y>
+					<view v-if="profileList.length === 0" class="profile-picker-empty">
+						<text class="profile-picker-empty-text">暂无常用信息，请先在个人中心添加</text>
+					</view>
+					<view
+						v-for="item in profileList"
+						:key="item.profileId"
+						class="profile-picker-item"
+						@click="selectProfile(item)"
+					>
+						<view class="profile-picker-item-main">
+							<text class="profile-picker-name">{{ item.name }}</text>
+							<text class="profile-picker-phone">{{ item.phone }}</text>
+						</view>
+						<text class="profile-picker-idcard">{{ maskIdCard(item.idCard) }}</text>
+					</view>
+				</scroll-view>
 			</view>
 
 			<!-- 出行方式 + 车辆/观光团信息 -->
@@ -141,7 +169,7 @@
 				<view class="price-info" v-if="paymentAmount != null">
 					<view class="price-row">
 						<text class="price-symbol">¥</text>
-						<text class="price-value">{{ (paymentAmount / 100).toFixed(2) }}</text>
+						<text class="price-value">{{ (paymentAmount * formData.personCount / 100).toFixed(2) }}</text>
 					</view>
 					<!-- <text class="price-desc">预约收费（含卫生管理费）</text> -->
 				</view>
@@ -204,21 +232,22 @@ import { handlePayment, pollPaymentStatus } from '../../utils/payment';
 export default {
 	data() {
 		return {
-			id: '', // 景区ID，从路由参数获取
+			id: '',
 			formData: {
-				name: '', // 联系人姓名
-				phone: '', // 联系人手机号
-				idCard: '', // 联系人身份证号
-				bookingDate: '', // 预约日期
-				timeSlot: 'morning', // 预约时间段（morning/afternoon）
-				travelMode: 'selfDriving', // 出行方式（scenicBus/selfDriving/tour_group）
-				licensePlate: '', // 车牌号（自驾时必填）
-				vehicleType: 'smallCar', // 车辆类型（自驾时必填）
-				tourGroupName: '', // 旅游团名称（旅游团时必填）
-				tourOrderNumber: '', // 旅游团订单编号（旅游团时必填）
-				personCount: 1, // 预约人数
-				remarks: '' // 备注信息
+				passengers: [{ name: '', phone: '', idCard: '' }], // 出行人员列表
+				bookingDate: '',
+				timeSlot: 'morning',
+				travelMode: 'selfDriving',
+				licensePlate: '',
+				vehicleType: 'smallCar',
+				tourGroupName: '',
+				tourOrderNumber: '',
+				personCount: 1,
+				remarks: ''
 			},
+			profileList: [], // 常用人员列表
+			profilePickerVisible: false, // 选择常用人员弹窗
+			currentPickerIdx: 0, // 当前正在填写的人员索引
 			travelModeList: [{
 				label: '景区摆渡车',
 				value: 'scenicBus',
@@ -272,6 +301,8 @@ export default {
 				this.paymentAmount = res.data.paymentAmount;
 			}
 		}).catch(() => {});
+		// 预加载常用人员列表
+		this.fetchProfiles();
 	},
 	// 分享配置
 	onShareAppMessage() {
@@ -281,16 +312,29 @@ export default {
 		}
 	},
 	methods: {
+		// 同步 passengers 数组长度与 personCount
+		syncPassengers(count) {
+			const current = this.formData.passengers;
+			if (count > current.length) {
+				for (let i = current.length; i < count; i++) {
+					current.push({ name: '', phone: '', idCard: '' });
+				}
+			} else if (count < current.length) {
+				current.splice(count);
+			}
+		},
 		// 人数增加
 		increasePerson() {
 			if (this.formData.personCount < 99) {
 				this.formData.personCount++;
+				this.syncPassengers(this.formData.personCount);
 			}
 		},
 		// 人数减少
 		decreasePerson() {
 			if (this.formData.personCount > 1) {
 				this.formData.personCount--;
+				this.syncPassengers(this.formData.personCount);
 			}
 		},
 		// 人数输入
@@ -299,6 +343,36 @@ export default {
 			if (value < 1) value = 1;
 			if (value > 99) value = 99;
 			this.formData.personCount = value;
+			this.syncPassengers(value);
+		},
+		// 获取常用人员列表
+		async fetchProfiles() {
+			try {
+				const res = await request({ method: 'GET', url: '/users/profiles' });
+				if (res.success) this.profileList = res.data || [];
+			} catch (e) {}
+		},
+		// 打开选择常用人员弹窗
+		openProfilePicker(idx) {
+			this.currentPickerIdx = idx;
+			this.profilePickerVisible = true;
+		},
+		closeProfilePicker() {
+			this.profilePickerVisible = false;
+		},
+		// 选中常用人员
+		selectProfile(item) {
+			this.formData.passengers[this.currentPickerIdx] = {
+				name: item.name,
+				phone: item.phone,
+				idCard: item.idCard
+			};
+			this.profilePickerVisible = false;
+		},
+		// 遮罩身份证号
+		maskIdCard(idCard) {
+			if (!idCard || idCard.length < 8) return idCard;
+			return idCard.substring(0, 4) + '**********' + idCard.substring(idCard.length - 4);
 		},
 		// 年龄段选择
 		onAgeRangeChange(e) {
@@ -371,129 +445,48 @@ export default {
 		},
 		// 表单验证
 		validateForm() {
-			// 验证人数
 			if (!this.formData.personCount || this.formData.personCount < 1) {
-				uni.showToast({
-					title: '请输入预约人数',
-					icon: 'none'
-				});
+				uni.showToast({ title: '请输入预约人数', icon: 'none' });
 				return false;
 			}
 
-			// 验证联系人姓名
-			if (!this.formData.name.trim()) {
-				uni.showToast({
-					title: '请输入联系人姓名',
-					icon: 'none'
-				});
-				return false;
+			// 验证每位出行人员
+			for (let i = 0; i < this.formData.passengers.length; i++) {
+				const p = this.formData.passengers[i];
+				const label = i === 0 ? '联系人' : `第${i + 1}位出行人`;
+				if (!p.name || !p.name.trim()) {
+					uni.showToast({ title: `请输入${label}姓名`, icon: 'none' });
+					return false;
+				}
+				if (!p.phone || !this.validatePhone(p.phone)) {
+					uni.showToast({ title: `请输入${label}正确的手机号`, icon: 'none' });
+					return false;
+				}
+				if (!p.idCard || !this.validateIdCard(p.idCard)) {
+					uni.showToast({ title: `请输入${label}正确的身份证号`, icon: 'none' });
+					return false;
+				}
 			}
 
-			// 验证手机号
-			if (!this.formData.phone) {
-				uni.showToast({
-					title: '请输入手机号码',
-					icon: 'none'
-				});
-				return false;
-			}
-			if (!this.validatePhone(this.formData.phone)) {
-				uni.showToast({
-					title: '请输入正确的手机号码',
-					icon: 'none'
-				});
-				return false;
-			}
-
-			// 验证身份证号
-			if (!this.formData.idCard) {
-				uni.showToast({
-					title: '请输入身份证号码',
-					icon: 'none'
-				});
-				return false;
-			}
-			if (!this.validateIdCard(this.formData.idCard)) {
-				uni.showToast({
-					title: '请输入正确的身份证号码',
-					icon: 'none'
-				});
-				return false;
-			}
-
-			// 验证预约日期
 			if (!this.formData.bookingDate) {
-				uni.showToast({
-					title: '请选择预约日期',
-					icon: 'none'
-				});
+				uni.showToast({ title: '请选择预约日期', icon: 'none' });
 				return false;
 			}
 
-			// 验证预约时间段
-			if (!this.formData.timeSlot) {
-				uni.showToast({
-					title: '请选择预约时间段',
-					icon: 'none'
-				});
-				return false;
-			}
-			// 如果是自驾，验证车辆信息
 			if (this.formData.travelMode === 'selfDriving') {
 				if (!this.formData.vehicleType) {
-					uni.showToast({
-						title: '请选择车辆类型',
-						icon: 'none'
-					});
+					uni.showToast({ title: '请选择车辆类型', icon: 'none' });
 					return false;
 				}
 				if (!this.formData.licensePlate) {
-					uni.showToast({
-						title: '请输入车牌号',
-						icon: 'none'
-					});
+					uni.showToast({ title: '请输入车牌号', icon: 'none' });
 					return false;
 				}
 				if (!this.validatePlateNumber(this.formData.licensePlate)) {
-					uni.showToast({
-						title: '请输入正确的车牌号',
-						icon: 'none'
-					});
+					uni.showToast({ title: '请输入正确的车牌号', icon: 'none' });
 					return false;
 				}
 			}
-
-			// // 如果是观光团，验证观光团信息
-			// if (this.formData.travelType === 'tour-group') {
-			// 	if (!this.formData.tourInfo.agencyName.trim()) {
-			// 		uni.showToast({
-			// 			title: '请输入旅行社名称',
-			// 			icon: 'none'
-			// 		});
-			// 		return false;
-			// 	}
-			// 	if (!this.formData.tourInfo.groupNumber.trim()) {
-			// 		uni.showToast({
-			// 			title: '请输入团队编号',
-			// 			icon: 'none'
-			// 		});
-			// 		return false;
-			// 	}
-			// 	if (!this.formData.tourInfo.busPlateNumber) {
-			// 		uni.showToast({
-			// 			title: '请输入大巴车牌号',
-			// 			icon: 'none'
-			// 		});
-			// 		return false;
-			// 	}
-			// 	if (!this.validatePlateNumber(this.formData.tourInfo.busPlateNumber)) {
-			// 		uni.showToast({
-			// 			title: '请输入正确的大巴车牌号',
-			// 			icon: 'none'
-			// 		});
-			// 		return false;
-			// 	}
-			// }
 
 			return true;
 		},
@@ -522,9 +515,17 @@ export default {
 			const loading = uni.showLoading({
 				title: '提交中...'
 			});
-			// 直接提交 formData，字段与后端保持一致
 			const submitData = {
-				...this.formData,
+				passengers: this.formData.passengers,
+				bookingDate: this.formData.bookingDate,
+				timeSlot: this.formData.timeSlot,
+				travelMode: this.formData.travelMode,
+				licensePlate: this.formData.licensePlate || undefined,
+				vehicleType: this.formData.vehicleType || undefined,
+				tourGroupName: this.formData.tourGroupName || undefined,
+				tourOrderNumber: this.formData.tourOrderNumber || undefined,
+				personCount: this.formData.personCount,
+				remarks: this.formData.remarks || '',
 				wechatOpenId: uni.getStorageSync('openid')
 			};
 			request({
@@ -559,19 +560,29 @@ export default {
 		handlePayment(bookingId) {
 			handlePayment(bookingId);
 		},
-		// 获取预约详情
+		// 获取预约详情（回显）
 		getBookingDetail(bookingId) {
 			request({
 				method: 'GET',
 				url: `/bookings/${bookingId}`
 			}).then(res => {
 				if (res.success && res.data) {
-					this.formData.name =  res.data.name
-					this.formData.phone = res.data.phone
-					this.formData.idCard = res.data.idCard
-					this.formData.licensePlate = res.data.licensePlate
-					this.formData.vehicleType = res.data.vehicleType
-					this.formData.personCount = res.data.personCount
+					const d = res.data;
+					this.formData.personCount = d.personCount || 1;
+					// 优先使用 passengers 字段回显，否则用兼容字段
+					if (d.passengers) {
+						try {
+							const list = typeof d.passengers === 'string' ? JSON.parse(d.passengers) : d.passengers;
+							this.formData.passengers = list;
+						} catch(e) {
+							this.formData.passengers = [{ name: d.name || '', phone: d.phone || '', idCard: d.idCard || '' }];
+						}
+					} else {
+						this.formData.passengers = [{ name: d.name || '', phone: d.phone || '', idCard: d.idCard || '' }];
+					}
+					this.syncPassengers(this.formData.personCount);
+					this.formData.licensePlate = d.licensePlate || '';
+					this.formData.vehicleType = d.vehicleType || 'smallCar';
 				}
 			})
 		}
@@ -701,7 +712,128 @@ export default {
 	color: #1a1a2e;
 }
 
-/* ===== 两列行（人数 + 联系人） ===== */
+/* ===== 出行人员卡片 ===== */
+.passenger-card {
+	margin: 0 24rpx 20rpx;
+	background: #f7f8fd;
+	border-radius: 16rpx;
+	padding: 20rpx 20rpx 24rpx;
+	border: 1.5rpx solid #e8eaf8;
+}
+
+.passenger-card .field-block {
+	padding: 0;
+	margin-bottom: 20rpx;
+}
+
+.passenger-card-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 20rpx;
+}
+
+.passenger-index {
+	font-size: 26rpx;
+	font-weight: 700;
+	color: #7c8ef0;
+}
+
+.passenger-quick-btn {
+	font-size: 24rpx;
+	color: #7c8ef0;
+	background: #eef0fb;
+	padding: 8rpx 20rpx;
+	border-radius: 20rpx;
+}
+
+/* ===== 选择常用人员弹窗 ===== */
+.profile-picker-popup {
+	position: fixed;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: #fff;
+	border-radius: 32rpx 32rpx 0 0;
+	z-index: 201;
+	transform: translateY(100%);
+	transition: transform 0.3s ease;
+	max-height: 70vh;
+	display: flex;
+	flex-direction: column;
+	padding-bottom: env(safe-area-inset-bottom);
+}
+
+.profile-picker-popup--show {
+	transform: translateY(0);
+}
+
+.profile-picker-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 36rpx 40rpx 24rpx;
+	border-bottom: 1.5rpx solid #f0f0f0;
+	flex-shrink: 0;
+}
+
+.profile-picker-title {
+	font-size: 34rpx;
+	font-weight: 700;
+	color: #1a1a2e;
+}
+
+.profile-picker-close {
+	font-size: 36rpx;
+	color: #999;
+	padding: 8rpx;
+}
+
+.profile-picker-body {
+	flex: 1;
+	overflow: hidden;
+	height: 0;
+}
+
+.profile-picker-empty {
+	padding: 60rpx 40rpx;
+	text-align: center;
+}
+
+.profile-picker-empty-text {
+	font-size: 28rpx;
+	color: #bbb;
+}
+
+.profile-picker-item {
+	padding: 28rpx 40rpx;
+	border-bottom: 1.5rpx solid #f5f5f5;
+}
+
+.profile-picker-item-main {
+	display: flex;
+	align-items: center;
+	gap: 20rpx;
+	margin-bottom: 8rpx;
+}
+
+.profile-picker-name {
+	font-size: 30rpx;
+	font-weight: 700;
+	color: #1a1a2e;
+}
+
+.profile-picker-phone {
+	font-size: 26rpx;
+	color: #666;
+}
+
+.profile-picker-idcard {
+	font-size: 24rpx;
+	color: #999;
+}
+
+/* ===== 两列行（已弃用，保留避免样式报错） ===== */
 .form-row-two {
 	display: flex;
 	gap: 20rpx;

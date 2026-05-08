@@ -2,29 +2,47 @@
 	<view class="container">
 		<view class="form-container">
 
-			<!-- 订单状态栏 -->
-			<view class="status-bar" :class="'status-bar-' + formData.status" v-if="formData.status">
-				<text class="status-bar-icon">{{ statusConfig[formData.status].icon }}</text>
-				<view class="status-bar-info">
-					<text class="status-bar-label">{{ statusConfig[formData.status].label }}</text>
-					<text class="status-bar-desc">{{ statusConfig[formData.status].desc }}</text>
+			<!-- 待支付：倒计时主卡片 -->
+			<view class="status-hero status-hero--pending" v-if="formData.status === 'pending'">
+				<text class="hero-title">待支付</text>
+				<text class="hero-desc">请尽快完成支付，超时将自动关闭订单</text>
+				<view class="countdown-inline" v-if="countdown > 0">
+					<view class="countdown-inline-block">
+						<text class="countdown-num">{{ countdownDisplay.mm }}</text>
+						<text class="countdown-unit">分</text>
+					</view>
+					<text class="countdown-sep">:</text>
+					<view class="countdown-inline-block">
+						<text class="countdown-num">{{ countdownDisplay.ss }}</text>
+						<text class="countdown-unit">秒</text>
+					</view>
 				</view>
 			</view>
 
-			<!-- 待支付倒计时 -->
-			<view class="countdown-card" v-if="formData.status === 'pending' && countdown > 0">
-				<text class="countdown-tip">请在以下时间内完成支付，超时订单将自动关闭</text>
-				<view class="countdown-time">
-					<view class="time-block">
-						<text class="time-num">{{ countdownDisplay.mm }}</text>
-						<text class="time-unit">分</text>
-					</view>
-					<text class="time-sep">:</text>
-					<view class="time-block">
-						<text class="time-num">{{ countdownDisplay.ss }}</text>
-						<text class="time-unit">秒</text>
-					</view>
+			<!-- 待使用：状态条 -->
+			<view class="status-bar status-bar-confirmed" v-if="formData.status === 'confirmed'">
+				<view class="status-bar-info">
+					<text class="status-bar-label">待使用</text>
+					<text class="status-bar-desc">支付成功，请凭核验码入场</text>
 				</view>
+			</view>
+
+			<!-- 已完成 -->
+			<view class="status-hero status-hero--completed" v-if="formData.status === 'completed'">
+				<text class="hero-title hero-title--completed">已完成</text>
+				<text class="hero-desc">感谢您的光临，期待再次相见</text>
+			</view>
+
+			<!-- 已取消 -->
+			<view class="status-hero status-hero--cancelled" v-if="formData.status === 'cancelled'">
+				<text class="hero-title hero-title--cancelled">订单已取消</text>
+				<text class="hero-desc">订单已关闭，如需出行请重新预约</text>
+			</view>
+
+			<!-- 已退款 -->
+			<view class="status-hero status-hero--refunded" v-if="formData.status === 'refunded'">
+				<text class="hero-title hero-title--refunded">退款成功</text>
+				<text class="hero-desc">款项将原路退回，请耐心等待到账</text>
 			</view>
 
 			<!-- 基本信息 -->
@@ -42,23 +60,38 @@
 					<view class="detail-value">{{ formData.personCount }} 人</view>
 				</view>
 
-				<!-- 联系人姓名 -->
-				<view class="form-item">
-					<text class="label">联系人姓名</text>
-					<view class="detail-value">{{ formData.name }}</view>
+				<!-- 出行人员列表 -->
+				<view class="passenger-list" v-if="passengerList.length > 0">
+					<view class="passenger-item" v-for="(p, idx) in passengerList" :key="idx">
+						<view class="passenger-item-header">
+							<text class="passenger-item-tag">{{ idx === 0 ? '联系人' : `第${idx + 1}位` }}</text>
+							<text class="passenger-item-name">{{ p.name }}</text>
+						</view>
+						<view class="form-item passenger-sub-item">
+							<text class="label">手机号码</text>
+							<view class="detail-value">{{ p.phone }}</view>
+						</view>
+						<view class="form-item passenger-sub-item" style="margin-bottom:0">
+							<text class="label">身份证号</text>
+							<view class="detail-value">{{ p.idCard }}</view>
+						</view>
+					</view>
 				</view>
-
-				<!-- 手机号 -->
-				<view class="form-item">
-					<text class="label">手机号码</text>
-					<view class="detail-value">{{ formData.phone }}</view>
-				</view>
-
-				<!-- 身份证号 -->
-				<view class="form-item">
-					<text class="label">身份证号</text>
-					<view class="detail-value">{{ formData.idCard }}</view>
-				</view>
+				<!-- 兼容旧数据（无 passengers 字段时） -->
+				<template v-else>
+					<view class="form-item">
+						<text class="label">联系人姓名</text>
+						<view class="detail-value">{{ formData.name }}</view>
+					</view>
+					<view class="form-item">
+						<text class="label">手机号码</text>
+						<view class="detail-value">{{ formData.phone }}</view>
+					</view>
+					<view class="form-item">
+						<text class="label">身份证号</text>
+						<view class="detail-value">{{ formData.idCard }}</view>
+					</view>
+				</template>
                 
 				<!-- 预约日期 -->
 				<view class="form-item">
@@ -191,10 +224,11 @@
 					cancelled: { icon: '❌', label: '已取消',  desc: '订单已取消' },
 					refunded:  { icon: '💸', label: '已退款',  desc: '退款将原路返回，请耐心等待' },
 				},
+				passengerList: [],  // 解析后的出行人员列表
 				qrImageUrl: '',
-				countdown: 0,       // 剩余秒数
+				countdown: 0,
 				countdownTimer: null,
-				_lastClickTime: 0   // 防抖时间戳
+				_lastClickTime: 0
 			}
 		},
 		computed: {
@@ -346,6 +380,19 @@
 				}).then(res => {
 					if (res.success && res.data) {
 						this.formData = res.data;
+						// 解析出行人员列表
+						if (res.data.passengers) {
+							try {
+								const list = typeof res.data.passengers === 'string'
+									? JSON.parse(res.data.passengers)
+									: res.data.passengers;
+								this.passengerList = Array.isArray(list) ? list : [];
+							} catch(e) {
+								this.passengerList = [];
+							}
+						} else {
+							this.passengerList = [];
+						}
 						this.startCountdown();
 						this.loopDetail();
 					} else {
@@ -389,7 +436,7 @@
 		box-sizing: border-box;
 	}
 
-	/* 订单状态栏 */
+	/* 待使用状态条（横向紧凑，保持原风格） */
 	.status-bar {
 		display: flex;
 		align-items: center;
@@ -399,17 +446,7 @@
 		box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.06);
 	}
 
-	.status-bar-pending   { background: linear-gradient(135deg, #ff9800, #f57c00); }
 	.status-bar-confirmed { background: linear-gradient(135deg, #667eea, #764ba2); }
-	.status-bar-completed { background: linear-gradient(135deg, #43e97b, #38f9d7); }
-	.status-bar-cancelled { background: linear-gradient(135deg, #bbb, #999); }
-	.status-bar-refunded  { background: linear-gradient(135deg, #f5515f, #f7971e); }
-
-	.status-bar-icon {
-		font-size: 56rpx;
-		margin-right: 24rpx;
-		flex-shrink: 0;
-	}
 
 	.status-bar-info {
 		display: flex;
@@ -429,58 +466,99 @@
 		line-height: 1.5;
 	}
 
-	/* 倒计时卡片 */
-	.countdown-card {
-		background: #fff;
-		border-radius: 20rpx;
-		padding: 30rpx;
+	/* ===== 状态 Hero 卡片（居中大图标式） ===== */
+	.status-hero {
+		border-radius: 24rpx;
 		margin-bottom: 20rpx;
-		box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.05);
+		padding: 48rpx 40rpx 44rpx;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 	}
 
-	.countdown-tip {
-		font-size: 24rpx;
-		color: #999;
-		margin-bottom: 20rpx;
-		text-align: center;
+	/* 待支付 —— 暖橙，营造紧迫感 */
+	.status-hero--pending {
+		background: linear-gradient(160deg, #fff8f0 0%, #fff3e0 100%);
+		border: 1.5rpx solid #ffe0b2;
 	}
 
-	.countdown-time {
+	/* 已完成 —— 清新绿 */
+	.status-hero--completed {
+		background: linear-gradient(160deg, #f0fdf6 0%, #e6faf0 100%);
+		border: 1.5rpx solid #b2dfcc;
+	}
+
+	/* 已取消 —— 中性灰，低调 */
+	.status-hero--cancelled {
+		background: #f5f6f8;
+		border: 1.5rpx solid #e0e0e0;
+	}
+
+	/* 已退款 —— 浅蓝紫，温和提示 */
+	.status-hero--refunded {
+		background: linear-gradient(160deg, #f3f4ff 0%, #eef0fb 100%);
+		border: 1.5rpx solid #d0d4f5;
+	}
+
+	/* 标题 */
+	.hero-title {
+		font-size: 38rpx;
+		font-weight: 800;
+		color: #f57c00;
+		margin-bottom: 12rpx;
+		letter-spacing: 1rpx;
+	}
+
+	.hero-title--completed { color: #2db96a; }
+	.hero-title--cancelled { color: #888; }
+	.hero-title--refunded  { color: #7c8ef0; }
+
+	/* 副文案 */
+	.hero-desc {
+		font-size: 26rpx;
+		color: #aaa;
+		text-align: center;
+		line-height: 1.6;
+	}
+
+	/* 倒计时（内嵌在 pending hero 卡片里） */
+	.countdown-inline {
 		display: flex;
 		align-items: center;
+		margin-top: 32rpx;
+		gap: 0;
 	}
 
-	.time-block {
+	.countdown-inline-block {
 		display: flex;
 		align-items: baseline;
-		background: #fff8f0;
-		border-radius: 12rpx;
-		padding: 10rpx 24rpx;
+		background: rgba(245,124,0,0.10);
+		border-radius: 14rpx;
+		padding: 12rpx 28rpx;
 	}
 
-	.time-num {
-		font-size: 64rpx;
-		font-weight: bold;
+	.countdown-num {
+		font-size: 72rpx;
+		font-weight: 800;
 		color: #f57c00;
 		line-height: 1;
 		font-variant-numeric: tabular-nums;
 	}
 
-	.time-unit {
+	.countdown-unit {
 		font-size: 24rpx;
 		color: #f57c00;
 		margin-left: 6rpx;
+		font-weight: 600;
 	}
 
-	.time-sep {
-		font-size: 48rpx;
+	.countdown-sep {
+		font-size: 52rpx;
 		font-weight: bold;
-		color: #f57c00;
-		margin: 0 16rpx;
+		color: #f5a623;
+		margin: 0 14rpx;
 		line-height: 1;
+		opacity: 0.7;
 	}
 
 	/* 表单区块 */
@@ -562,6 +640,49 @@
 		word-break: break-all;
 		text-align: right;
 		flex: 1;
+	}
+
+	/* 出行人员列表 */
+	.passenger-list {
+		padding: 0 24rpx 16rpx;
+		display: flex;
+		flex-direction: column;
+		gap: 16rpx;
+	}
+
+	.passenger-item {
+		background: #f7f8fd;
+		border-radius: 14rpx;
+		padding: 20rpx 20rpx 16rpx;
+		border: 1.5rpx solid #e8eaf8;
+	}
+
+	.passenger-item-header {
+		display: flex;
+		align-items: center;
+		gap: 14rpx;
+		margin-bottom: 16rpx;
+	}
+
+	.passenger-item-tag {
+		font-size: 22rpx;
+		color: #7c8ef0;
+		background: #eef0fb;
+		padding: 4rpx 16rpx;
+		border-radius: 16rpx;
+		font-weight: 600;
+		flex-shrink: 0;
+	}
+
+	.passenger-item-name {
+		font-size: 30rpx;
+		font-weight: 700;
+		color: #1a1a2e;
+	}
+
+	.passenger-sub-item {
+		padding: 0 !important;
+		margin-bottom: 12rpx !important;
 	}
 
 	/* 二维码区域 */

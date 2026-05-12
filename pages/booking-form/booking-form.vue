@@ -158,12 +158,31 @@
 
 		<!-- 底部：勾选 + 金额 + 提交按钮 -->
 		<view class="submit-bar">
+			<!-- 勾选项1：预约须知 -->
 			<view class="agree-row" @click="agreedNotice = !agreedNotice">
-				<view class="agree-checkbox" :class="{ 'agree-checkbox--checked': agreedNotice }">
+				<view class="agree-checkbox" :class="{
+					'agree-checkbox--checked': agreedNotice,
+					'agree-checkbox--warn':    !agreedNotice && hasSubmitted,
+					'agree-checkbox--flash':   flashNotice
+				}">
 					<text v-if="agreedNotice" class="agree-check-icon">✓</text>
 				</view>
 				<text class="agree-text">我已阅读并同意</text>
 				<text class="agree-link" @click.stop="showNotice">《预约须知》</text>
+			</view>
+			<!-- 勾选项2：隐私政策+用户协议 -->
+			<view class="agree-row" @click="agreedPrivacy = !agreedPrivacy">
+				<view class="agree-checkbox" :class="{
+					'agree-checkbox--checked': agreedPrivacy,
+					'agree-checkbox--warn':    !agreedPrivacy && hasSubmitted,
+					'agree-checkbox--flash':   flashPrivacy
+				}">
+					<text v-if="agreedPrivacy" class="agree-check-icon">✓</text>
+				</view>
+				<text class="agree-text">我已阅读并同意</text>
+				<text class="agree-link" @click.stop="goToPrivacy">《隐私政策》</text>
+				<text class="agree-text">及</text>
+				<text class="agree-link" @click.stop="goToService">《用户协议》</text>
 			</view>
 			<view class="submit-row">
 				<view class="price-info" v-if="paymentAmount != null">
@@ -171,12 +190,11 @@
 						<text class="price-symbol">¥</text>
 						<text class="price-value">{{ (paymentAmount * formData.personCount / 100).toFixed(2) }}</text>
 					</view>
-					<!-- <text class="price-desc">预约收费（含卫生管理费）</text> -->
 				</view>
 				<view class="price-info" v-else>
 					<view style="flex:1"></view>
 				</view>
-				<button class="submit-btn" :class="{ 'submit-btn--disabled': !agreedNotice }" @click="handleSubmit">立即预约</button>
+				<button class="submit-btn" @click="handleSubmit">立即预约</button>
 			</view>
 		</view>
 
@@ -278,8 +296,12 @@ export default {
 			maxDate: '',
 			_lastClickTime: 0,  // 防抖时间戳
 			paymentAmount: 1000, // 单次支付金额（分），从接口获取
-			agreedNotice: false, // 是否同意预约须知
-			noticeVisible: false // 预约须知弹层显示
+			agreedNotice: false,  // 是否同意预约须知
+			agreedPrivacy: false, // 是否同意隐私政策和用户协议
+			noticeVisible: false, // 预约须知弹层显示
+			flashNotice: false,   // 预约须知勾选框闪烁
+			flashPrivacy: false,  // 隐私协议勾选框闪烁
+			hasSubmitted: false   // 是否点击过提交（用于触发常亮红边）
 		}
 	},
 	onLoad(options) {
@@ -490,9 +512,20 @@ export default {
 
 			return true;
 		},
+		// 触发指定勾选框闪烁（动画结束后由 warn 常亮接管）
+		triggerFlash(field) {
+			this[field] = true;
+			setTimeout(() => { this[field] = false; }, 1000);
+		},
 		// 显示预约须知
 		showNotice() {
 			this.noticeVisible = true;
+		},
+		goToPrivacy() {
+			uni.navigateTo({ url: '/pages/privacy/privacy' });
+		},
+		goToService() {
+			uni.navigateTo({ url: '/pages/service/service' });
 		},
 		// 提交表单
 		handleSubmit() {
@@ -500,9 +533,11 @@ export default {
 			if (now - this._lastClickTime < 2000) return;
 			this._lastClickTime = now;
 
-			// 校验是否同意须知
-			if (!this.agreedNotice) {
-				uni.showToast({ title: '请先阅读并同意预约须知', icon: 'none' });
+			// 协议校验（优先级最高）
+			if (!this.agreedNotice || !this.agreedPrivacy) {
+				this.hasSubmitted = true;
+				if (!this.agreedNotice) this.triggerFlash('flashNotice');
+				if (!this.agreedPrivacy) this.triggerFlash('flashPrivacy');
 				return;
 			}
 
@@ -656,6 +691,7 @@ export default {
 .form-container {
 	padding: 24rpx;
 	box-sizing: border-box;
+	padding-bottom: 100rpx;
 }
 
 /* ===== 卡片区块 ===== */
@@ -1122,8 +1158,22 @@ export default {
 .agree-row {
 	display: flex;
 	align-items: center;
-	margin-bottom: 14rpx;
+	margin-bottom: 10rpx;
 	margin-top: 2rpx;
+}
+
+.agree-checkbox--warn {
+	border-color: #ff4757 !important;
+}
+
+@keyframes flash-red {
+	0%, 100% { border-color: #ff4757; background: #fff; }
+	50%       { border-color: #ff4757; background: rgba(255, 71, 87, 0.15); }
+}
+
+.agree-checkbox--flash {
+	border-color: #ff4757 !important;
+	animation: flash-red 0.5s ease-in-out 2;
 }
 
 .agree-checkbox {

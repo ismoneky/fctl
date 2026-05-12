@@ -140,6 +140,23 @@
           </view>
         </view>
 
+        <view class="menu-group">
+          <view class="menu-item" @click="goToAgreement('privacy')">
+            <view class="menu-left">
+              <text class="menu-icon">🔒</text>
+              <text class="menu-text">隐私政策</text>
+            </view>
+            <text class="menu-arrow">›</text>
+          </view>
+          <view class="menu-item" @click="goToAgreement('service')">
+            <view class="menu-left">
+              <text class="menu-icon">📄</text>
+              <text class="menu-text">用户服务协议</text>
+            </view>
+            <text class="menu-arrow">›</text>
+          </view>
+        </view>
+
         <!-- <view class="menu-group">
 				<view class="menu-item" @click="handleMenuClick('settings')">
 					<view class="menu-left">
@@ -342,6 +359,9 @@ export default {
     },
     goToProfiles() {
       uni.navigateTo({ url: '/pages/profiles/profiles' });
+    },
+    goToAgreement(tab) {
+      uni.navigateTo({ url: `/pages/${tab}/${tab}` });
     },
     goToFeedback() {
       uni.navigateTo({ url: "/pages/feedback/feedback" });

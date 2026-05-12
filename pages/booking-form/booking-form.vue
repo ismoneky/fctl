@@ -538,6 +538,12 @@ export default {
 				this.hasSubmitted = true;
 				if (!this.agreedNotice) this.triggerFlash('flashNotice');
 				if (!this.agreedPrivacy) this.triggerFlash('flashPrivacy');
+				const missing = !this.agreedNotice && !this.agreedPrivacy
+					? '请先阅读并同意预约须知、隐私政策及用户协议'
+					: !this.agreedNotice
+						? '请先阅读并同意预约须知'
+						: '请先阅读并同意隐私政策及用户协议';
+				uni.showToast({ title: missing, icon: 'none', duration: 2000 });
 				return;
 			}
 

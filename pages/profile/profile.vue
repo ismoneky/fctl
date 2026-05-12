@@ -126,7 +126,7 @@
           </view>
           <view class="menu-item" @click="goToProfiles">
             <view class="menu-left">
-              <image class="menu-icon-svg" src="/static/svg/renyuanxinxi-dark.svg" mode="aspectFit" />
+              <image class="menu-icon-svg"  src="/static/svg/renyuanxinxi-dark.svg" mode="aspectFit" />
               <text class="menu-text">常用信息</text>
             </view>
             <text class="menu-arrow">›</text>
@@ -143,14 +143,14 @@
         <view class="menu-group">
           <view class="menu-item" @click="goToAgreement('privacy')">
             <view class="menu-left">
-              <text class="menu-icon">🔒</text>
+              <image class="menu-icon-svg" src="/static/svg/yinsi.svg" mode="aspectFit" />
               <text class="menu-text">隐私政策</text>
             </view>
             <text class="menu-arrow">›</text>
           </view>
           <view class="menu-item" @click="goToAgreement('service')">
             <view class="menu-left">
-              <text class="menu-icon">📄</text>
+              <image class="menu-icon-svg" src="/static/svg/xieyi.svg" mode="aspectFit" />
               <text class="menu-text">用户服务协议</text>
             </view>
             <text class="menu-arrow">›</text>
@@ -618,6 +618,7 @@ export default {
   margin-right: 20rpx;
   flex-shrink: 0;
 }
+
 
 .menu-text {
   font-size: 30rpx;

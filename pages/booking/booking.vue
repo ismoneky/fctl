@@ -306,7 +306,7 @@ export default {
 }
 
 .tab-item.active .tab-text {
-    color: #667eea;
+    color: #3F99F6;
     font-weight: bold;
 }
 
@@ -315,7 +315,7 @@ export default {
     bottom: 0;
     width: 60rpx;
     height: 6rpx;
-    background: #667eea;
+    background: #3F99F6;
     border-radius: 3rpx;
 }
 
@@ -350,7 +350,7 @@ export default {
 
 .type-icon {
     font-size: 32rpx;
-    color: #7c8ef0;
+    color: #3F99F6;
     margin-right: 16rpx;
     flex-shrink: 0;
 }
@@ -358,7 +358,7 @@ export default {
 .type-name {
     font-size: 30rpx;
     font-weight: 700;
-    color: #1a1a2e;
+    color: #2F6E8E;
 }
 
 .order-no-wrap {
@@ -370,8 +370,8 @@ export default {
 
 .copy-btn {
     font-size: 22rpx;
-    color: #7c8ef0;
-    border: 1rpx solid #7c8ef0;
+    color: #3F99F6;
+    border: 1rpx solid #3F99F6;
     border-radius: 8rpx;
     padding: 2rpx 12rpx;
     flex-shrink: 0;
@@ -431,7 +431,7 @@ export default {
 }
 
 .order-no {
-    color: #667eea;
+    color: #3F99F6;
 }
 
 .booking-footer {
@@ -463,14 +463,14 @@ export default {
 }
 
 .btn-primary {
-    background: #667eea;
+    background: #3F99F6;
     color: #fff;
 }
 
 .btn-to-home {
     flex: none;
     width: 300rpx;
-    background: #667eea;
+    background: #3F99F6;
     color: #fff;
 }
 
@@ -566,7 +566,7 @@ export default {
 }
 
 .modal-btn-primary {
-    color: #667eea;
+    color: #3F99F6;
     font-weight: bold;
     border-left: 1rpx solid #f0f0f0;
 }

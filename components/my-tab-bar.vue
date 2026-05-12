@@ -1,12 +1,8 @@
 <template>
     <view class="tab-bar-wrap">
-        <!-- 底部占位，防止内容被遮挡 -->
-        <!-- <view class="tab-bar-placeholder"></view> -->
-
-        <!-- 实际的 TabBar -->
         <view class="tab-bar">
             <view class="tab-bar-item" v-for="(item, index) in list" :key="index" @click="switchTab(item, index)">
-                <text class="iconfont tab-icon" :class="[ current === index ? 'active' : '' , item.icon]"></text>
+                <image class="tab-icon-svg" :src="current === index ? item.iconActive : item.iconNormal" mode="aspectFit" />
                 <text class="tab-text" :class="{ 'active': current === index }">{{ item.text }}</text>
             </view>
         </view>
@@ -28,17 +24,20 @@ export default {
                 {
                     pagePath: "/pages/index/index",
                     text: "首页",
-                    icon: "icon-shouye1"
+                    iconNormal: "/static/svg/tab-home-normal.svg",
+                    iconActive: "/static/svg/tab-home-active.svg"
                 },
                 {
                     pagePath: "/pages/booking/booking",
                     text: "预约",
-                    icon: "icon-dingdan"
+                    iconNormal: "/static/svg/tab-booking-normal.svg",
+                    iconActive: "/static/svg/tab-booking-active.svg"
                 },
                 {
                     pagePath: "/pages/profile/profile",
                     text: "我的",
-                    icon: "icon-wode"
+                    iconNormal: "/static/svg/tab-profile-normal.svg",
+                    iconActive: "/static/svg/tab-profile-active.svg"
                 }
             ]
         };
@@ -55,10 +54,6 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-// .tab-bar-placeholder {
-// 	height: calc(100rpx + env(safe-area-inset-bottom));
-// }
-
 .tab-bar {
     position: fixed;
     bottom: 0;
@@ -80,14 +75,10 @@ export default {
         justify-content: center;
         align-items: center;
 
-        .tab-icon {
-            font-size: 36rpx;
-            color: #7A7E83;
+        .tab-icon-svg {
+            width: 48rpx;
+            height: 48rpx;
             margin-bottom: 4rpx;
-
-            &.active {
-                color: #667eea;
-            }
         }
 
         .tab-text {
@@ -95,7 +86,7 @@ export default {
             color: #7A7E83;
 
             &.active {
-                color: #667eea;
+                color: #2F6E8E;
             }
         }
     }

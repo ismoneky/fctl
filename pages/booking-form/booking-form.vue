@@ -22,6 +22,7 @@
 
 				<!-- 动态出行人员列表 -->
 				<view class="passenger-card" v-for="(p, idx) in formData.passengers" :key="idx">
+					<text v-if="idx > 0" class="passenger-delete-btn" @click="removePassenger(idx)">✕</text>
 					<view class="passenger-card-header">
 						<text class="passenger-index">{{ idx === 0 ? '联系人（第1位）' : `第${idx + 1}位出行人` }}</text>
 						<text class="passenger-quick-btn" @click="openProfilePicker(idx)">选择常用</text>
@@ -352,6 +353,11 @@ export default {
 				this.syncPassengers(this.formData.personCount);
 			}
 		},
+		// 删除指定出行人
+		removePassenger(idx) {
+			this.formData.passengers.splice(idx, 1);
+			this.formData.personCount = this.formData.passengers.length;
+		},
 		// 人数减少
 		decreasePerson() {
 			if (this.formData.personCount > 1) {
@@ -635,7 +641,7 @@ export default {
 /* ===== 整体容器 ===== */
 .container {
 	min-height: 100vh;
-	background-color: #f0f2f8;
+	background-color: #f5f8fa;
 	padding-bottom: 200rpx;
 	box-sizing: border-box;
 }
@@ -646,7 +652,7 @@ export default {
 	align-items: flex-start;
 	justify-content: space-between;
 	padding: 28rpx 30rpx 20rpx;
-	background: #f0f2f8;
+	background: #f5f8fa;
 }
 
 .header-left {
@@ -657,7 +663,7 @@ export default {
 .header-title {
 	font-size: 36rpx;
 	font-weight: 700;
-	color: #1a1a2e;
+	color: #2F6E8E;
 	line-height: 1.2;
 }
 
@@ -670,7 +676,7 @@ export default {
 .header-notice {
 	display: flex;
 	align-items: center;
-	background: #eef0fb;
+	background: #f0f7fb;
 	border-radius: 28rpx;
 	padding: 8rpx 16rpx;
 	gap: 4rpx;
@@ -679,18 +685,18 @@ export default {
 
 .notice-icon {
 	font-size: 22rpx;
-	color: #7c8ef0;
+	color: #3F99F6;
 }
 
 .notice-text {
 	font-size: 22rpx;
-	color: #7c8ef0;
+	color: #3F99F6;
 	font-weight: 500;
 }
 
 .notice-arrow {
 	font-size: 24rpx;
-	color: #7c8ef0;
+	color: #3F99F6;
 	font-weight: 300;
 }
 
@@ -751,16 +757,17 @@ export default {
 .title-text {
 	font-size: 28rpx;
 	font-weight: 700;
-	color: #1a1a2e;
+	color: #2F6E8E;
 }
 
 /* ===== 出行人员卡片 ===== */
 .passenger-card {
 	margin: 0 24rpx 20rpx;
-	background: #f7f8fd;
+	background: #f5f8fa;
 	border-radius: 16rpx;
 	padding: 20rpx 20rpx 24rpx;
-	border: 1.5rpx solid #e8eaf8;
+	border: 1.5rpx solid #E6E6E6;
+	position: relative;
 }
 
 .passenger-card .field-block {
@@ -778,15 +785,31 @@ export default {
 .passenger-index {
 	font-size: 26rpx;
 	font-weight: 700;
-	color: #7c8ef0;
+	color: #3F99F6;
 }
 
 .passenger-quick-btn {
 	font-size: 24rpx;
-	color: #7c8ef0;
-	background: #eef0fb;
-	padding: 8rpx 20rpx;
-	border-radius: 20rpx;
+	color: #2F6E8E;
+	border: 1.5rpx solid #2F6E8E;
+	padding: 8rpx 24rpx;
+	border-radius: 8rpx;
+}
+
+.passenger-delete-btn {
+	position: absolute;
+	top: -18rpx;
+	right: -18rpx;
+	width: 40rpx;
+	height: 40rpx;
+	border-radius: 50%;
+	background: #ff4757;
+	color: #fff;
+	font-size: 22rpx;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 10;
 }
 
 /* ===== 选择常用人员弹窗 ===== */
@@ -797,6 +820,7 @@ export default {
 	bottom: 0;
 	background: #fff;
 	border-radius: 32rpx 32rpx 0 0;
+	box-shadow: 0 -8rpx 40rpx rgba(0, 0, 0, 0.15);
 	z-index: 201;
 	transform: translateY(100%);
 	transition: transform 0.3s ease;
@@ -822,7 +846,7 @@ export default {
 .profile-picker-title {
 	font-size: 34rpx;
 	font-weight: 700;
-	color: #1a1a2e;
+	color: #2F6E8E;
 }
 
 .profile-picker-close {
@@ -862,7 +886,7 @@ export default {
 .profile-picker-name {
 	font-size: 30rpx;
 	font-weight: 700;
-	color: #1a1a2e;
+	color: #2F6E8E;
 }
 
 .profile-picker-phone {
@@ -903,14 +927,14 @@ export default {
 
 .required-star::before {
 	content: '* ';
-	color: #7c8ef0;
+	color: #e53935;
 }
 
 /* ===== 输入框容器 ===== */
 .input-box {
 	width: 100%;
 	height: 80rpx;
-	border: 1.5rpx solid #e0e3f0;
+	border: 1.5rpx solid #E6E6E6;
 	border-radius: 12rpx;
 	padding: 0 20rpx;
 	box-sizing: border-box;
@@ -928,7 +952,7 @@ export default {
 	height: 80rpx;
 	line-height: 80rpx;
 	font-size: 28rpx;
-	color: #1a1a2e;
+	color: #2F6E8E;
 	background: transparent;
 	border: none;
 	padding: 0;
@@ -938,11 +962,11 @@ export default {
 .picker-text {
 	flex: 1;
 	font-size: 28rpx;
-	color: #c8c8c8;
+	color: #333;
 }
 
 .picker-text--filled {
-	color: #1a1a2e;
+	color: #333;
 }
 
 .picker-icon {
@@ -966,7 +990,7 @@ export default {
 .stepper-box {
 	width: 100%;
 	height: 80rpx;
-	border: 1.5rpx solid #e0e3f0;
+	border: 1.5rpx solid #E6E6E6;
 	border-radius: 12rpx;
 	display: flex;
 	align-items: center;
@@ -980,7 +1004,7 @@ export default {
 	line-height: 80rpx;
 	text-align: center;
 	background: #f5f6fb;
-	color: #7c8ef0;
+	color: #3F99F6;
 	font-size: 36rpx;
 	border: none;
 	padding: 0;
@@ -989,7 +1013,7 @@ export default {
 }
 
 .stepper-btn--plus {
-	color: #7c8ef0;
+	color: #3F99F6;
 }
 
 .stepper-btn::after {
@@ -1003,7 +1027,7 @@ export default {
 	text-align: center;
 	font-size: 32rpx;
 	font-weight: 600;
-	color: #1a1a2e;
+	color: #2F6E8E;
 	background: transparent;
 	border: none;
 }
@@ -1020,14 +1044,14 @@ export default {
 	align-items: center;
 	justify-content: space-between;
 	padding: 22rpx 20rpx;
-	border: 1.5rpx solid #e0e3f0;
+	border: 1.5rpx solid #E6E6E6;
 	border-radius: 14rpx;
 	background: #fff;
 	box-sizing: border-box;
 }
 
 .time-item--active {
-	border-color: #7c8ef0;
+	border-color: #3F99F6;
 	background: #f0f2ff;
 }
 
@@ -1044,7 +1068,7 @@ export default {
 }
 
 .time-item__title--active {
-	color: #7c8ef0;
+	color: #3F99F6;
 }
 
 .time-item__sub {
@@ -1053,7 +1077,7 @@ export default {
 }
 
 .time-item__sub--active {
-	color: #7c8ef0;
+	color: #3F99F6;
 }
 
 /* 单选圆圈 */
@@ -1069,8 +1093,8 @@ export default {
 }
 
 .radio-circle--checked {
-	background: #7c8ef0;
-	border-color: #7c8ef0;
+	background: #3F99F6;
+	border-color: #3F99F6;
 }
 
 .radio-check {
@@ -1107,11 +1131,11 @@ export default {
 
 .travel-select-value {
 	font-size: 28rpx;
-	color: #c8c8c8;
+	color: #333;
 }
 
 .travel-select-value--filled {
-	color: #1a1a2e;
+	color: #333;
 }
 
 .travel-arrow {
@@ -1129,10 +1153,10 @@ export default {
 	width: 100%;
 	min-height: 160rpx;
 	padding: 20rpx;
-	border: 1.5rpx solid #e0e3f0;
+	border: 1.5rpx solid #E6E6E6;
 	border-radius: 12rpx;
 	font-size: 28rpx;
-	color: #1a1a2e;
+	color: #2F6E8E;
 	box-sizing: border-box;
 	background: #fff;
 }
@@ -1186,7 +1210,7 @@ export default {
 	width: 36rpx;
 	height: 36rpx;
 	border-radius: 8rpx;
-	border: 2rpx solid #d0d3e8;
+	border: 2rpx solid #E6E6E6;
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -1196,8 +1220,8 @@ export default {
 }
 
 .agree-checkbox--checked {
-	background: #7c8ef0;
-	border-color: #7c8ef0;
+	background: #3F99F6;
+	border-color: #3F99F6;
 }
 
 .agree-check-icon {
@@ -1213,7 +1237,7 @@ export default {
 
 .agree-link {
 	font-size: 26rpx;
-	color: #7c8ef0;
+	color: #3F99F6;
 	font-weight: 500;
 }
 
@@ -1238,14 +1262,14 @@ export default {
 
 .price-symbol {
 	font-size: 26rpx;
-	color: #7c8ef0;
+	color: #3F99F6;
 	font-weight: 600;
 	line-height: 1;
 }
 
 .price-value {
 	font-size: 56rpx;
-	color: #7c8ef0;
+	color: #3F99F6;
 	font-weight: 700;
 	line-height: 1;
 }
@@ -1262,7 +1286,7 @@ export default {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	background: linear-gradient(135deg, #3F99F6 0%, #33C5A0 100%);
 	color: #fff;
 	font-size: 32rpx;
 	font-weight: bold;
@@ -1319,7 +1343,7 @@ export default {
 .notice-popup__title {
 	font-size: 34rpx;
 	font-weight: 700;
-	color: #1a1a2e;
+	color: #2F6E8E;
 }
 
 .notice-popup__close {
@@ -1350,7 +1374,7 @@ export default {
 	display: block;
 	font-size: 28rpx;
 	font-weight: 700;
-	color: #1a1a2e;
+	color: #2F6E8E;
 	margin-top: 32rpx;
 	margin-bottom: 14rpx;
 }
@@ -1400,7 +1424,7 @@ export default {
 
 .notice-tag--blue {
 	background: #e8ecff;
-	color: #7c8ef0;
+	color: #3F99F6;
 }
 
 .notice-row__label {

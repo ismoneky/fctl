@@ -183,7 +183,7 @@ export default {
 <style scoped>
 .container {
 	min-height: 100vh;
-	background: #f0f2f8;
+	background: #f5f8fa;
 	padding: 24rpx 24rpx 200rpx;
 	box-sizing: border-box;
 }
@@ -218,7 +218,7 @@ export default {
 .card-name {
 	font-size: 32rpx;
 	font-weight: 700;
-	color: #1a1a2e;
+	color: #333;
 }
 
 .card-phone {
@@ -244,7 +244,7 @@ export default {
 }
 
 .action-edit {
-	color: #7c8ef0;
+	color: #3F99F6;
 }
 
 .action-delete {
@@ -284,7 +284,7 @@ export default {
 .add-btn {
 	width: 100%;
 	height: 90rpx;
-	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	background: linear-gradient(135deg, #4a8faa 0%, #2F6E8E 100%);
 	color: #fff;
 	font-size: 32rpx;
 	font-weight: bold;
@@ -335,7 +335,7 @@ export default {
 .modal-title {
 	font-size: 34rpx;
 	font-weight: 700;
-	color: #1a1a2e;
+	color: #333;
 }
 
 .modal-close {
@@ -362,13 +362,13 @@ export default {
 
 .required-star::before {
 	content: '* ';
-	color: #7c8ef0;
+	color: #e53935;
 }
 
 .input-box {
 	width: 100%;
 	height: 80rpx;
-	border: 1.5rpx solid #e0e3f0;
+	border: 1.5rpx solid #E6E6E6;
 	border-radius: 12rpx;
 	padding: 0 20rpx;
 	box-sizing: border-box;
@@ -382,7 +382,7 @@ export default {
 	height: 80rpx;
 	line-height: 80rpx;
 	font-size: 28rpx;
-	color: #1a1a2e;
+	color: #333;
 	background: transparent;
 	border: none;
 	padding: 0;
@@ -411,12 +411,12 @@ export default {
 }
 
 .modal-btn--cancel {
-	background: #f0f2f8;
+	background: #f5f8fa;
 	color: #666;
 }
 
 .modal-btn--confirm {
-	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	background: linear-gradient(135deg, #4a8faa 0%, #2F6E8E 100%);
 	color: #fff;
 }
 </style>

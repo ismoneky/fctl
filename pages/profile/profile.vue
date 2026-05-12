@@ -117,13 +117,13 @@
       <!-- 功能菜单 -->
       <view class="menu-section">
         <view class="menu-group">
-          <view class="menu-item" @click="goToBooking(0)">
+          <!-- <view class="menu-item" @click="goToBooking(0)">
             <view class="menu-left">
-              <text class="menu-icon iconfont icon-dingdan"></text>
+              <image class="menu-icon-svg" src="/static/svg/tab-booking-dark.svg" mode="aspectFit" />
               <text class="menu-text">我的订单</text>
             </view>
             <text class="menu-arrow">›</text>
-          </view>
+          </view> -->
           <view class="menu-item" @click="goToProfiles">
             <view class="menu-left">
               <image class="menu-icon-svg"  src="/static/svg/renyuanxinxi-dark.svg" mode="aspectFit" />
@@ -439,7 +439,7 @@ export default {
 
 /* 用户信息卡片 */
 .user-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #4a8faa 0%, #2F6E8E 100%);
   padding: 40rpx 30rpx;
   margin-bottom: 20rpx;
 }
@@ -671,7 +671,7 @@ export default {
 
 /* ── 申请管理员弹窗 ── */
 .apply-modal-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #4a8faa 0%, #2F6E8E 100%);
   padding: 50rpx 40rpx 40rpx;
   display: flex;
   flex-direction: column;
@@ -749,7 +749,7 @@ export default {
 }
 
 .apply-btn-submit {
-  color: #667eea;
+  color: #3F99F6;
   font-weight: bold;
 }
 

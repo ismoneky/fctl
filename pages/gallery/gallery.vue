@@ -133,7 +133,7 @@ export default {
   },
   onLoad(options) {
     uni.setNavigationBarTitle({
-      title: "美景详情",
+      title: "详情",
     });
     console.log("单图模式，options.image=", options);
 

@@ -167,7 +167,7 @@
 					// ], mode: 1 },
 				],
 				bars: [
-					{ fun: 'close', text: '完成', bgColor: '#f37b1d', color: '#ffffff' },
+					{ fun: 'close', text: '完成', bgColor: '#2F6E8E', color: '#ffffff' },
 					{ fun: 'del', img: delPng },
 				],
 				// 安全底部距离

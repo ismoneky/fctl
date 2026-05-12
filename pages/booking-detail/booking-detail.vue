@@ -426,7 +426,7 @@
 <style scoped>
 	.container {
 		min-height: 100vh;
-		background-color: #f0f2f8;
+		background-color: #f5f8fa;
 		padding-bottom: 40rpx;
 		box-sizing: border-box;
 	}
@@ -446,7 +446,7 @@
 		box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.06);
 	}
 
-	.status-bar-confirmed { background: linear-gradient(135deg, #667eea, #764ba2); }
+	.status-bar-confirmed { background: linear-gradient(135deg, #3F99F6, #33C5A0); }
 
 	.status-bar-info {
 		display: flex;
@@ -496,8 +496,8 @@
 
 	/* 已退款 —— 浅蓝紫，温和提示 */
 	.status-hero--refunded {
-		background: linear-gradient(160deg, #f3f4ff 0%, #eef0fb 100%);
-		border: 1.5rpx solid #d0d4f5;
+		background: linear-gradient(160deg, #f3f4ff 0%, #f0f7fb 100%);
+		border: 1.5rpx solid #E6E6E6;
 	}
 
 	/* 标题 */
@@ -511,7 +511,7 @@
 
 	.hero-title--completed { color: #2db96a; }
 	.hero-title--cancelled { color: #888; }
-	.hero-title--refunded  { color: #7c8ef0; }
+	.hero-title--refunded  { color: #3F99F6; }
 
 	/* 副文案 */
 	.hero-desc {
@@ -602,7 +602,7 @@
 	.title-text {
 		font-size: 28rpx;
 		font-weight: 700;
-		color: #1a1a2e;
+		color: #2F6E8E;
 	}
 
 	/* 表单项 */
@@ -634,7 +634,7 @@
 
 	.detail-value {
 		font-size: 28rpx;
-		color: #1a1a2e;
+		color: #2F6E8E;
 		font-weight: 500;
 		line-height: 1.5;
 		word-break: break-all;
@@ -651,10 +651,10 @@
 	}
 
 	.passenger-item {
-		background: #f7f8fd;
+		background: #f5f8fa;
 		border-radius: 14rpx;
 		padding: 20rpx 20rpx 16rpx;
-		border: 1.5rpx solid #e8eaf8;
+		border: 1.5rpx solid #E6E6E6;
 	}
 
 	.passenger-item-header {
@@ -666,8 +666,8 @@
 
 	.passenger-item-tag {
 		font-size: 22rpx;
-		color: #7c8ef0;
-		background: #eef0fb;
+		color: #3F99F6;
+		background: #f0f7fb;
 		padding: 4rpx 16rpx;
 		border-radius: 16rpx;
 		font-weight: 600;
@@ -677,7 +677,7 @@
 	.passenger-item-name {
 		font-size: 30rpx;
 		font-weight: 700;
-		color: #1a1a2e;
+		color: #2F6E8E;
 	}
 
 	.passenger-sub-item {
@@ -691,7 +691,7 @@
 	}
 
 	.qr-card {
-		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		background: linear-gradient(135deg, #3F99F6 0%, #33C5A0 100%);
 		border-radius: 20rpx;
 		padding: 40rpx 30rpx 36rpx;
 		display: flex;
@@ -763,7 +763,7 @@
 		height: 90rpx;
 		line-height: 90rpx;
 		text-align: center;
-		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		background: linear-gradient(135deg, #3F99F6 0%, #33C5A0 100%);
 		color: #fff;
 		font-size: 34rpx;
 		font-weight: bold;

@@ -183,7 +183,7 @@ export default {
     height: 96rpx;
     line-height: 96rpx;
     text-align: center;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #3F99F6 0%, #33C5A0 100%);
     color: #fff;
     font-size: 34rpx;
     font-weight: bold;

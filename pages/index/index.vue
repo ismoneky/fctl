@@ -24,25 +24,37 @@
 
       <!-- 立即预约入口 -->
       <view class="booking-entry">
-        <view class="booking-card" @click="goToBooking">
-          <view class="booking-left">
-            <view class="booking-icon">
-              <text class="icon-windmill">
-                <text class="iconfont icon-Energy-"></text>
-              </text>
-            </view>
+        <view class="booking-card">
+          <view class="booking-top">
             <view class="booking-info">
               <text class="booking-title">风车天路</text>
               <text class="booking-subtitle">体验浪漫风车之旅</text>
               <view class="booking-tags">
-                <text class="tag">免费开放</text>
-                <text class="tag">全天候</text>
+                <view class="tag-item">
+                  <image class="tag-icon-svg" src="/static/svg/tag-cloud.svg" mode="aspectFit" />
+                  <text class="tag-label">免费开放</text>
+                </view>
+                <view class="tag-item">
+                  <image class="tag-icon-svg" src="/static/svg/tag-sun.svg" mode="aspectFit" />
+                  <text class="tag-label">全天候</text>
+                </view>
+                <view class="tag-item">
+                  <image class="tag-icon-svg" src="/static/svg/tag-mountain.svg" mode="aspectFit" />
+                  <text class="tag-label">风景绝美</text>
+                </view>
               </view>
             </view>
+            <image class="booking-logo" src="https://cdn.hbfctl.com.cn/content/logo_png.png" mode="aspectFit" />
           </view>
-          <view class="booking-btn">
-            <text class="btn-text">立即预约</text>
-            <text class="btn-arrow">→</text>
+          <view class="booking-action" @click="goToBooking">
+            <view class="action-circle">
+              <text class="action-arrow">→</text>
+            </view>
+            <view class="action-info">
+              <text class="action-title">立即预约</text>
+              <text class="action-sub">开启您的风车之旅</text>
+            </view>
+            <text class="action-chevron">›</text>
           </view>
         </view>
       </view>
@@ -359,119 +371,151 @@ export default {
   height: 100%;
 }
 
-/* 立即预约入口 */
+/* ===== 预约入口卡片 ===== */
 .booking-entry {
-  padding: 30rpx;
+  padding: 30rpx 30rpx 80rpx;
 }
 
 .booking-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 24rpx;
-  padding: 40rpx;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 8rpx 30rpx rgba(102, 126, 234, 0.3);
+  background: #EAF6FF;
+  border-radius: 28rpx;
+  overflow: visible;
+  box-shadow: 0 16rpx 50rpx rgba(0,0,0,0.1);
   position: relative;
-  overflow: hidden;
+  height: 360rpx;
 }
 
-.booking-card::before {
-  content: "🌬️";
-  position: absolute;
-  right: -20rpx;
-  top: -20rpx;
-  font-size: 200rpx;
-  opacity: 0.1;
-  transform: rotate(15deg);
-}
-
-.booking-left {
-  display: flex;
-  align-items: center;
-  flex: 1;
-  z-index: 1;
-}
-
-.booking-icon {
-  width: 100rpx;
-  height: 100rpx;
-  /* background: rgba(255, 255, 255, 0.2); */
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 25rpx;
-  backdrop-filter: blur(10rpx);
-}
-
-.icon-windmill {
-  font-size: 60rpx;
-}
-
-.iconfont {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  width: 100%;
+.booking-top {
+  padding: 44rpx 0 0 40rpx;
+  position: relative;
   height: 100%;
-  font-size: 80rpx;
+  overflow: hidden;
+  border-radius: 28rpx;
 }
 
 .booking-info {
+  width: 360rpx;
   display: flex;
   flex-direction: column;
+  position: relative;
+  z-index: 1;
 }
 
 .booking-title {
-  font-size: 40rpx;
-  font-weight: bold;
-  color: #fff;
+  font-size: 44rpx;
+  font-weight: 800;
+  color: #2F6E8E;
   margin-bottom: 8rpx;
+  line-height: 1.3;
 }
 
 .booking-subtitle {
-  font-size: 26rpx;
-  color: rgba(255, 255, 255, 0.9);
-  margin-bottom: 15rpx;
+  font-size: 24rpx;
+  color: #2F6E8E;
+  margin-bottom: 32rpx;
 }
 
 .booking-tags {
   display: flex;
-  gap: 10rpx;
+  gap: 32rpx;
 }
 
-.tag {
-  padding: 5rpx 15rpx;
-  background: rgba(255, 255, 255, 0.25);
-  border-radius: 20rpx;
-  font-size: 22rpx;
-  color: #fff;
-  backdrop-filter: blur(5rpx);
-}
-
-.booking-btn {
+.tag-item {
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 8rpx;
+}
+
+.tag-icon-svg {
+  width: 46rpx;
+  height: 46rpx;
+}
+
+.tag-label {
+  font-size: 20rpx;
+  color: #2F6E8E;
+}
+
+.booking-logo {
+  width: 480rpx;
+  height: 480rpx;
+  position: absolute;
+  right: -60rpx;
+  top: -60rpx;
+  z-index: 0;
+}
+
+.booking-action {
+  position: absolute;
+  bottom: -52rpx;
+  left: 80rpx;
+  right: 80rpx;
+  display: flex;
+  align-items: center;
+  background: linear-gradient(115deg, #3F99F6 0%, #2F6E8E 90%);
+  border-radius: 60rpx;
+  padding: 18rpx 28rpx;
+  gap: 28rpx;
+  /* box-shadow: 0 10rpx 28rpx rgba(63, 153, 246, 0.4); */
+  box-shadow: 0px 10rpx 28rpx rgba(63,153,246,0.3);
+  z-index: 10;
+}
+
+.action-circle {
+  width: 68rpx;
+  height: 68rpx;
+  border-radius: 50%;
   background: #fff;
-  padding: 20rpx 30rpx;
-  border-radius: 50rpx;
-  box-shadow: 0 4rpx 15rpx rgba(0, 0, 0, 0.1);
-  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.action-arrow {
+  font-size: 32rpx;
+  color: #3F99F6;
+  font-weight: bold;
+}
+
+.action-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.action-title {
+  font-size: 36rpx;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.2;
+}
+
+.action-sub {
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.85);
+  margin-top: 4rpx;
+}
+
+.action-chevron {
+  font-size: 48rpx;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 300;
+  flex-shrink: 0;
+  line-height: 1;
 }
 
 .btn-text {
   font-size: 28rpx;
   font-weight: bold;
-  color: #667eea;
+  color: #3F99F6;
   margin-bottom: 5rpx;
 }
 
 .btn-arrow {
   font-size: 32rpx;
-  color: #667eea;
+  color: #3F99F6;
 }
 
 /* 通用section */

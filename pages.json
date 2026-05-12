@@ -4,7 +4,7 @@
 			"path": "pages/index/index",
 			"style": {
 				"navigationBarTitleText": "风车天路",
-				"navigationBarBackgroundColor": "#667eea",
+				"navigationBarBackgroundColor": "#2F6E8E",
 				"navigationBarTextStyle": "white"
 			}
 		},
@@ -12,7 +12,7 @@
 			"path": "pages/booking/booking",
 			"style": {
 				"navigationBarTitleText": "预约记录",
-				"navigationBarBackgroundColor": "#667eea",
+				"navigationBarBackgroundColor": "#2F6E8E",
 				"navigationBarTextStyle": "white"
 			}
 		},
@@ -20,7 +20,7 @@
 			"path": "pages/profile/profile",
 			"style": {
 				"navigationBarTitleText": "个人中心",
-				"navigationBarBackgroundColor": "#667eea",
+				"navigationBarBackgroundColor": "#2F6E8E",
 				"navigationBarTextStyle": "white"
 			}
 		},
@@ -28,7 +28,7 @@
 			"path": "pages/booking-form/booking-form",
 			"style": {
 				"navigationBarTitleText": "立即预约",
-				"navigationBarBackgroundColor": "#667eea",
+				"navigationBarBackgroundColor": "#2F6E8E",
 				"navigationBarTextStyle": "white"
 			}
 		},
@@ -36,7 +36,7 @@
 			"path": "pages/booking-detail/booking-detail",
 			"style": {
 				"navigationBarTitleText": "预约详情",
-				"navigationBarBackgroundColor": "#667eea",
+				"navigationBarBackgroundColor": "#2F6E8E",
 				"navigationBarTextStyle": "white"
 			}
 		},
@@ -44,7 +44,7 @@
 			"path": "pages/gallery/gallery",
 			"style": {
 				"navigationBarTitleText": "风车美景",
-				"navigationBarBackgroundColor": "#667eea",
+				"navigationBarBackgroundColor": "#2F6E8E",
 				"navigationBarTextStyle": "white"
 			}
 		},
@@ -52,7 +52,7 @@
 			"path": "pages/feedback/feedback",
 			"style": {
 				"navigationBarTitleText": "意见反馈",
-				"navigationBarBackgroundColor": "#667eea",
+				"navigationBarBackgroundColor": "#2F6E8E",
 				"navigationBarTextStyle": "white"
 			}
 		},
@@ -60,7 +60,7 @@
 			"path": "pages/profiles/profiles",
 			"style": {
 				"navigationBarTitleText": "常用信息",
-				"navigationBarBackgroundColor": "#667eea",
+				"navigationBarBackgroundColor": "#2F6E8E",
 				"navigationBarTextStyle": "white"
 			}
 		},
@@ -68,7 +68,7 @@
 			"path": "pages/privacy/privacy",
 			"style": {
 				"navigationBarTitleText": "隐私政策",
-				"navigationBarBackgroundColor": "#667eea",
+				"navigationBarBackgroundColor": "#2F6E8E",
 				"navigationBarTextStyle": "white"
 			}
 		},
@@ -76,7 +76,7 @@
 			"path": "pages/service/service",
 			"style": {
 				"navigationBarTitleText": "用户服务协议",
-				"navigationBarBackgroundColor": "#667eea",
+				"navigationBarBackgroundColor": "#2F6E8E",
 				"navigationBarTextStyle": "white"
 			}
 		}
@@ -84,7 +84,7 @@
 	"globalStyle": {
 		"navigationBarTextStyle": "white",
 		"navigationBarTitleText": "风车天路预约系统",
-		"navigationBarBackgroundColor": "#667eea",
+		"navigationBarBackgroundColor": "#2F6E8E",
 		"backgroundColor": "#F8F8F8",
 		"navigationStyle": "default",
 		"enablePullDownRefresh": false

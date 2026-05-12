@@ -43,7 +43,7 @@ export default {};
 <style scoped>
 .content {
 	min-height: 100vh;
-	background: #f0f2f8;
+	background: #f5f8fa;
 	padding: 36rpx 32rpx;
 	box-sizing: border-box;
 }
@@ -51,7 +51,7 @@ export default {};
 	display: block;
 	font-size: 34rpx;
 	font-weight: 800;
-	color: #1a1a2e;
+	color: #2F6E8E;
 	text-align: center;
 	margin-bottom: 12rpx;
 }
@@ -76,7 +76,7 @@ export default {};
 	display: block;
 	font-size: 28rpx;
 	font-weight: 700;
-	color: #1a1a2e;
+	color: #2F6E8E;
 	margin: 32rpx 0 16rpx;
 }
 .section-body {

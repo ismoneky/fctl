@@ -77,12 +77,11 @@
       <!-- 用户信息卡片 -->
       <view class="user-card">
         <view class="user-header">
-          <image
+          <view
             class="avatar"
-            :src="userInfo.avatar"
             mode="aspectFill"
             @tap="onAvatarTap"
-          ></image>
+          ></view>
           <view class="user-info">
             <text class="username">{{ userInfo.name }}</text>
           </view>
@@ -200,7 +199,7 @@ export default {
         message: "",
       },
       userInfo: {
-        avatar: "/static/avatar.svg",
+        avatar: "https://cdn.hbfctl.com.cn/content/avatar.png",
         name: "微信用户",
         phone: "138****8888",
         vipLevel: "黄金会员",
@@ -456,6 +455,11 @@ export default {
   border-radius: 20rpx;
   border: 4rpx solid rgba(255, 255, 255, 0.3);
   margin-right: 20rpx;
+  background: url("https://cdn.hbfctl.com.cn/content/avatar.png");
+  background-repeat: no-repeat;
+  background-size: 160%;
+  background-position: -35rpx ;
+  
 }
 
 .user-info {

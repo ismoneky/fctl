@@ -359,11 +359,16 @@ export default {
 .banner-section {
   width: 100%;
   height: 400rpx;
+  padding: 20rpx 25rpx;
+  border-radius: 28rpx;
+  overflow: hidden;
 }
 
 .swiper {
   width: 100%;
   height: 100%;
+  border-radius: 28rpx;
+  overflow: hidden;
 }
 
 .banner-image {

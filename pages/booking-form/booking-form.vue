@@ -317,6 +317,13 @@ export default {
 
 			this.minDate = this.formatDate(today);
 			this.maxDate = this.formatDate(maxDay);
+
+				uni.showModal({
+					title: '温馨提示',
+					content: '风车天路目前半开放，仅开放鲍庄出入口通行；每日限行100辆，请合理安排出行时间；本次购买为入园保险费用，预约本身免费，敬请知悉。',
+					confirmText: '我知道了',
+					showCancel: false
+				});
 		}
 		// 获取支付金额配置
 		request({ method: 'GET', url: '/system-config/payment-config' }).then(res => {
@@ -534,7 +541,7 @@ export default {
 			uni.navigateTo({ url: '/pages/service/service' });
 		},
 		// 提交表单
-		async handleSubmit() {
+		handleSubmit() {
 			const now = Date.now();
 			if (now - this._lastClickTime < 2000) return;
 			this._lastClickTime = now;
@@ -557,18 +564,6 @@ export default {
 			if (!this.validateForm()) {
 				return;
 			}
-
-			// 公告确认
-			const confirmed = await new Promise(resolve => {
-				uni.showModal({
-					title: '公告',
-					content: '因景区完善风车天路半开放，只开鲍庄出入口。车辆预约每日限100辆。进园须免费预约并购买保险收费，请知悉，感谢配合！',
-					confirmText: '继续预约',
-					cancelText: '取消',
-					success: res => resolve(res.confirm)
-				});
-			});
-			if (!confirmed) return;
 
 			// 显示加载提示
 			const loading = uni.showLoading({

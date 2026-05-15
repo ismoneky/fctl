@@ -217,13 +217,6 @@
 					{ label: '摩托', value: 'wheelMotorcycle' },
 					{ label: '小型客车', value: 'smallCar' },
 				],
-				statusConfig: {
-					pending:   { icon: '⏳', label: '待支付',  desc: '请尽快完成支付，超时订单将自动关闭' },
-					confirmed: { icon: '✅', label: '待使用',  desc: '支付成功，请凭核验码入场' },
-					completed: { icon: '🎉', label: '已完成',  desc: '感谢您的光临，期待再次相见' },
-					cancelled: { icon: '❌', label: '已取消',  desc: '订单已取消' },
-					refunded:  { icon: '💸', label: '已退款',  desc: '退款将原路返回，请耐心等待' },
-				},
 				passengerList: [],  // 解析后的出行人员列表
 				qrImageUrl: '',
 				countdown: 0,
@@ -476,10 +469,11 @@
 		align-items: center;
 	}
 
-	/* 待支付 —— 暖橙，营造紧迫感 */
+	/* 待支付 —— 蓝绿渐变，与页面主色保持一致 */
 	.status-hero--pending {
-		background: linear-gradient(160deg, #fff8f0 0%, #fff3e0 100%);
-		border: 1.5rpx solid #ffe0b2;
+		background: linear-gradient(135deg, #3F99F6 0%, #2F6E8E 100%);
+		border: none;
+		box-shadow: 0 8rpx 32rpx rgba(63, 153, 246, 0.28);
 	}
 
 	/* 已完成 —— 清新绿 */
@@ -504,8 +498,8 @@
 	.hero-title {
 		font-size: 38rpx;
 		font-weight: 800;
-		color: #f57c00;
-		margin-bottom: 12rpx;
+		color: #fff;
+		margin-bottom: 10rpx;
 		letter-spacing: 1rpx;
 	}
 
@@ -513,10 +507,16 @@
 	.hero-title--cancelled { color: #888; }
 	.hero-title--refunded  { color: #3F99F6; }
 
+	.status-hero--completed .hero-desc,
+	.status-hero--cancelled .hero-desc,
+	.status-hero--refunded  .hero-desc {
+		color: #aaa;
+	}
+
 	/* 副文案 */
 	.hero-desc {
-		font-size: 26rpx;
-		color: #aaa;
+		font-size: 24rpx;
+		color: rgba(255, 255, 255, 0.72);
 		text-align: center;
 		line-height: 1.6;
 	}
@@ -525,40 +525,42 @@
 	.countdown-inline {
 		display: flex;
 		align-items: center;
-		margin-top: 32rpx;
+		margin-top: 36rpx;
 		gap: 0;
 	}
 
 	.countdown-inline-block {
 		display: flex;
 		align-items: baseline;
-		background: rgba(245,124,0,0.10);
-		border-radius: 14rpx;
-		padding: 12rpx 28rpx;
+		background: rgba(255, 255, 255, 0.15);
+		border-radius: 16rpx;
+		padding: 14rpx 32rpx;
 	}
 
 	.countdown-num {
-		font-size: 72rpx;
+		font-size: 68rpx;
 		font-weight: 800;
-		color: #f57c00;
+		color: #fff;
 		line-height: 1;
 		font-variant-numeric: tabular-nums;
+		letter-spacing: 2rpx;
 	}
 
 	.countdown-unit {
-		font-size: 24rpx;
-		color: #f57c00;
+		font-size: 22rpx;
+		color: rgba(255, 255, 255, 0.75);
 		margin-left: 6rpx;
-		font-weight: 600;
+		font-weight: 500;
+		align-self: flex-end;
+		padding-bottom: 8rpx;
 	}
 
 	.countdown-sep {
-		font-size: 52rpx;
-		font-weight: bold;
-		color: #f5a623;
-		margin: 0 14rpx;
+		font-size: 48rpx;
+		font-weight: 300;
+		color: rgba(255, 255, 255, 0.5);
+		margin: 0 16rpx;
 		line-height: 1;
-		opacity: 0.7;
 	}
 
 	/* 表单区块 */

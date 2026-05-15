@@ -15,8 +15,8 @@
 					<text class="field-label required-star">预约人数</text>
 					<view class="stepper-box">
 						<button class="stepper-btn" @click="decreasePerson">－</button>
-						<input class="stepper-input" type="number" v-model.number="formData.personCount" @input="onPersonCountInput" />
-						<button class="stepper-btn stepper-btn--plus" @click="increasePerson">＋</button>
+						<input class="stepper-input" type="number" :value="formData.personCount" @input="onPersonCountInput" />
+						<button class="stepper-btn stepper-btn--plus" :disabled="formData.personCount >= 10" :class="{ 'stepper-btn--disabled': formData.personCount >= 10 }" @click="increasePerson">＋</button>
 					</view>
 				</view>
 
@@ -225,7 +225,7 @@
 				<text class="notice-body">· 天路海拔较高，气温比山下低5-10℃，且天气多变。建议携带外套、雨具、防晒用品。{{ '\n' }}· 若遇大雾或强侧风，请开启雾灯/双闪，减速并保持在车道中间行驶。</text>
 
 				<text class="notice-group-title">六、费用与退改</text>
-				<text class="notice-body">· 预约时需支付车辆预约服务费（具体金额以平台公示为准）及卫生管理费。{{ '\n' }}· 取消与退款规则：{{ '\n' }}  · 在预约日的前一天（含）之前申请取消，可全额退款。{{ '\n' }}  · 在预约日当天、且尚未完成核验（核验指入口处扫码验证或车牌识别入园）之前申请取消，也可全额退款。{{ '\n' }}  · 一旦完成核验（即车辆及人员已进入风车天路景区），无论是否完整游览，均不予退款。{{ '\n' }}  · 超过预约日期未使用（未在预约日当天开放时段内完成核验），视为自动放弃，不予退款。{{ '\n' }}· 因恶劣天气、道路封闭等不可抗力导致天路临时关闭，已预约订单可联系工作人员。{{ '\n' }}· 须知最终解释权归河南省云玺旅游有限公司所有，内容如有调整以最新公告为准。</text>
+				<text class="notice-body">· 预约时需支付入园保险费用（具体金额以平台公示为准）。{{ '\n' }}· 取消与退款规则：{{ '\n' }}  · 在预约日的前一天（含）之前申请取消，可全额退款。{{ '\n' }}  · 在预约日当天、且尚未完成核验（核验指入口处扫码验证或车牌识别入园）之前申请取消，也可全额退款。{{ '\n' }}  · 一旦完成核验（即车辆及人员已进入风车天路景区），无论是否完整游览，均不予退款。{{ '\n' }}  · 超过预约日期未使用（未在预约日当天开放时段内完成核验），视为自动放弃，不予退款。{{ '\n' }}· 因恶劣天气、道路封闭等不可抗力导致天路临时关闭，已预约订单可联系工作人员。{{ '\n' }}· 须知最终解释权归河南省云玺旅游有限公司所有，内容如有调整以最新公告为准。</text>
 
 				<text class="notice-group-title">七、环保与文明游览</text>
 				<text class="notice-body">1. 请自觉带走所有垃圾（车内请自备垃圾袋）。天路沿线不设垃圾桶。{{ '\n' }}2. 禁止采摘花草、挖掘植物、惊扰野生动物。{{ '\n' }}3. 请勿使用音响外放、大声喧哗，共同维护宁静的自然环境。</text>
@@ -318,12 +318,14 @@ export default {
 			this.minDate = this.formatDate(today);
 			this.maxDate = this.formatDate(maxDay);
 
-				uni.showModal({
-					title: '温馨提示',
-					content: '风车天路目前半开放，仅开放鲍庄出入口通行；每日限行100辆，请合理安排出行时间；本次购买为入园保险费用，预约本身免费，敬请知悉。',
-					confirmText: '我知道了',
-					showCancel: false
-				});
+				setTimeout(() => {
+					uni.showModal({
+						title: '温馨提示',
+						content: '风车天路目前半开放，仅开放鲍庄出入口通行；每日限行100辆，请合理安排出行时间；本次购买为入园保险费用，预约本身免费，敬请知悉。',
+						confirmText: '我知道了',
+						showCancel: false
+					});
+				}, 200);
 		}
 		// 获取支付金额配置
 		request({ method: 'GET', url: '/system-config/payment-config' }).then(res => {
@@ -355,7 +357,7 @@ export default {
 		},
 		// 人数增加
 		increasePerson() {
-			if (this.formData.personCount < 99) {
+			if (this.formData.personCount < 10) {
 				this.formData.personCount++;
 				this.syncPassengers(this.formData.personCount);
 			}
@@ -376,9 +378,13 @@ export default {
 		onPersonCountInput(e) {
 			let value = parseInt(e.detail.value) || 1;
 			if (value < 1) value = 1;
-			if (value > 99) value = 99;
-			this.formData.personCount = value;
-			this.syncPassengers(value);
+			if (value > 10) value = 10;
+			// 先置 null 再赋值，强制小程序刷新 input 显示值
+			this.formData.personCount = null;
+			this.$nextTick(() => {
+				this.formData.personCount = value;
+				this.syncPassengers(value);
+			});
 		},
 		// 获取常用人员列表
 		async fetchProfiles() {
@@ -1021,6 +1027,11 @@ export default {
 
 .stepper-btn--plus {
 	color: #3F99F6;
+}
+
+.stepper-btn--disabled {
+	color: #c8c8c8 !important;
+	background: #f0f0f0;
 }
 
 .stepper-btn::after {

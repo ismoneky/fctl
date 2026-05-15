@@ -30,6 +30,9 @@ export function handlePayment(bookingId, onSuccess) {
                 fail: (err) => {
                     if (err.errMsg && err.errMsg.includes('cancel')) {
                         uni.showToast({ title: '已取消支付', icon: 'none' });
+                        setTimeout(() => {
+                            uni.redirectTo({ url: `/pages/booking-detail/booking-detail?id=${bookingId}` });
+                        }, 800);
                     } else {
                         // 其他失败也需查单确认实际状态
                         pollPaymentStatus(bookingId, onSuccess);

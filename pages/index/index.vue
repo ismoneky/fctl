@@ -48,13 +48,13 @@
           </view>
           <view class="booking-action" @click="goToBooking">
             <view class="action-circle">
-              <text class="action-arrow">→</text>
+              <image class="action-arrow-svg" src="/static/svg/arrow-right.svg" mode="aspectFit" />
             </view>
             <view class="action-info">
               <text class="action-title">立即预约</text>
               <text class="action-sub">开启您的风车之旅</text>
             </view>
-            <text class="action-chevron">›</text>
+            <image class="action-chevron-svg" src="/static/svg/chevron-right.svg" mode="aspectFit" />
           </view>
         </view>
       </view>
@@ -478,10 +478,9 @@ export default {
   flex-shrink: 0;
 }
 
-.action-arrow {
-  font-size: 32rpx;
-  color: #3F99F6;
-  font-weight: bold;
+.action-arrow-svg {
+  width: 36rpx;
+  height: 36rpx;
 }
 
 .action-info {
@@ -503,12 +502,10 @@ export default {
   margin-top: 4rpx;
 }
 
-.action-chevron {
-  font-size: 48rpx;
-  color: rgba(255, 255, 255, 0.7);
-  font-weight: 300;
+.action-chevron-svg {
+  width: 36rpx;
+  height: 36rpx;
   flex-shrink: 0;
-  line-height: 1;
 }
 
 .btn-text {

@@ -126,7 +126,7 @@
 							</view>
 						</picker>
 					</view>
-					<view class="field-block">
+					<view class="field-block" v-if="formData.vehicleType !== 'nonMotorized'">
 						<text class="field-label required-star">车牌号</text>
 						<view class="input-box input-box--picker" @click="showPlateKeyboard">
 							<text class="picker-text" :class="formData.licensePlate ? 'picker-text--filled' : ''">
@@ -333,6 +333,7 @@ export default {
 					label: '摩托',
 					value: 'wheelMotorcycle'
 				},
+				{ label: '非机动车', value: 'nonMotorized' },
 			],
 			minDate: '',
 			maxDate: '',
@@ -477,6 +478,9 @@ export default {
 		// 车辆类型选择
 		onVehicleTypeChange(e) {
 			this.formData.vehicleType = this.vehicleTypes[e.detail.value].value;
+			if (this.formData.vehicleType === 'nonMotorized') {
+				this.formData.licensePlate = '';
+			}
 		},
 		// 显示车牌键盘
 		showPlateKeyboard() {
@@ -562,13 +566,15 @@ export default {
 					uni.showToast({ title: '请选择车辆类型', icon: 'none' });
 					return false;
 				}
-				if (!this.formData.licensePlate) {
-					uni.showToast({ title: '请输入车牌号', icon: 'none' });
-					return false;
-				}
-				if (!this.validatePlateNumber(this.formData.licensePlate)) {
-					uni.showToast({ title: '请输入正确的车牌号', icon: 'none' });
-					return false;
+				if (this.formData.vehicleType !== 'nonMotorized') {
+					if (!this.formData.licensePlate) {
+						uni.showToast({ title: '请输入车牌号', icon: 'none' });
+						return false;
+					}
+					if (!this.validatePlateNumber(this.formData.licensePlate)) {
+						uni.showToast({ title: '请输入正确的车牌号', icon: 'none' });
+						return false;
+					}
 				}
 			}
 

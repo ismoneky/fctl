@@ -127,7 +127,7 @@
 						<text class="label">车辆类型</text>
 						<view class="detail-value">{{ getVehicleTypeLabel() }}</view>
 					</view>
-					<view class="form-item">
+					<view class="form-item" v-if="formData.vehicleType !== 'nonMotorized'">
 						<text class="label">车牌号</text>
 						<view class="detail-value">{{ formData.licensePlate }}</view>
 					</view>
@@ -214,8 +214,9 @@
 					paymentExpiredAt: null
 				},
 				vehicleTypes: [
-					{ label: '摩托', value: 'wheelMotorcycle' },
 					{ label: '小型客车', value: 'smallCar' },
+					{ label: '摩托', value: 'wheelMotorcycle' },
+					{ label: '非机动车', value: 'nonMotorized' },
 				],
 				passengerList: [],  // 解析后的出行人员列表
 				qrImageUrl: '',

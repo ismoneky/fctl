@@ -15,12 +15,13 @@
 					<text class="field-label required-star">预约人数</text>
 					<view class="stepper-box">
 						<button class="stepper-btn" @click="decreasePerson">－</button>
-						<input class="stepper-input" type="number" :value="formData.personCount" @input="onPersonCountInput" />
+						<input class="stepper-input" type="number" :value="inputDisplayValue" @input="onPersonCountInput" />
 						<button class="stepper-btn stepper-btn--plus" :disabled="formData.personCount >= 10" :class="{ 'stepper-btn--disabled': formData.personCount >= 10 }" @click="increasePerson">＋</button>
 					</view>
 				</view>
 
 				<!-- 动态出行人员列表 -->
+				<block v-if="formData.passengers && formData.passengers.length">
 				<view class="passenger-card" v-for="(p, idx) in formData.passengers" :key="idx">
 					<text v-if="idx > 0" class="passenger-delete-btn" @click="removePassenger(idx)">✕</text>
 					<view class="passenger-card-header">
@@ -46,6 +47,7 @@
 						</view>
 					</view>
 				</view>
+				</block>
 
 				<!-- 预约日期 -->
 				<view class="field-block" style="margin-top:24rpx">
@@ -75,7 +77,7 @@
 						<text class="profile-picker-empty-text">暂无常用信息，请先在个人中心添加</text>
 					</view>
 					<view
-						v-for="item in profileList"
+						v-for="item in (profileList || [])"
 						:key="item.profileId"
 						class="profile-picker-item"
 						@click="selectProfile(item)"
@@ -153,12 +155,27 @@
 					</view>
 				</template>
 			</view>
-
+			<!-- <view class="fee-tip">
+				<view class="required-star">为更好的提供出行保障，本次预约包含入园保险费用，详见<text class="fee-tip-link" @tap="goToService">《用户协议》</text></view>
+			</view> -->
 			<!-- 备注信息（隐藏展示，字段保留） -->
 		</view>
 
 		<!-- 底部：勾选 + 金额 + 提交按钮 -->
 		<view class="submit-bar">
+			<!-- 勾选项0：保险说明 -->
+			<view class="agree-row" @click="agreedInsurance = !agreedInsurance">
+				<view class="agree-checkbox" :class="{
+					'agree-checkbox--checked': agreedInsurance,
+					'agree-checkbox--warn':    !agreedInsurance && hasSubmitted,
+					'agree-checkbox--flash':   flashInsurance
+				}">
+					<text v-if="agreedInsurance" class="agree-check-icon">✓</text>
+				</view>
+				<text class="agree-text">我已知晓并同意</text>
+				<text class="agree-link" @click.stop="showInsuranceNotice">《入园保险说明》</text>
+				<text class="agree-text agree-text--warn">（必须购买， {{ (paymentAmount / 100).toFixed(2) }} 元/人）</text>
+			</view>
 			<!-- 勾选项1：预约须知 -->
 			<view class="agree-row" @click="agreedNotice = !agreedNotice">
 				<view class="agree-checkbox" :class="{
@@ -186,16 +203,39 @@
 				<text class="agree-link" @click.stop="goToService">《用户协议》</text>
 			</view>
 			<view class="submit-row">
-				<view class="price-info" v-if="paymentAmount != null">
-					<view class="price-row">
-						<text class="price-symbol">¥</text>
-						<text class="price-value">{{ (paymentAmount * formData.personCount / 100).toFixed(2) }}</text>
-					</view>
+				<button class="submit-btn" @click="handleSubmit">立即预约</button>
+			</view>
+		</view>
+
+		<!-- 保险说明浮层 -->
+		<view class="notice-mask" v-if="insuranceNoticeVisible" @click="insuranceNoticeVisible = false"></view>
+		<view class="notice-popup" :class="{ 'notice-popup--show': insuranceNoticeVisible }">
+			<view class="notice-popup__header">
+				<text class="notice-popup__title">入园保险说明</text>
+				<text class="notice-popup__close" @click="insuranceNoticeVisible = false">✕</text>
+			</view>
+			<scroll-view class="notice-popup__body" scroll-y>
+				<view class="insurance-highlight-box">
+					<text class="insurance-highlight-title">入园免费 · 保险收费</text>
+					<text class="insurance-highlight-desc">风车天路景区本身免费入园，无门票费用。本次支付的费用为入园强制保险，用于保障您的人身安全，与景区门票无关。</text>
 				</view>
-				<view class="price-info" v-else>
-					<view style="flex:1"></view>
-				</view>
-				<button class="submit-btn" @click="handleSubmit">立即投保</button>
+
+				<text class="notice-group-title">一、为什么需要购买保险？</text>
+				<text class="notice-body">风车天路路段存在山地自驾风险，为保障每位游客的人身安全，景区要求所有入园人员购买意外险。保险费用按人头计算，每位出行人均须购买。</text>
+
+				<text class="notice-group-title">二、费用说明</text>
+				<text class="notice-body">· 景区入园：免费，无需购买门票{{ '\n' }}· 入园保险：收费，按实际出行人数结算{{ '\n' }}· 具体金额以预约确认页面显示为准</text>
+
+				<text class="notice-group-title">三、保险有效期</text>
+				<text class="notice-body">保险有效期为预约当日，与预约日期一致，逾期不可使用。</text>
+
+				<text class="notice-group-title">四、退款规则</text>
+				<text class="notice-body">· 预约取消后，保险费用按预约退款规则同步退还{{ '\n' }}· 一旦完成入园核验，保险费用不予退还</text>
+
+				<text class="notice-footer">感谢您的理解与配合，祝您出行愉快、平安归来！</text>
+			</scroll-view>
+			<view class="insurance-confirm-bar">
+				<button class="insurance-confirm-btn" @click="agreedInsurance = true; insuranceNoticeVisible = false">我已阅读，同意购买</button>
 			</view>
 		</view>
 
@@ -216,7 +256,7 @@
 				<text class="notice-body">· 开放时段：旺季（4月-10月）淡季（11月-3月）{{ '\n' }}· 最晚入园：关闭时间前1小时停止检票及车辆进入{{ '\n' }}· 如遇恶劣天气（大雾、暴雨、冰雪、强风等）、道路维护或突发情况，天路将临时关闭，已预约订单可全额退款或改期。</text>
 
 				<text class="notice-group-title">三、车辆及驾驶要求</text>
-				<text class="notice-body">1. 仅允许7座及以下小型客车和摩托、非机动车通行，房车、拖挂车、货车禁止进入。{{ '\n' }}2. 驾驶员需有2年以上实际驾龄，且无严重交通违法记录。{{ '\n' }}3. 山路弯多坡陡，建议选择SUV或底盘较高车型；纯电动车请确保续航充足。{{ '\n' }}4. 全程限速30km/h，严禁弯道超车、占道行驶、逆向行驶。</text>
+				<text class="notice-body">1. 仅允许7座及以下小型客车和摩托、非机动车通行，拖挂车、货车禁止进入。{{ '\n' }}2. 驾驶员需有2年以上实际驾龄，且无严重交通违法记录。{{ '\n' }}3. 山路弯多坡陡，建议选择SUV或底盘较高车型；纯电动车请确保续航充足。{{ '\n' }}4. 全程限速30km/h，严禁弯道超车、占道行驶、逆向行驶。</text>
 
 				<text class="notice-group-title">四、安全与行为规范</text>
 				<text class="notice-body">1. 全程系好安全带，乘客请勿将身体探出车外或车顶天窗。{{ '\n' }}2. 禁止下车徒步穿越非指定观景台区域（部分路段临崖、落石风险）。{{ '\n' }}3. 观景台停车请有序入位，严禁在弯道、坡道、窄路边停车拍照或赏景。{{ '\n' }}4. 严禁携带易燃易爆物品、无人机（除提前获批的航拍许可外）、宠物（需全程放在车内且不扰他人）。{{ '\n' }}5. 禁止明火、野炊、露营、吸烟（含电子烟）—— 山区防火，至关重要。</text>
@@ -264,6 +304,7 @@ export default {
 				personCount: 1,
 				remarks: ''
 			},
+			inputDisplayValue: 1,
 			profileList: [], // 常用人员列表
 			profilePickerVisible: false, // 选择常用人员弹窗
 			currentPickerIdx: 0, // 当前正在填写的人员索引
@@ -296,10 +337,13 @@ export default {
 			minDate: '',
 			maxDate: '',
 			_lastClickTime: 0,  // 防抖时间戳
-			paymentAmount: 1000, // 单次支付金额（分），从接口获取
+			paymentAmount: 990, // 单次支付金额（分），从接口获取
+			agreedInsurance: false, // 是否同意购买保险
 			agreedNotice: false,  // 是否同意预约须知
 			agreedPrivacy: false, // 是否同意隐私政策和用户协议
 			noticeVisible: false, // 预约须知弹层显示
+			insuranceNoticeVisible: false, // 保险说明弹层显示
+			flashInsurance: false, // 保险勾选框闪烁
 			flashNotice: false,   // 预约须知勾选框闪烁
 			flashPrivacy: false,  // 隐私协议勾选框闪烁
 			hasSubmitted: false   // 是否点击过提交（用于触发常亮红边）
@@ -317,15 +361,6 @@ export default {
 
 			this.minDate = this.formatDate(today);
 			this.maxDate = this.formatDate(maxDay);
-
-				setTimeout(() => {
-					uni.showModal({
-						title: '温馨提示',
-						content: '风车天路目前半开放，仅开放鲍庄出入口通行；每日限行100辆，请合理安排出行时间；本次购买为入园保险费用，预约本身免费，敬请知悉。',
-						confirmText: '我知道了',
-						showCancel: false
-					});
-				}, 200);
 		}
 		// 获取支付金额配置
 		request({ method: 'GET', url: '/system-config/payment-config' }).then(res => {
@@ -333,9 +368,18 @@ export default {
 				this.paymentAmount = res.data.paymentAmount;
 			}
 		}).catch(() => {});
-		// 预加载常用人员列表
+		预加载常用人员列表
 		this.fetchProfiles();
+		setTimeout(() => {
+			uni.showModal({
+				title: '温馨提示',
+				content: '风车天路目前半开放，仅开放鲍庄出入口通行；每日限行100辆，请合理安排出行时间；本次购买为入园保险费用，预约本身免费，敬请知悉。',
+				confirmText: '我知道了',
+				showCancel: false
+			});
+		}, 800);
 	},
+
 	// 分享配置
 	onShareAppMessage() {
 		return {
@@ -359,6 +403,7 @@ export default {
 		increasePerson() {
 			if (this.formData.personCount < 10) {
 				this.formData.personCount++;
+				this.inputDisplayValue = this.formData.personCount;
 				this.syncPassengers(this.formData.personCount);
 			}
 		},
@@ -371,6 +416,7 @@ export default {
 		decreasePerson() {
 			if (this.formData.personCount > 1) {
 				this.formData.personCount--;
+				this.inputDisplayValue = this.formData.personCount;
 				this.syncPassengers(this.formData.personCount);
 			}
 		},
@@ -379,18 +425,15 @@ export default {
 			let value = parseInt(e.detail.value) || 1;
 			if (value < 1) value = 1;
 			if (value > 10) value = 10;
-			// 先置 null 再赋值，强制小程序刷新 input 显示值
-			this.formData.personCount = null;
-			this.$nextTick(() => {
-				this.formData.personCount = value;
-				this.syncPassengers(value);
-			});
+			this.formData.personCount = value;
+			this.inputDisplayValue = value;
+			this.syncPassengers(value);
 		},
 		// 获取常用人员列表
 		async fetchProfiles() {
 			try {
 				const res = await request({ method: 'GET', url: '/users/profiles' });
-				if (res.success) this.profileList = res.data || [];
+				if (res.success) this.profileList = Array.isArray(res.data) ? res.data : [];
 			} catch (e) {}
 		},
 		// 打开选择常用人员弹窗
@@ -536,6 +579,10 @@ export default {
 			this[field] = true;
 			setTimeout(() => { this[field] = false; }, 1000);
 		},
+		// 显示保险说明
+		showInsuranceNotice() {
+			this.insuranceNoticeVisible = true;
+		},
 		// 显示预约须知
 		showNotice() {
 			this.noticeVisible = true;
@@ -553,15 +600,18 @@ export default {
 			this._lastClickTime = now;
 
 			// 协议校验（优先级最高）
-			if (!this.agreedNotice || !this.agreedPrivacy) {
+			if (!this.agreedInsurance || !this.agreedNotice || !this.agreedPrivacy) {
 				this.hasSubmitted = true;
+				if (!this.agreedInsurance) this.triggerFlash('flashInsurance');
 				if (!this.agreedNotice) this.triggerFlash('flashNotice');
 				if (!this.agreedPrivacy) this.triggerFlash('flashPrivacy');
-				const missing = !this.agreedNotice && !this.agreedPrivacy
-					? '请先阅读并同意预约须知、隐私政策及用户协议'
-					: !this.agreedNotice
-						? '请先阅读并同意预约须知'
-						: '请先阅读并同意隐私政策及用户协议';
+				const missing = !this.agreedInsurance
+					? '预约须购买入园保险，请先同意《入园保险说明》'
+					: !this.agreedNotice && !this.agreedPrivacy
+						? '请先阅读并同意预约须知、隐私政策及用户协议'
+						: !this.agreedNotice
+							? '请先阅读并同意预约须知'
+							: '请先阅读并同意隐私政策及用户协议';
 				uni.showToast({ title: missing, icon: 'none', duration: 2000 });
 				return;
 			}
@@ -633,7 +683,7 @@ export default {
 					if (d.passengers) {
 						try {
 							const list = typeof d.passengers === 'string' ? JSON.parse(d.passengers) : d.passengers;
-							this.formData.passengers = list;
+							this.formData.passengers = Array.isArray(list) && list.length > 0 ? list : [{ name: d.name || '', phone: d.phone || '', idCard: d.idCard || '' }];
 						} catch(e) {
 							this.formData.passengers = [{ name: d.name || '', phone: d.phone || '', idCard: d.idCard || '' }];
 						}
@@ -641,6 +691,7 @@ export default {
 						this.formData.passengers = [{ name: d.name || '', phone: d.phone || '', idCard: d.idCard || '' }];
 					}
 					this.syncPassengers(this.formData.personCount);
+					this.inputDisplayValue = this.formData.personCount;
 					this.formData.licensePlate = d.licensePlate || '';
 					this.formData.vehicleType = d.vehicleType || 'smallCar';
 				}
@@ -1202,6 +1253,19 @@ export default {
 	z-index: 100;
 }
 
+.fee-tip {
+	display: block;
+	font-size: 22rpx;
+	color: #999;
+	padding: 0rpx 0 20rpx 0;
+	line-height: 40rpx;
+}
+
+.fee-tip-link {
+	font-size: 24rpx;
+	color: #3F99F6;
+}
+
 /* 勾选行 */
 .agree-row {
 	display: flex;
@@ -1253,6 +1317,12 @@ export default {
 	color: #666;
 }
 
+.agree-text--warn {
+	color: #e53935;
+	font-weight: 500;
+	font-size: 20rpx;
+}
+
 .agree-link {
 	font-size: 26rpx;
 	color: #3F99F6;
@@ -1263,6 +1333,7 @@ export default {
 .submit-row {
 	display: flex;
 	align-items: center;
+	justify-content: flex-end;
 }
 
 .price-info {
@@ -1458,5 +1529,55 @@ export default {
 	font-size: 26rpx;
 	color: #555;
 	line-height: 1.6;
+}
+
+/* ===== 保险说明高亮框 ===== */
+.insurance-highlight-box {
+	background: linear-gradient(135deg, #fff7e6 0%, #fff3e0 100%);
+	border: 1.5rpx solid #ffb74d;
+	border-radius: 16rpx;
+	padding: 28rpx 32rpx;
+	margin-bottom: 32rpx;
+}
+
+.insurance-highlight-title {
+	display: block;
+	font-size: 32rpx;
+	font-weight: 700;
+	color: #e65100;
+	margin-bottom: 14rpx;
+}
+
+.insurance-highlight-desc {
+	display: block;
+	font-size: 26rpx;
+	color: #bf360c;
+	line-height: 1.7;
+}
+
+/* ===== 保险说明弹层底部按钮 ===== */
+.insurance-confirm-bar {
+	padding: 20rpx 40rpx;
+	padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
+	border-top: 1.5rpx solid #f0f0f0;
+	flex-shrink: 0;
+}
+
+.insurance-confirm-btn {
+	width: 100%;
+	height: 88rpx;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: linear-gradient(135deg, #3F99F6 0%, #33C5A0 100%);
+	color: #fff;
+	font-size: 30rpx;
+	font-weight: bold;
+	border-radius: 44rpx;
+	border: none;
+}
+
+.insurance-confirm-btn::after {
+	border: none;
 }
 </style>

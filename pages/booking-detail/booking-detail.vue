@@ -23,7 +23,7 @@
 			<view class="status-bar status-bar-confirmed" v-if="formData.status === 'confirmed'">
 				<view class="status-bar-info">
 					<text class="status-bar-label">待使用</text>
-					<text class="status-bar-desc">支付成功，请凭核验码入场</text>
+					<text class="status-bar-desc">投保成功，凭预约码入场</text>
 				</view>
 			</view>
 

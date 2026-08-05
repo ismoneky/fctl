@@ -22,9 +22,13 @@
 			<!-- 待使用：状态条 -->
 			<view class="status-bar status-bar-confirmed" v-if="formData.status === 'confirmed'">
 				<view class="status-bar-info">
-					<text class="status-bar-label">待使用</text>
-					<text class="status-bar-desc">投保成功，凭预约码入场</text>
+					<text class="status-bar-label">{{ formData.isFree ? '免费预约' : '待使用' }}</text>
+					<text class="status-bar-desc" v-if="formData.isFree">
+						{{ formData.freeReason === 'member' ? '月卡会员免费预约，凭预约码入场' : '每日免费预约成功，凭预约码入场' }}
+					</text>
+					<text class="status-bar-desc" v-else>投保成功，凭预约码入场</text>
 				</view>
+				<text class="status-bar-tag" v-if="formData.isFree">免&nbsp;费</text>
 			</view>
 
 			<!-- 已完成 -->
@@ -97,6 +101,12 @@
 				<view class="form-item">
 					<text class="label">预约日期</text>
 					<view class="detail-value">{{ formatDateText(formData.bookingDate) }}</view>
+				</view>
+
+				<!-- 免费来源 -->
+				<view class="form-item" v-if="formData.isFree">
+					<text class="label">免费来源</text>
+					<view class="detail-value">{{ formData.freeReason === 'member' ? '月卡会员免费' : '每日免费名额' }}</view>
 				</view>
 
 				<!-- 预约时间段（隐藏展示，字段保留） -->
@@ -174,7 +184,8 @@
 					</view>
 					<text class="qr-booking-id">订单号：{{ formData.bookingId }}</text>
 				</view>
-				<view class="action-bar">
+				<!-- 免费订单不支持退款，隐藏退款按钮 -->
+				<view class="action-bar" v-if="!formData.isFree">
 					<view class="refund-btn" @tap="onRefund">申请退款</view>
 				</view>
 			</view>
@@ -458,6 +469,17 @@
 		font-size: 24rpx;
 		color: rgba(255, 255, 255, 0.85);
 		line-height: 1.5;
+	}
+
+	.status-bar-tag {
+		margin-left: auto;
+		flex-shrink: 0;
+		font-size: 26rpx;
+		font-weight: 700;
+		color: #2db96a;
+		background: #fff;
+		padding: 8rpx 20rpx;
+		border-radius: 30rpx;
 	}
 
 	/* ===== 状态 Hero 卡片（居中大图标式） ===== */

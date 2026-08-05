@@ -33,8 +33,11 @@
                             <text class="iconfont icon-Energy- type-icon"></text>
                             <text class="type-name">风车天路</text>
                         </view>
-                        <view class="booking-status" :class="'status-' + item.status">
-                            {{ getStatusText(item.status) }}
+                        <view class="booking-status-wrap">
+                            <text class="booking-free-tag" v-if="item.isFree">{{ item.freeReason === 'member' ? '会员免费' : '免费预约' }}</text>
+                            <view class="booking-status" :class="'status-' + item.status">
+                                {{ getStatusText(item.status) }}
+                            </view>
                         </view>
                     </view>
 
@@ -374,6 +377,22 @@ export default {
     border: 1rpx solid #3F99F6;
     border-radius: 8rpx;
     padding: 2rpx 12rpx;
+    flex-shrink: 0;
+}
+
+.booking-status-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12rpx;
+}
+
+.booking-free-tag {
+    padding: 8rpx 16rpx;
+    border-radius: 30rpx;
+    font-size: 22rpx;
+    background: #e8f5e9;
+    color: #4caf50;
+    font-weight: 600;
     flex-shrink: 0;
 }
 

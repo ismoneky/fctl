@@ -43,7 +43,7 @@
 					<view class="field-block" style="margin-bottom:0">
 						<text class="field-label required-star">身份证号</text>
 						<view class="input-box">
-							<input class="field-input" maxlength="18" v-model="p.idCard" placeholder="请输入身份证号码" placeholder-style="color:#c8c8c8" />
+							<input class="field-input" maxlength="18" v-model="p.idCard" placeholder="请输入身份证号码" placeholder-style="color:#c8c8c8" @blur="onIdCardBlur" />
 						</view>
 					</view>
 				</view>
@@ -60,6 +60,25 @@
 							<image class="picker-icon-svg" src="/static/svg/rili.svg" mode="aspectFit" />
 						</view>
 					</picker>
+				</view>
+
+				<!-- 免费预约提示 -->
+				<view class="free-banner" v-if="isMemberFree">
+					<text class="free-banner-icon">免</text>
+					<view class="free-banner-main">
+						<text class="free-banner-title">会员免费</text>
+						<text class="free-banner-desc">月卡会员免费预约，不限次数，不占每日免费名额</text>
+					</view>
+				</view>
+				<view class="free-banner" v-else-if="freeQuotaStatus && freeQuotaStatus.userCanGetFree">
+					<text class="free-banner-icon">免</text>
+					<view class="free-banner-main">
+						<text class="free-banner-title">免费预约</text>
+						<text class="free-banner-desc">今日前 {{ freeQuotaStatus.freeQuotaLimit }} 名预约免费，剩余 {{ freeQuotaStatus.freeQuotaRemaining }} 个名额，本次预约免费</text>
+					</view>
+				</view>
+				<view class="free-tip free-tip--muted" v-else-if="freeQuotaStatus && !isMemberFree && freeQuotaStatus.freeQuotaEnabled && freeQuotaStatus.bookingIsToday && !freeQuotaStatus.userCanGetFree">
+					<text class="free-tip-text">{{ freeQuotaStatus.freeQuotaRemaining <= 0 ? '今日免费名额已用完，本次预约需支付' : '您今日已享受过免费预约，本次预约需支付' }}</text>
 				</view>
 
 				<!-- 预约时间段（隐藏展示，字段保留） -->
@@ -163,20 +182,7 @@
 
 		<!-- 底部：勾选 + 金额 + 提交按钮 -->
 		<view class="submit-bar">
-			<!-- 勾选项0：保险说明 -->
-			<view class="agree-row" @click="agreedInsurance = !agreedInsurance">
-				<view class="agree-checkbox" :class="{
-					'agree-checkbox--checked': agreedInsurance,
-					'agree-checkbox--warn':    !agreedInsurance && hasSubmitted,
-					'agree-checkbox--flash':   flashInsurance
-				}">
-					<text v-if="agreedInsurance" class="agree-check-icon">✓</text>
-				</view>
-				<text class="agree-text">我已知晓并同意</text>
-				<text class="agree-link" @click.stop="showInsuranceNotice">《入园保险说明》</text>
-				<text class="agree-text agree-text--warn">（必须购买， {{ (paymentAmount / 100).toFixed(2) }} 元/人）</text>
-			</view>
-			<!-- 勾选项1：预约须知 -->
+				<!-- 勾选项1：预约须知 -->
 			<view class="agree-row" @click="agreedNotice = !agreedNotice">
 				<view class="agree-checkbox" :class="{
 					'agree-checkbox--checked': agreedNotice,
@@ -203,41 +209,31 @@
 				<text class="agree-link" @click.stop="goToService">《用户协议》</text>
 			</view>
 			<view class="submit-row">
+				<view class="price-info" v-if="isMemberFree">
+					<view class="price-row">
+						<text class="price-value price-value--free">会员免费</text>
+					</view>
+					<text class="price-desc">月卡会员免费预约，本次预约免费</text>
+				</view>
+				<view class="price-info" v-else-if="freeQuotaStatus && freeQuotaStatus.userCanGetFree">
+					<view class="price-row">
+						<text class="price-value price-value--free">免费预约</text>
+					</view>
+					<text class="price-desc">每日前{{ freeQuotaStatus.freeQuotaLimit }}名免费</text>
+				</view>
+				<view class="price-info" v-else-if="paymentAmount != null">
+					<view class="price-row">
+						<text class="price-symbol">¥</text>
+						<text class="price-value">{{ (paymentAmount * formData.personCount / 100).toFixed(2) }}</text>
+					</view>
+				</view>
+				<view class="price-info" v-else>
+					<view style="flex:1"></view>
+				</view>
 				<button class="submit-btn" @click="handleSubmit">立即预约</button>
 			</view>
 		</view>
 
-		<!-- 保险说明浮层 -->
-		<view class="notice-mask" v-if="insuranceNoticeVisible" @click="insuranceNoticeVisible = false"></view>
-		<view class="notice-popup" :class="{ 'notice-popup--show': insuranceNoticeVisible }">
-			<view class="notice-popup__header">
-				<text class="notice-popup__title">入园保险说明</text>
-				<text class="notice-popup__close" @click="insuranceNoticeVisible = false">✕</text>
-			</view>
-			<scroll-view class="notice-popup__body" scroll-y>
-				<view class="insurance-highlight-box">
-					<text class="insurance-highlight-title">入园免费 · 保险收费</text>
-					<text class="insurance-highlight-desc">风车天路景区本身免费入园，无门票费用。本次支付的费用为入园强制保险，用于保障您的人身安全，与景区门票无关。</text>
-				</view>
-
-				<text class="notice-group-title">一、为什么需要购买保险？</text>
-				<text class="notice-body">风车天路路段存在山地自驾风险，为保障每位游客的人身安全，景区要求所有入园人员购买意外险。保险费用按人头计算，每位出行人均须购买。</text>
-
-				<text class="notice-group-title">二、费用说明</text>
-				<text class="notice-body">· 景区入园：免费，无需购买门票{{ '\n' }}· 入园保险：收费，按实际出行人数结算{{ '\n' }}· 具体金额以预约确认页面显示为准</text>
-
-				<text class="notice-group-title">三、保险有效期</text>
-				<text class="notice-body">保险有效期为预约当日，与预约日期一致，逾期不可使用。</text>
-
-				<text class="notice-group-title">四、退款规则</text>
-				<text class="notice-body">· 预约取消后，保险费用按预约退款规则同步退还{{ '\n' }}· 一旦完成入园核验，保险费用不予退还</text>
-
-				<text class="notice-footer">感谢您的理解与配合，祝您出行愉快、平安归来！</text>
-			</scroll-view>
-			<view class="insurance-confirm-bar">
-				<button class="insurance-confirm-btn" @click="agreedInsurance = true; insuranceNoticeVisible = false">我已阅读，同意购买</button>
-			</view>
-		</view>
 
 		<!-- 预约须知浮层 -->
 		<view class="notice-mask" v-if="noticeVisible" @click="noticeVisible = false"></view>
@@ -265,7 +261,7 @@
 				<text class="notice-body">· 天路海拔较高，气温比山下低5-10℃，且天气多变。建议携带外套、雨具、防晒用品。{{ '\n' }}· 若遇大雾或强侧风，请开启雾灯/双闪，减速并保持在车道中间行驶。</text>
 
 				<text class="notice-group-title">六、费用与退改</text>
-				<text class="notice-body">· 预约时需支付入园保险费用（具体金额以平台公示为准）。{{ '\n' }}· 取消与退款规则：{{ '\n' }}  · 在预约日的前一天（含）之前申请取消，可全额退款。{{ '\n' }}  · 在预约日当天、且尚未完成核验（核验指入口处扫码验证或车牌识别入园）之前申请取消，也可全额退款。{{ '\n' }}  · 一旦完成核验（即车辆及人员已进入风车天路景区），无论是否完整游览，均不予退款。{{ '\n' }}  · 超过预约日期未使用（未在预约日当天开放时段内完成核验），视为自动放弃，不予退款。{{ '\n' }}· 因恶劣天气、道路封闭等不可抗力导致天路临时关闭，已预约订单可联系工作人员。{{ '\n' }}· 须知最终解释权归河南省云玺旅游有限公司所有，内容如有调整以最新公告为准。</text>
+				<text class="notice-body">· 取消与退款规则：{{ '\n' }}  · 在预约日的前一天（含）之前申请取消，可全额退款。{{ '\n' }}  · 在预约日当天、且尚未完成核验（核验指入口处扫码验证或车牌识别入园）之前申请取消，也可全额退款。{{ '\n' }}  · 一旦完成核验（即车辆及人员已进入风车天路景区），无论是否完整游览，均不予退款。{{ '\n' }}  · 超过预约日期未使用（未在预约日当天开放时段内完成核验），视为自动放弃，不予退款。{{ '\n' }}· 因恶劣天气、道路封闭等不可抗力导致天路临时关闭，已预约订单可联系工作人员。{{ '\n' }}· 须知最终解释权归河南省云玺旅游有限公司所有，内容如有调整以最新公告为准。</text>
 
 				<text class="notice-group-title">七、环保与文明游览</text>
 				<text class="notice-body">1. 请自觉带走所有垃圾（车内请自备垃圾袋）。天路沿线不设垃圾桶。{{ '\n' }}2. 禁止采摘花草、挖掘植物、惊扰野生动物。{{ '\n' }}3. 请勿使用音响外放、大声喧哗，共同维护宁静的自然环境。</text>
@@ -339,29 +335,38 @@ export default {
 			maxDate: '',
 			_lastClickTime: 0,  // 防抖时间戳
 			paymentAmount: 990, // 单次支付金额（分），从接口获取
-			agreedInsurance: false, // 是否同意购买保险
+			freeQuotaStatus: null, // 每日免费名额状态
+			memberStatus: null,    // 当前用户会员状态（/member/status）
+			memberMatch: false,    // 乘客中是否有人身份证与会员一致（/member/verify）
 			agreedNotice: false,  // 是否同意预约须知
 			agreedPrivacy: false, // 是否同意隐私政策和用户协议
 			noticeVisible: false, // 预约须知弹层显示
-			insuranceNoticeVisible: false, // 保险说明弹层显示
-			flashInsurance: false, // 保险勾选框闪烁
 			flashNotice: false,   // 预约须知勾选框闪烁
 			flashPrivacy: false,  // 隐私协议勾选框闪烁
 			hasSubmitted: false   // 是否点击过提交（用于触发常亮红边）
 		}
 	},
+	computed: {
+		// 会员免费：当前用户是会员 且 乘客中有会员本人
+		isMemberFree() {
+			return !!(this.memberStatus && this.memberStatus.isMember && this.memberMatch);
+		}
+	},
 	onLoad(options) {
+		// 设置日期范围（今天到3个月后，最小不低于8月10号）
+		let today = new Date();
+		const maxDay = new Date();
+		maxDay.setMonth(maxDay.getMonth() + 3);
+		const startTime = new Date('2026-08-10').getTime();
+		const todayTime = new Date().getTime();
+		if (todayTime < startTime) {
+			today = new Date('2026-08-10')
+		}
+		this.minDate = this.formatDate(today);
+		this.maxDate = this.formatDate(maxDay);
 		// 检查是否携带 bookingId 参数
 		if (options.bookingId) {
 			this.getBookingDetail(options.bookingId);
-		} else {
-			// 设置日期范围（今天到3个月后）
-			const today = new Date();
-			const maxDay = new Date();
-			maxDay.setMonth(maxDay.getMonth() + 3);
-
-			this.minDate = this.formatDate(today);
-			this.maxDate = this.formatDate(maxDay);
 		}
 		// 获取支付金额配置
 		request({ method: 'GET', url: '/system-config/payment-config' }).then(res => {
@@ -369,12 +374,16 @@ export default {
 				this.paymentAmount = res.data.paymentAmount;
 			}
 		}).catch(() => {});
-		预加载常用人员列表
+		// 查询每日免费名额状态（默认查询今天）
+		this.fetchFreeQuotaStatus();
+		// 查询当前用户会员状态（会员免费需乘客身份匹配）
+		this.fetchMemberStatus();
+		// 预加载常用人员列表
 		this.fetchProfiles();
 		setTimeout(() => {
 			uni.showModal({
 				title: '温馨提示',
-				content: '风车天路目前半开放，仅开放鲍庄出入口通行；每日限行100辆，请合理安排出行时间；本次购买为入园保险费用，预约本身免费，敬请知悉。',
+				content: '风车天路目前半开放，仅开放鲍庄出入口通行；每日限行100辆，请合理安排出行时间，敬请知悉。',
 				confirmText: '我知道了',
 				showCancel: false
 			});
@@ -412,6 +421,8 @@ export default {
 		removePassenger(idx) {
 			this.formData.passengers.splice(idx, 1);
 			this.formData.personCount = this.formData.passengers.length;
+			// 乘客变化后重新校验会员身份匹配
+			this.verifyMemberMatch();
 		},
 		// 人数减少
 		decreasePerson() {
@@ -419,6 +430,8 @@ export default {
 				this.formData.personCount--;
 				this.inputDisplayValue = this.formData.personCount;
 				this.syncPassengers(this.formData.personCount);
+				// 乘客减少后重新校验会员身份匹配
+				this.verifyMemberMatch();
 			}
 		},
 		// 人数输入
@@ -426,6 +439,14 @@ export default {
 			let value = parseInt(e.detail.value) || 1;
 			if (value < 1) value = 1;
 			if (value > 10) value = 10;
+			// 人数减少会移除乘客，需重新校验会员身份匹配
+			if (value < this.formData.personCount) {
+				this.formData.personCount = value;
+				this.inputDisplayValue = value;
+				this.syncPassengers(value);
+				this.verifyMemberMatch();
+				return;
+			}
 			this.formData.personCount = value;
 			this.inputDisplayValue = value;
 			this.syncPassengers(value);
@@ -453,6 +474,8 @@ export default {
 				idCard: item.idCard
 			};
 			this.profilePickerVisible = false;
+			// 乘客信息变化后重新校验会员身份匹配
+			this.verifyMemberMatch();
 		},
 		// 遮罩身份证号
 		maskIdCard(idCard) {
@@ -466,6 +489,67 @@ export default {
 		// 日期选择
 		onDateChange(e) {
 			this.formData.bookingDate = e.detail.value;
+			// 切换日期后重新查询免费名额状态（仅当天可免费）
+			this.fetchFreeQuotaStatus(e.detail.value);
+		},
+		// 查询每日免费名额状态（判断当前用户是否可免费预约）
+		fetchFreeQuotaStatus(bookingDate) {
+			request({
+				method: 'GET',
+				url: '/bookings/free-quota/status',
+				data: bookingDate ? { bookingDate } : {}
+			}).then(res => {
+				if (res.success && res.data) {
+					this.freeQuotaStatus = res.data;
+				}
+			}).catch(() => {
+				this.freeQuotaStatus = null;
+			});
+		},
+		// 查询当前用户会员状态（会员免费需乘客身份匹配）
+		fetchMemberStatus() {
+			request({
+				method: 'GET',
+				url: '/member/status'
+			}).then(res => {
+				if (res.success && res.data) {
+					this.memberStatus = res.data;
+					// 会员状态下校验当前乘客列表是否有会员本人
+					this.verifyMemberMatch();
+				}
+			}).catch(() => {
+				this.memberStatus = null;
+			});
+		},
+		// 校验乘客列表中是否有人是会员本人（决定是否展示「会员免费」）
+		verifyMemberMatch() {
+			if (!this.memberStatus || !this.memberStatus.isMember) {
+				this.memberMatch = false;
+				return;
+			}
+			const idCards = [];
+			(this.formData.passengers || []).forEach(p => {
+				if (p.idCard && this.validateIdCard(p.idCard)) idCards.push(p.idCard);
+			});
+			if (!idCards.length) {
+				this.memberMatch = false;
+				return;
+			}
+			// 逐个调用 /member/verify，任一匹配即视为会员免费
+			Promise.all(idCards.map(idCard => {
+				return request({
+					method: 'POST',
+					url: '/member/verify',
+					data: { idCard }
+				}).then(res => (res && res.success && res.data) ? res.data : { matched: false })
+					.catch(() => ({ matched: false }));
+			})).then(results => {
+				this.memberMatch = results.some(r => r.matched === true);
+			});
+		},
+		// 身份证输入完成后重新校验会员身份匹配
+		onIdCardBlur() {
+			this.verifyMemberMatch();
 		},
 		// 时间段选择
 		onTimePeriodChange(period) {
@@ -585,10 +669,6 @@ export default {
 			this[field] = true;
 			setTimeout(() => { this[field] = false; }, 1000);
 		},
-		// 显示保险说明
-		showInsuranceNotice() {
-			this.insuranceNoticeVisible = true;
-		},
 		// 显示预约须知
 		showNotice() {
 			this.noticeVisible = true;
@@ -606,18 +686,15 @@ export default {
 			this._lastClickTime = now;
 
 			// 协议校验（优先级最高）
-			if (!this.agreedInsurance || !this.agreedNotice || !this.agreedPrivacy) {
+			if (!this.agreedNotice || !this.agreedPrivacy) {
 				this.hasSubmitted = true;
-				if (!this.agreedInsurance) this.triggerFlash('flashInsurance');
 				if (!this.agreedNotice) this.triggerFlash('flashNotice');
 				if (!this.agreedPrivacy) this.triggerFlash('flashPrivacy');
-				const missing = !this.agreedInsurance
-					? '预约须购买入园保险，请先同意《入园保险说明》'
-					: !this.agreedNotice && !this.agreedPrivacy
-						? '请先阅读并同意预约须知、隐私政策及用户协议'
-						: !this.agreedNotice
-							? '请先阅读并同意预约须知'
-							: '请先阅读并同意隐私政策及用户协议';
+				const missing = !this.agreedNotice && !this.agreedPrivacy
+					? '请先阅读并同意预约须知、隐私政策及用户协议'
+					: !this.agreedNotice
+						? '请先阅读并同意预约须知'
+						: '请先阅读并同意隐私政策及用户协议';
 				uni.showToast({ title: missing, icon: 'none', duration: 2000 });
 				return;
 			}
@@ -650,13 +727,21 @@ export default {
 				data: submitData
 			}).then(res => {
 				if (res.success) {
-					const bookingId = res.data.bookingId;
-					// 调用支付接口
-					this.handlePayment(bookingId);
+					const booking = res.data;
+					// 免费订单（月卡会员 / 每日免费名额）直接确认生效，无需支付
+					if (booking && booking.isFree) {
+						uni.showToast({ title: '预约成功', icon: 'success' });
+						setTimeout(() => {
+							uni.reLaunch({ url: '/pages/booking/booking' });
+						}, 800);
+						return;
+					}
+					// 收费订单：调用支付接口
+					this.handlePayment(booking.bookingId);
 				} else {
                                     uni.showModal({
                                         title: "预约失败",
-                                        content: err.data?.message,
+                                        content: res.message || '预约失败，请稍后再试',
                                         showCancel: false,
                                         confirmText: "我知道了",
                                     });
@@ -664,7 +749,7 @@ export default {
 			}).catch(err => {
                                 uni.showModal({
                                     title: "预约失败",
-                                    content: err.data?.message,
+                                    content: (err.data && err.data.message) || '预约失败，请稍后再试',
                                     showCancel: false,
                                     confirmText: "我知道了",
                                 });
@@ -1056,6 +1141,67 @@ export default {
 	font-weight: 300;
 }
 
+/* ===== 免费预约提示 ===== */
+.free-banner {
+	display: flex;
+	align-items: center;
+	margin: 0 24rpx 24rpx;
+	padding: 20rpx 26rpx;
+	background: linear-gradient(135deg, #eaf4fe 0%, #e7faf5 100%);
+	border: 1.5rpx solid #c5e1fb;
+	border-radius: 16rpx;
+}
+
+.free-banner-icon {
+	width: 56rpx;
+	height: 56rpx;
+	line-height: 56rpx;
+	text-align: center;
+	border-radius: 12rpx;
+	background: linear-gradient(135deg, #3F99F6 0%, #33C5A0 100%);
+	color: #fff;
+	font-size: 28rpx;
+	font-weight: 700;
+	margin-right: 20rpx;
+	flex-shrink: 0;
+}
+
+.free-banner-main {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+}
+
+.free-banner-title {
+	font-size: 30rpx;
+	font-weight: 700;
+	color: #3F99F6;
+	margin-bottom: 6rpx;
+}
+
+.free-banner-desc {
+	font-size: 24rpx;
+	color: #7a9ab8;
+	line-height: 1.5;
+}
+
+.free-tip {
+	margin: 0 24rpx 24rpx;
+	padding: 18rpx 24rpx;
+	border-radius: 12rpx;
+}
+
+.free-tip--muted {
+	background: #f5f6f8;
+	border: 1.5rpx solid #e8e8e8;
+}
+
+.free-tip-text {
+	font-size: 24rpx;
+	color: #999;
+	line-height: 1.5;
+}
+
 /* ===== 步进器 ===== */
 .stepper-box {
 	width: 100%;
@@ -1369,6 +1515,11 @@ export default {
 	line-height: 1;
 }
 
+.price-value--free {
+	font-size: 44rpx;
+	color: #3F99F6;
+}
+
 .price-desc {
 	font-size: 22rpx;
 	color: #999;
@@ -1537,53 +1688,4 @@ export default {
 	line-height: 1.6;
 }
 
-/* ===== 保险说明高亮框 ===== */
-.insurance-highlight-box {
-	background: linear-gradient(135deg, #fff7e6 0%, #fff3e0 100%);
-	border: 1.5rpx solid #ffb74d;
-	border-radius: 16rpx;
-	padding: 28rpx 32rpx;
-	margin-bottom: 32rpx;
-}
-
-.insurance-highlight-title {
-	display: block;
-	font-size: 32rpx;
-	font-weight: 700;
-	color: #e65100;
-	margin-bottom: 14rpx;
-}
-
-.insurance-highlight-desc {
-	display: block;
-	font-size: 26rpx;
-	color: #bf360c;
-	line-height: 1.7;
-}
-
-/* ===== 保险说明弹层底部按钮 ===== */
-.insurance-confirm-bar {
-	padding: 20rpx 40rpx;
-	padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
-	border-top: 1.5rpx solid #f0f0f0;
-	flex-shrink: 0;
-}
-
-.insurance-confirm-btn {
-	width: 100%;
-	height: 88rpx;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	background: linear-gradient(135deg, #3F99F6 0%, #33C5A0 100%);
-	color: #fff;
-	font-size: 30rpx;
-	font-weight: bold;
-	border-radius: 44rpx;
-	border: none;
-}
-
-.insurance-confirm-btn::after {
-	border: none;
-}
 </style>

@@ -44,8 +44,7 @@
                     <view class="booking-content">
                         <view class="content-row">
                             <text class="label">预约时间:</text>
-                            <text class="value">{{ formatDate(item.bookingDate, 'YYYY年MM月DD日') }} {{ item.timeSlot ===
-                                "morning" ? '上午' : '下午' }}</text>
+                            <text class="value">{{ formatDate(item.bookingDate, 'YYYY年MM月DD日') }}</text>
                         </view>
                         <view class="content-row">
                             <text class="label">预约人数:</text>

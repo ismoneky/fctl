@@ -26,7 +26,7 @@
 					<text class="status-bar-desc" v-if="formData.isFree">
 						{{ formData.freeReason === 'member' ? '月卡会员免费预约，凭预约码入场' : '每日免费预约成功，凭预约码入场' }}
 					</text>
-					<text class="status-bar-desc" v-else>投保成功，凭预约码入场</text>
+					<text class="status-bar-desc" v-else>预约成功，凭预约码入场</text>
 				</view>
 				<text class="status-bar-tag" v-if="formData.isFree">免&nbsp;费</text>
 			</view>

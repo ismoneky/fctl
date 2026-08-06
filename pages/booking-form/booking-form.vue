@@ -43,8 +43,9 @@
 					<view class="field-block" style="margin-bottom:0">
 						<text class="field-label required-star">身份证号</text>
 						<view class="input-box">
-							<input class="field-input" maxlength="18" v-model="p.idCard" placeholder="请输入身份证号码" placeholder-style="color:#c8c8c8" @blur="onIdCardBlur" />
+							<input class="field-input" maxlength="18" v-model="p.idCard" placeholder="请输入身份证号码" placeholder-style="color:#c8c8c8" @blur="onIdCardBlur($event, idx)" />
 						</view>
+						<text v-if="p.idCardError" class="field-error-text">{{ p.idCardError }}</text>
 					</view>
 				</view>
 				</block>
@@ -62,7 +63,7 @@
 					</picker>
 				</view>
 
-				<!-- 免费预约提示 -->
+				<!-- 免费预约提示（三档优先级，由后端 preview 统一判定） -->
 				<view class="free-banner" v-if="isMemberFree">
 					<text class="free-banner-icon">免</text>
 					<view class="free-banner-main">
@@ -70,15 +71,15 @@
 						<text class="free-banner-desc">月卡会员免费预约，不限次数，不占每日免费名额</text>
 					</view>
 				</view>
-				<view class="free-banner" v-else-if="freeQuotaStatus && freeQuotaStatus.userCanGetFree">
+				<view class="free-banner" v-else-if="isDailyQuotaFree">
 					<text class="free-banner-icon">免</text>
 					<view class="free-banner-main">
 						<text class="free-banner-title">免费预约</text>
-						<text class="free-banner-desc">今日前 {{ freeQuotaStatus.freeQuotaLimit }} 名预约免费，剩余 {{ freeQuotaStatus.freeQuotaRemaining }} 个名额，本次预约免费</text>
+						<text class="free-banner-desc">今日前 {{ previewResult.freeQuotaInfo.limit }} 名预约免费，剩余 {{ previewResult.freeQuotaInfo.remaining }} 个名额，本次预约免费</text>
 					</view>
 				</view>
-				<view class="free-tip free-tip--muted" v-else-if="freeQuotaStatus && !isMemberFree && freeQuotaStatus.freeQuotaEnabled && freeQuotaStatus.bookingIsToday && !freeQuotaStatus.userCanGetFree">
-					<text class="free-tip-text">{{ freeQuotaStatus.freeQuotaRemaining <= 0 ? '今日免费名额已用完，本次预约需支付' : '您今日已享受过免费预约，本次预约需支付' }}</text>
+				<view class="free-tip free-tip--muted" v-else-if="previewResult && !previewResult.isFree && previewResult.reason">
+					<text class="free-tip-text">{{ freeTipText }}</text>
 				</view>
 
 				<!-- 预约时间段（隐藏展示，字段保留） -->
@@ -215,16 +216,22 @@
 					</view>
 					<text class="price-desc">月卡会员免费预约，本次预约免费</text>
 				</view>
-				<view class="price-info" v-else-if="freeQuotaStatus && freeQuotaStatus.userCanGetFree">
+				<view class="price-info" v-else-if="isDailyQuotaFree">
 					<view class="price-row">
 						<text class="price-value price-value--free">免费预约</text>
 					</view>
-					<text class="price-desc">每日前{{ freeQuotaStatus.freeQuotaLimit }}名免费</text>
+					<text class="price-desc">每日前{{ previewResult.freeQuotaInfo.limit }}名免费</text>
 				</view>
-				<view class="price-info" v-else-if="paymentAmount != null">
+				<view class="price-info" v-else-if="previewResult && previewResult.amount != null">
 					<view class="price-row">
 						<text class="price-symbol">¥</text>
-						<text class="price-value">{{ (paymentAmount * formData.personCount / 100).toFixed(2) }}</text>
+						<text class="price-value">{{ (previewResult.amount / 100).toFixed(2) }}</text>
+					</view>
+				</view>
+				<view class="price-info" v-else-if="unitPrice != null">
+					<view class="price-row">
+						<text class="price-symbol">¥</text>
+						<text class="price-value">{{ (unitPrice * formData.personCount / 100).toFixed(2) }}</text>
 					</view>
 				</view>
 				<view class="price-info" v-else>
@@ -283,13 +290,14 @@ import {
 	request
 } from '../../utils/request';
 import { handlePayment, pollPaymentStatus } from '../../utils/payment';
+import { validateIdCard as validateIdCardStrict } from '../../utils/validator';
 
 export default {
 	data() {
 		return {
 			id: '',
 			formData: {
-				passengers: [{ name: '', phone: '', idCard: '' }], // 出行人员列表
+				passengers: [{ name: '', phone: '', idCard: '', idCardError: '' }], // 出行人员列表
 				bookingDate: '',
 				timeSlot: 'morning',
 				travelMode: 'selfDriving',
@@ -334,10 +342,10 @@ export default {
 			minDate: '',
 			maxDate: '',
 			_lastClickTime: 0,  // 防抖时间戳
-			paymentAmount: 990, // 单次支付金额（分），从接口获取
-			freeQuotaStatus: null, // 每日免费名额状态
-			memberStatus: null,    // 当前用户会员状态（/member/status）
-			memberMatch: false,    // 乘客中是否有人身份证与会员一致（/member/verify）
+			_previewSeq: 0,     // preview 竞态序号，回调比对丢弃过期请求
+			_previewTimer: null, // preview debounce 定时器
+			unitPrice: 660,     // 单人金额（分），从 payment-config 兜底获取，preview 未就绪时展示金额
+			previewResult: null, // 后端费用预览结果（isFree/freeReason/reason/amount/freeQuotaInfo/memberInfo）
 			agreedNotice: false,  // 是否同意预约须知
 			agreedPrivacy: false, // 是否同意隐私政策和用户协议
 			noticeVisible: false, // 预约须知弹层显示
@@ -347,9 +355,25 @@ export default {
 		}
 	},
 	computed: {
-		// 会员免费：当前用户是会员 且 乘客中有会员本人
+		// 会员免费：preview 判定为会员免费
 		isMemberFree() {
-			return !!(this.memberStatus && this.memberStatus.isMember && this.memberMatch);
+			return !!(this.previewResult && this.previewResult.isFree && this.previewResult.freeReason === 'member');
+		},
+		// 每日名额免费：preview 判定为每日免费名额命中
+		isDailyQuotaFree() {
+			return !!(this.previewResult && this.previewResult.isFree && this.previewResult.freeReason === 'dailyQuota');
+		},
+		// 不能免费时的提示文案（按 reason 驱动）
+		freeTipText() {
+			if (!this.previewResult || this.previewResult.isFree) return '';
+			const map = {
+				member_expired: '会员已过期或未办理，本次预约需支付',
+				member_idcard_not_matched: '乘客身份证与会员记录不一致，本次预约需支付',
+				daily_quota_used: '您今日已享受过免费预约，本次预约需支付',
+				daily_quota_full: '今日免费名额已用完，本次预约需支付',
+				not_today: '该日期不在免费活动范围，本次预约需支付',
+			};
+			return map[this.previewResult.reason] || '本次预约需支付';
 		}
 	},
 	onLoad(options) {
@@ -368,16 +392,14 @@ export default {
 		if (options.bookingId) {
 			this.getBookingDetail(options.bookingId);
 		}
-		// 获取支付金额配置
+		// 获取支付金额配置（用于 preview 未就绪时的金额兜底展示）
 		request({ method: 'GET', url: '/system-config/payment-config' }).then(res => {
 			if (res.data?.paymentAmount != null) {
-				this.paymentAmount = res.data.paymentAmount;
+				this.unitPrice = res.data.paymentAmount;
 			}
 		}).catch(() => {});
-		// 查询每日免费名额状态（默认查询今天）
-		this.fetchFreeQuotaStatus();
-		// 查询当前用户会员状态（会员免费需乘客身份匹配）
-		this.fetchMemberStatus();
+		// 费用预览（后端为唯一事实来源，统一替代 /member/status + /member/verify + /bookings/free-quota/status）
+		this.fetchPreview();
 		// 预加载常用人员列表
 		this.fetchProfiles();
 		setTimeout(() => {
@@ -403,7 +425,7 @@ export default {
 			const current = this.formData.passengers;
 			if (count > current.length) {
 				for (let i = current.length; i < count; i++) {
-					current.push({ name: '', phone: '', idCard: '' });
+					current.push({ name: '', phone: '', idCard: '', idCardError: '' });
 				}
 			} else if (count < current.length) {
 				current.splice(count);
@@ -421,8 +443,8 @@ export default {
 		removePassenger(idx) {
 			this.formData.passengers.splice(idx, 1);
 			this.formData.personCount = this.formData.passengers.length;
-			// 乘客变化后重新校验会员身份匹配
-			this.verifyMemberMatch();
+			// 乘客变化后重新预览费用
+			this.fetchPreview();
 		},
 		// 人数减少
 		decreasePerson() {
@@ -430,8 +452,8 @@ export default {
 				this.formData.personCount--;
 				this.inputDisplayValue = this.formData.personCount;
 				this.syncPassengers(this.formData.personCount);
-				// 乘客减少后重新校验会员身份匹配
-				this.verifyMemberMatch();
+				// 乘客减少后重新预览费用
+				this.fetchPreview();
 			}
 		},
 		// 人数输入
@@ -439,12 +461,12 @@ export default {
 			let value = parseInt(e.detail.value) || 1;
 			if (value < 1) value = 1;
 			if (value > 10) value = 10;
-			// 人数减少会移除乘客，需重新校验会员身份匹配
+			// 人数减少会移除乘客，需重新预览费用
 			if (value < this.formData.personCount) {
 				this.formData.personCount = value;
 				this.inputDisplayValue = value;
 				this.syncPassengers(value);
-				this.verifyMemberMatch();
+				this.fetchPreview();
 				return;
 			}
 			this.formData.personCount = value;
@@ -468,14 +490,16 @@ export default {
 		},
 		// 选中常用人员
 		selectProfile(item) {
-			this.formData.passengers[this.currentPickerIdx] = {
+			const p = {
 				name: item.name,
 				phone: item.phone,
-				idCard: item.idCard
+				idCard: item.idCard,
+				idCardError: (item.idCard && !this.validateIdCard(item.idCard)) ? '身份证号有误，请检查' : '',
 			};
+			this.formData.passengers[this.currentPickerIdx] = p;
 			this.profilePickerVisible = false;
-			// 乘客信息变化后重新校验会员身份匹配
-			this.verifyMemberMatch();
+			// 乘客信息变化后重新预览费用
+			this.fetchPreview();
 		},
 		// 遮罩身份证号
 		maskIdCard(idCard) {
@@ -489,67 +513,49 @@ export default {
 		// 日期选择
 		onDateChange(e) {
 			this.formData.bookingDate = e.detail.value;
-			// 切换日期后重新查询免费名额状态（仅当天可免费）
-			this.fetchFreeQuotaStatus(e.detail.value);
+			// 切换日期后重新预览费用（仅当天可享受每日免费名额）
+			this.fetchPreview();
 		},
-		// 查询每日免费名额状态（判断当前用户是否可免费预约）
-		fetchFreeQuotaStatus(bookingDate) {
-			request({
-				method: 'GET',
-				url: '/bookings/free-quota/status',
-				data: bookingDate ? { bookingDate } : {}
-			}).then(res => {
-				if (res.success && res.data) {
-					this.freeQuotaStatus = res.data;
-				}
-			}).catch(() => {
-				this.freeQuotaStatus = null;
-			});
-		},
-		// 查询当前用户会员状态（会员免费需乘客身份匹配）
-		fetchMemberStatus() {
-			request({
-				method: 'GET',
-				url: '/member/status'
-			}).then(res => {
-				if (res.success && res.data) {
-					this.memberStatus = res.data;
-					// 会员状态下校验当前乘客列表是否有会员本人
-					this.verifyMemberMatch();
-				}
-			}).catch(() => {
-				this.memberStatus = null;
-			});
-		},
-		// 校验乘客列表中是否有人是会员本人（决定是否展示「会员免费」）
-		verifyMemberMatch() {
-			if (!this.memberStatus || !this.memberStatus.isMember) {
-				this.memberMatch = false;
+		// 费用预览：后端为唯一事实来源，传入当前乘客与预约日期，返回完整费用与免费判定
+		// 竞态锁：序号法（每次自增，回调比对丢弃过期请求）+ 100ms debounce 合并连续输入
+		fetchPreview() {
+			const ps = this.formData.passengers || [];
+			// 前置校验：所有乘客字段完整 + 身份证强校验通过 + 日期已选，才发请求
+			const allComplete = ps.length > 0 && ps.every(p =>
+				p.name && p.name.trim() && this.validatePhone(p.phone) && p.idCard && this.validateIdCard(p.idCard)
+			);
+			if (!allComplete || !this.formData.bookingDate) {
+				this.previewResult = null;  // 退回兜底展示
 				return;
 			}
-			const idCards = [];
-			(this.formData.passengers || []).forEach(p => {
-				if (p.idCard && this.validateIdCard(p.idCard)) idCards.push(p.idCard);
-			});
-			if (!idCards.length) {
-				this.memberMatch = false;
-				return;
-			}
-			// 逐个调用 /member/verify，任一匹配即视为会员免费
-			Promise.all(idCards.map(idCard => {
-				return request({
+			const seq = ++this._previewSeq;
+			clearTimeout(this._previewTimer);
+			this._previewTimer = setTimeout(() => {
+				request({
 					method: 'POST',
-					url: '/member/verify',
-					data: { idCard }
-				}).then(res => (res && res.success && res.data) ? res.data : { matched: false })
-					.catch(() => ({ matched: false }));
-			})).then(results => {
-				this.memberMatch = results.some(r => r.matched === true);
-			});
+					url: '/bookings/preview',
+					data: { passengers: ps, bookingDate: this.formData.bookingDate }
+				}).then(res => {
+					// 过期请求结果丢弃，保证 UI 对应最新输入
+					if (seq !== this._previewSeq) return;
+					this.previewResult = (res && res.success && res.data) ? res.data : null;
+				}).catch(() => {
+					if (seq !== this._previewSeq) return;
+					this.previewResult = null;
+				});
+			}, 100);
 		},
-		// 身份证输入完成后重新校验会员身份匹配
-		onIdCardBlur() {
-			this.verifyMemberMatch();
+		// 身份证输入完成后校验并重新预览费用；校验不通过时在输入框下方显示错误文字
+		onIdCardBlur(e, idx) {
+			const p = this.formData.passengers[idx];
+			if (!p) return;
+			// 已填但校验不通过 → 显示错误；空或通过 → 清错误
+			if (p.idCard && !this.validateIdCard(p.idCard)) {
+				this.$set(p, 'idCardError', '身份证号有误，请检查');
+			} else {
+				this.$set(p, 'idCardError', '');
+			}
+			this.fetchPreview();
 		},
 		// 时间段选择
 		onTimePeriodChange(period) {
@@ -605,10 +611,9 @@ export default {
 			const reg = /^1[3-9]\d{9}$/;
 			return reg.test(phone);
 		},
-		// 验证身份证号
+		// 验证身份证号（含 18 位校验码 ISO 7064 MOD-11-2 校验，复用 utils/validator 强校验版本）
 		validateIdCard(idCard) {
-			const reg = /(^\d{15}$)|(^\d{18}$)|(^\d{17}(\d|X|x)$)/;
-			return reg.test(idCard);
+			return validateIdCardStrict(idCard);
 		},
 		// 验证车牌号
 		validatePlateNumber(plateNumber) {
@@ -708,6 +713,8 @@ export default {
 			const loading = uni.showLoading({
 				title: '提交中...'
 			});
+			// 快照提交前的 preview 状态，用于判定是否需要二次确认（preview 免费 vs 创建收费）
+			const previewSnapshot = this.previewResult;
 			const submitData = {
 				passengers: this.formData.passengers,
 				bookingDate: this.formData.bookingDate,
@@ -736,8 +743,14 @@ export default {
 						}, 800);
 						return;
 					}
-					// 收费订单：调用支付接口
-					this.handlePayment(booking.bookingId);
+					// 收费订单：若提交前 preview 显示免费，说明免费条件已变化（名额被抢完/会员失效等），需二次确认
+					const wasFreeInPreview = !!(previewSnapshot && previewSnapshot.isFree);
+					if (wasFreeInPreview) {
+						this.confirmPaidBookingAfterFreeChange(booking, previewSnapshot);
+					} else {
+						// preview 本就收费，金额一致，直接支付
+						this.handlePayment(booking.bookingId);
+					}
 				} else {
                                     uni.showModal({
                                         title: "预约失败",
@@ -756,6 +769,39 @@ export default {
 			}).finally(() =>{
                             uni.hideLoading();
             })
+		},
+		// 二次确认：preview 显示免费但提交后实际收费，弹窗告知用户免费条件已变化
+		// 文案按 preview 时的 freeReason 动态生成；确认→支付，取消→订单已生成（30 分钟未支付自动取消）
+		confirmPaidBookingAfterFreeChange(booking, previewSnapshot) {
+			const amountYuan = (booking.amount / 100).toFixed(2);
+			let content = `免费条件已变化，本次预约需支付 ¥${amountYuan}，是否继续？`;
+			if (previewSnapshot.freeReason === 'member') {
+				content = `会员免费条件不再满足（可能会员已过期或乘客身份证未匹配），本次预约需支付 ¥${amountYuan}，是否继续？`;
+			} else if (previewSnapshot.freeReason === 'dailyQuota') {
+				content = `今日免费名额已被抢完，本次预约需支付 ¥${amountYuan}，是否继续？`;
+			}
+			uni.showModal({
+				title: '免费条件已变化',
+				content,
+				confirmText: '继续支付',
+				cancelText: '取消订单',
+				success: (modalRes) => {
+					if (modalRes.confirm) {
+						this.handlePayment(booking.bookingId);
+					} else {
+						// 订单已创建为待支付，告知用户可主动取消或等 30 分钟自动取消
+						uni.showModal({
+							title: '订单已生成',
+							content: '订单已创建，未支付将在 30 分钟后自动取消。如需立即取消，请前往「预约记录」操作。',
+							showCancel: false,
+							confirmText: '我知道了',
+							success: () => {
+								uni.redirectTo({ url: `/pages/booking-detail/booking-detail?bookingId=${booking.bookingId}` });
+							}
+						});
+					}
+				}
+			});
 		},
 		// 处理支付（使用公共方法）
 		handlePayment(bookingId) {
@@ -1078,6 +1124,15 @@ export default {
 	color: #444;
 	font-weight: 500;
 	margin-bottom: 14rpx;
+}
+
+/* ===== 字段错误提示文字 ===== */
+.field-error-text {
+	display: block;
+	font-size: 22rpx;
+	color: #e64340;
+	margin-top: 8rpx;
+	line-height: 1.4;
 }
 
 .required-star::before {

@@ -127,6 +127,7 @@
 <script>
 import myTabBar from "../../components/my-tab-bar.vue";
 import { request } from "../../utils/request.js";
+import { isWhitelistedUser } from "../../utils/whitelist.js";
 export default {
   components: {
     myTabBar,
@@ -300,6 +301,11 @@ export default {
     },
     // 跳转到预约页面
     goToBooking() {
+      // 白名单用户不受「关闭预约」开关限制，直接进入预约页
+      if (isWhitelistedUser()) {
+        uni.navigateTo({ url: "/pages/booking-form/booking-form" });
+        return;
+      }
       uni.showLoading({ title: "加载中..." });
       request({ method: "GET", url: "/system-config/booking-enabled" })
         .then((res) => {

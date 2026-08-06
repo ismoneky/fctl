@@ -256,10 +256,40 @@ export default {
             });
         },
         bookAgain(item) {
-            uni.navigateTo({ url: `/pages/booking-form/booking-form?bookingId=${item.bookingId}`});
+            this.checkEnabled(() => {
+               uni.navigateTo({ url: `/pages/booking-form/booking-form?bookingId=${item.bookingId}`});
+            })
         },
         goToHome() {
-            uni.navigateTo({ url: "/pages/booking-form/booking-form" });
+            this.checkEnabled(() => {
+                uni.navigateTo({ url: "/pages/booking-form/booking-form" });
+            })
+        },
+        checkEnabled(callback) {
+            uni.showLoading({ title: "加载中..." });
+            request({ method: "GET", url: "/system-config/booking-enabled" })
+                .then((res) => {
+                const data = res.data || {};
+                if (data.bookingEnabled === false) {
+                                request({ method: "GET", url: "/system-config/booking-disabled-message" }).then(res2 => {
+                                    const data2 = res2.data || {};
+                                        uni.showModal({
+                                            title: "暂停预约",
+                                            content: data2.bookingDisabledMessage || "当前暂停预约，请稍后再试",
+                                            showCancel: false,
+                                            confirmText: "我知道了",
+                                        });
+                                })
+                } else {
+                    callback()
+                }
+                })
+                .catch(() => {
+                    callback()
+                })
+                .finally(() => {
+                uni.hideLoading();
+                });
         },
         formatDate(dateString, format = 'YYYY/MM/DD') {
             const options = { year: 'numeric', month: '2-digit', day: '2-digit' };

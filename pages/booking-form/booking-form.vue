@@ -379,7 +379,7 @@ export default {
 				member_plate_not_matched: '车牌号与会员记录不一致，本次预约需支付',
 				daily_quota_used: '您今日已享受过免费预约，本次预约需支付',
 				daily_quota_full: '今日免费名额已用完，本次预约需支付',
-				not_today: '该日期不在免费活动范围，本次预约需支付',
+				not_today: '每日免费名额仅限预约当天有效，选择其他日期需正常支付',
 			};
 			return map[this.previewResult.reason] || '本次预约需支付';
 		}

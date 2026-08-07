@@ -1,6 +1,71 @@
 <template>
 	<view class="container">
 		<view class="form-container">
+			<!-- 出行方式 + 车辆/观光团信息（前置：先选出行方式再填出行人） -->
+			<view class="form-section">
+				<view class="section-title">
+					<view class="title-icon-wrap">
+						<image class="title-icon-svg car" src="/static/svg/roadster-fill.svg" mode="aspectFit" />
+					</view>
+					<text class="title-text">出行方式</text>
+				</view>
+
+				<picker mode="selector" :range="travelModeList" range-key="label" @change="onTravelPickerChange">
+					<view class="travel-select-row">
+						<text class="field-label required-star">选择出行方式</text>
+						<view class="travel-select-right">
+							<text class="travel-select-value" :class="formData.travelMode ? 'travel-select-value--filled' : ''">
+								{{ getTravelModeLabel() || '请选择出行方式' }}
+							</text>
+							<text class="travel-arrow">›</text>
+						</view>
+					</view>
+				</picker>
+
+				<!-- 自驾：车辆类型 + 车牌号 -->
+				<template v-if="formData.travelMode === 'selfDriving'">
+					<view class="section-divider"></view>
+					<view class="field-block">
+						<text class="field-label required-star">车辆类型</text>
+						<picker mode="selector" :range="vehicleTypes" range-key="label" @change="onVehicleTypeChange">
+							<view class="input-box input-box--picker">
+								<text class="picker-text" :class="getVehicleTypeLabel() ? 'picker-text--filled' : ''">
+									{{ getVehicleTypeLabel() || '请选择车辆类型' }}
+								</text>
+								<text class="picker-arrow">›</text>
+							</view>
+						</picker>
+					</view>
+					<view class="field-block" v-if="formData.vehicleType !== 'nonMotorized'">
+						<text class="field-label required-star">车牌号</text>
+						<view class="input-box input-box--picker" @click="showPlateKeyboard">
+							<text class="picker-text" :class="formData.licensePlate ? 'picker-text--filled' : ''">
+								{{ formData.licensePlate ? formatPlate(formData.licensePlate) : '请输入车牌号' }}
+							</text>
+							<text class="picker-arrow">›</text>
+						</view>
+						<xm-keyboard-v2 ref="plateKeyboard" title="请输入车牌号" type="plate" :max="8" :cursor="true" @confirm="onPlateConfirm"></xm-keyboard-v2>
+					</view>
+				</template>
+
+				<!-- 观光团：旅行社 + 团队编号 -->
+				<template v-if="formData.travelMode === 'tourGroup'">
+					<view class="section-divider"></view>
+					<view class="field-block">
+						<text class="field-label required-star">旅行社名称</text>
+						<view class="input-box">
+							<input class="field-input" v-model="formData.tourGroupName" placeholder="请输入旅行社名称" placeholder-style="color:#c8c8c8" />
+						</view>
+					</view>
+					<view class="field-block">
+						<text class="field-label required-star">团队编号</text>
+						<view class="input-box">
+							<input class="field-input" v-model="formData.tourNumber" placeholder="请输入团队编号" placeholder-style="color:#c8c8c8" />
+						</view>
+					</view>
+				</template>
+			</view>
+
 			<!-- 基本信息 -->
 			<view class="form-section">
 				<view class="section-title">
@@ -16,7 +81,7 @@
 					<view class="stepper-box">
 						<button class="stepper-btn" @click="decreasePerson">－</button>
 						<input class="stepper-input" type="number" :value="inputDisplayValue" @input="onPersonCountInput" />
-						<button class="stepper-btn stepper-btn--plus" :disabled="formData.personCount >= 10" :class="{ 'stepper-btn--disabled': formData.personCount >= 10 }" @click="increasePerson">＋</button>
+						<button class="stepper-btn stepper-btn--plus" :disabled="formData.personCount >= maxPerson" :class="{ 'stepper-btn--disabled': formData.personCount >= maxPerson }" @click="increasePerson">＋</button>
 					</view>
 				</view>
 
@@ -109,71 +174,6 @@
 						<text class="profile-picker-idcard">{{ maskIdCard(item.idCard) }}</text>
 					</view>
 				</scroll-view>
-			</view>
-
-			<!-- 出行方式 + 车辆/观光团信息 -->
-			<view class="form-section">
-				<view class="section-title">
-					<view class="title-icon-wrap">
-						<image class="title-icon-svg car" src="/static/svg/roadster-fill.svg" mode="aspectFit" />
-					</view>
-					<text class="title-text">出行方式</text>
-				</view>
-
-				<picker mode="selector" :range="travelModeList" range-key="label" @change="onTravelPickerChange">
-					<view class="travel-select-row">
-						<text class="field-label required-star">选择出行方式</text>
-						<view class="travel-select-right">
-							<text class="travel-select-value" :class="formData.travelMode ? 'travel-select-value--filled' : ''">
-								{{ getTravelModeLabel() || '请选择出行方式' }}
-							</text>
-							<text class="travel-arrow">›</text>
-						</view>
-					</view>
-				</picker>
-
-				<!-- 自驾：车辆类型 + 车牌号 -->
-				<template v-if="formData.travelMode === 'selfDriving'">
-					<view class="section-divider"></view>
-					<view class="field-block">
-						<text class="field-label required-star">车辆类型</text>
-						<picker mode="selector" :range="vehicleTypes" range-key="label" @change="onVehicleTypeChange">
-							<view class="input-box input-box--picker">
-								<text class="picker-text" :class="getVehicleTypeLabel() ? 'picker-text--filled' : ''">
-									{{ getVehicleTypeLabel() || '请选择车辆类型' }}
-								</text>
-								<text class="picker-arrow">›</text>
-							</view>
-						</picker>
-					</view>
-					<view class="field-block" v-if="formData.vehicleType !== 'nonMotorized'">
-						<text class="field-label required-star">车牌号</text>
-						<view class="input-box input-box--picker" @click="showPlateKeyboard">
-							<text class="picker-text" :class="formData.licensePlate ? 'picker-text--filled' : ''">
-								{{ formData.licensePlate ? formatPlate(formData.licensePlate) : '请输入车牌号' }}
-							</text>
-							<text class="picker-arrow">›</text>
-						</view>
-						<xm-keyboard-v2 ref="plateKeyboard" title="请输入车牌号" type="plate" :max="8" :cursor="true" @confirm="onPlateConfirm"></xm-keyboard-v2>
-					</view>
-				</template>
-
-				<!-- 观光团：旅行社 + 团队编号 -->
-				<template v-if="formData.travelMode === 'tourGroup'">
-					<view class="section-divider"></view>
-					<view class="field-block">
-						<text class="field-label required-star">旅行社名称</text>
-						<view class="input-box">
-							<input class="field-input" v-model="formData.tourGroupName" placeholder="请输入旅行社名称" placeholder-style="color:#c8c8c8" />
-						</view>
-					</view>
-					<view class="field-block">
-						<text class="field-label required-star">团队编号</text>
-						<view class="input-box">
-							<input class="field-input" v-model="formData.tourNumber" placeholder="请输入团队编号" placeholder-style="color:#c8c8c8" />
-						</view>
-					</view>
-				</template>
 			</view>
 			<!-- <view class="fee-tip">
 				<view class="required-star">为更好的提供出行保障，本次预约包含入园保险费用，详见<text class="fee-tip-link" @tap="goToService">《用户协议》</text></view>
@@ -363,12 +363,20 @@ export default {
 		isDailyQuotaFree() {
 			return !!(this.previewResult && this.previewResult.isFree && this.previewResult.freeReason === 'dailyQuota');
 		},
+		// 当前车辆类型允许的最大人数：摩托2 / 小客车7 / 其余10
+		maxPerson() {
+			const v = this.formData.vehicleType;
+			if (v === 'wheelMotorcycle') return 2;
+			if (v === 'smallCar') return 7;
+			return 10;
+		},
 		// 不能免费时的提示文案（按 reason 驱动）
 		freeTipText() {
 			if (!this.previewResult || this.previewResult.isFree) return '';
 			const map = {
 				member_expired: '会员已过期或未办理，本次预约需支付',
 				member_idcard_not_matched: '乘客身份证与会员记录不一致，本次预约需支付',
+				member_plate_not_matched: '车牌号与会员记录不一致，本次预约需支付',
 				daily_quota_used: '您今日已享受过免费预约，本次预约需支付',
 				daily_quota_full: '今日免费名额已用完，本次预约需支付',
 				not_today: '该日期不在免费活动范围，本次预约需支付',
@@ -433,7 +441,7 @@ export default {
 		},
 		// 人数增加
 		increasePerson() {
-			if (this.formData.personCount < 10) {
+			if (this.formData.personCount < this.maxPerson) {
 				this.formData.personCount++;
 				this.inputDisplayValue = this.formData.personCount;
 				this.syncPassengers(this.formData.personCount);
@@ -460,7 +468,7 @@ export default {
 		onPersonCountInput(e) {
 			let value = parseInt(e.detail.value) || 1;
 			if (value < 1) value = 1;
-			if (value > 10) value = 10;
+			if (value > this.maxPerson) value = this.maxPerson;
 			// 人数减少会移除乘客，需重新预览费用
 			if (value < this.formData.personCount) {
 				this.formData.personCount = value;
@@ -534,7 +542,13 @@ export default {
 				request({
 					method: 'POST',
 					url: '/bookings/preview',
-					data: { passengers: ps, bookingDate: this.formData.bookingDate }
+					data: {
+						passengers: ps,
+						bookingDate: this.formData.bookingDate,
+						travelMode: this.formData.travelMode,
+						vehicleType: this.formData.vehicleType,
+						licensePlate: this.formData.licensePlate || undefined,
+					}
 				}).then(res => {
 					// 过期请求结果丢弃，保证 UI 对应最新输入
 					if (seq !== this._previewSeq) return;
@@ -571,6 +585,14 @@ export default {
 			if (this.formData.vehicleType === 'nonMotorized') {
 				this.formData.licensePlate = '';
 			}
+			// 切换车型后人数可能超限（摩托2/小客车7），自动夹紧到上限并同步乘客
+			if (this.formData.personCount > this.maxPerson) {
+				this.formData.personCount = this.maxPerson;
+				this.inputDisplayValue = this.formData.personCount;
+				this.syncPassengers(this.formData.personCount);
+			}
+			// 出行方式/车型变化后重新预览费用（会员免费仅摩托车命中）
+			this.fetchPreview();
 		},
 		// 显示车牌键盘
 		showPlateKeyboard() {
@@ -579,6 +601,8 @@ export default {
 		// 车牌号确认
 		onPlateConfirm(value) {
 			this.formData.licensePlate = value;
+			// 车牌变化后重新预览费用（会员命中需车牌匹配）
+			this.fetchPreview();
 		},
 		// 车牌号格式化显示（省份·号码）
 		formatPlate(value) {
@@ -598,6 +622,8 @@ export default {
 		// 出行方式picker选择
 		onTravelPickerChange(e) {
 			this.formData.travelMode = this.travelModeList[e.detail.value].value;
+			// 出行方式变化后重新预览费用（会员免费仅自驾+摩托车命中）
+			this.fetchPreview();
 		},
 		// 格式化日期
 		formatDate(date) {
@@ -726,7 +752,8 @@ export default {
 				tourOrderNumber: this.formData.tourOrderNumber || undefined,
 				personCount: this.formData.personCount,
 				remarks: this.formData.remarks || '',
-				wechatOpenId: uni.getStorageSync('openid')
+				wechatOpenId: uni.getStorageSync('openid'),
+				isAdmin: uni.getStorageSync('isAdmin') === true,
 			};
 			request({
 				method: 'POST',

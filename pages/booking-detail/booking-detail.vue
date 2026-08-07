@@ -165,9 +165,10 @@
 
 			<!-- 核验二维码 - 仅待使用状态显示 -->
 			<view class="qr-section" v-if="formData.status === 'confirmed' && formData.bookingId">
-				<view class="qr-card">
-					<text class="qr-card-title">入场核验码</text>
-					<text class="qr-card-subtitle">请向管理员出示此二维码</text>
+				<view class="qr-card" :class="{ 'qr-card--member': isMotorcycleMember }">
+					<view v-if="isMotorcycleMember" class="qr-member-badge">会员</view>
+					<text class="qr-card-title">{{ isMotorcycleMember ? '会员免费核验码' : '入场核验码' }}</text>
+					<text class="qr-card-subtitle">{{ isMotorcycleMember ? '摩托车月卡会员免费订单' : '请向管理员出示此二维码' }}</text>
 					<view class="qr-code-wrap">
 						<image v-if="qrImageUrl" class="qr-image" :src="qrImageUrl" mode="aspectFit" />
 						<view v-else class="qr-placeholder" />
@@ -242,6 +243,12 @@
 				const mm = String(Math.floor(total / 60)).padStart(2, '0');
 				const ss = String(total % 60).padStart(2, '0');
 				return { mm, ss };
+			},
+			// 摩托车会员订单：免费且来源为会员且车辆类型为摩托车，用于二维码卡片样式区分
+			isMotorcycleMember() {
+				return !!(this.formData.isFree
+					&& this.formData.freeReason === 'member'
+					&& this.formData.vehicleType === 'wheelMotorcycle');
 			}
 		},
 		onLoad(options) {
@@ -723,6 +730,26 @@
 		flex-direction: column;
 		align-items: center;
 		box-shadow: 0 8rpx 30rpx rgba(102, 126, 234, 0.3);
+		position: relative;
+		overflow: hidden;
+	}
+
+	/* 摩托车会员订单：金色主题，与普通订单区分方便现场核验 */
+	.qr-card--member {
+		background: linear-gradient(135deg, #B8860B 0%, #E8B339 50%, #F0C75E 100%);
+		box-shadow: 0 8rpx 30rpx rgba(184, 134, 11, 0.35);
+	}
+
+	.qr-member-badge {
+		position: absolute;
+		top: 0;
+		right: 0;
+		background: #fff;
+		color: #B8860B;
+		font-size: 22rpx;
+		font-weight: bold;
+		padding: 6rpx 20rpx;
+		border-bottom-left-radius: 16rpx;
 	}
 
 	.qr-card-title {

@@ -389,10 +389,10 @@ export default {
 		let today = new Date();
 		const maxDay = new Date();
 		maxDay.setMonth(maxDay.getMonth() + 3);
-		const startTime = new Date('2026-08-07').getTime();
+		const startTime = new Date('2026-08-10').getTime();
 		const todayTime = new Date().getTime();
 		if (todayTime < startTime) {
-			today = new Date('2026-08-07')
+			today = new Date('2026-08-10')
 		}
 		this.minDate = this.formatDate(today);
 		this.maxDate = this.formatDate(maxDay);

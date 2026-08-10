@@ -289,7 +289,7 @@
 import {
 	request
 } from '../../utils/request';
-import { handlePayment, pollPaymentStatus, cancelPendingBooking } from '../../utils/payment';
+import { handlePayment, pollPaymentStatus } from '../../utils/payment';
 import { validateIdCard as validateIdCardStrict } from '../../utils/validator';
 
 export default {
@@ -821,9 +821,9 @@ export default {
 				if (modalRes.confirm) {
 					this.handlePayment(booking.bookingId, booking.bookingId);
 				} else {
-						// 订单已创建为待支付，用户取消则直接删除该订单，不遗留待支付单
-						cancelPendingBooking(booking.bookingId);
-					}
+					// 用户取消订单，跳转到详情页，待支付订单由后端超时自动清理
+					uni.redirectTo({ url: `/pages/booking-detail/booking-detail?bookingId=${booking.bookingId}` });
+				}
 				}
 			});
 		},

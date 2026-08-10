@@ -1,6 +1,23 @@
 import { request } from './request.js';
 
 /**
+ * 取消支付后删除待支付订单
+ * 用户主动取消微信支付弹窗时调用，避免遗留待支付单（30 分钟超时前都占着名额）
+ * @param {string} bookingId - 订单ID
+ */
+export function cancelPendingBooking(bookingId) {
+    uni.showToast({ title: '已取消支付', icon: 'none' });
+    request({
+        method: 'DELETE',
+        url: `bookings/${bookingId}`,
+    }).catch(() => {}).finally(() => {
+        setTimeout(() => {
+            uni.redirectTo({ url: '/pages/booking/booking' });
+        }, 800);
+    });
+}
+
+/**
  * 发起支付并轮询支付结果
  * @param {string} bookingId - 订单ID
  * @param {function} onSuccess - 支付成功回调（可选，默认跳转订单列表）
@@ -29,10 +46,8 @@ export function handlePayment(bookingId, onSuccess) {
                 },
                 fail: (err) => {
                     if (err.errMsg && err.errMsg.includes('cancel')) {
-                        uni.showToast({ title: '已取消支付', icon: 'none' });
-                        setTimeout(() => {
-                            uni.redirectTo({ url: `/pages/booking-detail/booking-detail?id=${bookingId}` });
-                        }, 800);
+                        // 用户主动取消支付：删除已创建的待支付订单，避免遗留待支付单占名额
+                        cancelPendingBooking(bookingId);
                     } else {
                         // 其他失败也需查单确认实际状态
                         pollPaymentStatus(bookingId, onSuccess);

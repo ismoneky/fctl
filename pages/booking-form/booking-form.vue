@@ -143,7 +143,7 @@
 						<text class="free-banner-desc">今日前 {{ previewResult.freeQuotaInfo.limit }} 名预约免费，剩余 {{ previewResult.freeQuotaInfo.remaining }} 个名额，本次预约免费</text>
 					</view>
 				</view>
-				<view class="free-tip free-tip--muted" v-else-if="previewResult && !previewResult.isFree && previewResult.reason">
+				<view class="free-tip free-tip--muted" v-else-if="previewResult && !previewResult.isFree && freeTipText">
 					<text class="free-tip-text">{{ freeTipText }}</text>
 				</view>
 
@@ -289,7 +289,7 @@
 import {
 	request
 } from '../../utils/request';
-import { handlePayment, pollPaymentStatus } from '../../utils/payment';
+import { handlePayment, pollPaymentStatus, cancelPendingBooking } from '../../utils/payment';
 import { validateIdCard as validateIdCardStrict } from '../../utils/validator';
 
 export default {
@@ -374,14 +374,14 @@ export default {
 		freeTipText() {
 			if (!this.previewResult || this.previewResult.isFree) return '';
 			const map = {
-				member_expired: '会员已过期或未办理，本次预约需支付',
 				member_idcard_not_matched: '乘客身份证与会员记录不一致，本次预约需支付',
 				member_plate_not_matched: '车牌号与会员记录不一致，本次预约需支付',
 				daily_quota_used: '您今日已享受过免费预约，本次预约需支付',
 				daily_quota_full: '今日免费名额已用完，本次预约需支付',
 				not_today: '每日免费名额仅限预约当天有效，选择其他日期需正常支付',
 			};
-			return map[this.previewResult.reason] || '本次预约需支付';
+			// no_free_activity（免费活动未开启）不展示提示，活动对用户隐藏，仅由价格区展示应付金额
+			return map[this.previewResult.reason] || '';
 		}
 	},
 	onLoad(options) {
@@ -410,14 +410,19 @@ export default {
 		this.fetchPreview();
 		// 预加载常用人员列表
 		this.fetchProfiles();
-		setTimeout(() => {
-			uni.showModal({
-				title: '温馨提示',
-				content: '风车天路目前半开放，仅开放鲍庄出入口通行；每日限行100辆，请合理安排出行时间，敬请知悉。',
-				confirmText: '我知道了',
-				showCancel: false
-			});
-		}, 800);
+		// 温馨提示弹窗（内容由后台系统配置，开关关闭则不弹）
+		request({ method: 'GET', url: '/system-config/notice' }).then(res => {
+			if (res.data && res.data.enabled && res.data.content) {
+				setTimeout(() => {
+					uni.showModal({
+						title: '温馨提示',
+						content: res.data.content,
+						confirmText: '我知道了',
+						showCancel: false
+					});
+				}, 800);
+			}
+		}).catch(() => {});
 	},
 
 	// 分享配置
@@ -798,7 +803,7 @@ export default {
             })
 		},
 		// 二次确认：preview 显示免费但提交后实际收费，弹窗告知用户免费条件已变化
-		// 文案按 preview 时的 freeReason 动态生成；确认→支付，取消→订单已生成（30 分钟未支付自动取消）
+		// 文案按 preview 时的 freeReason 动态生成；确认→支付，取消→直接删除已创建的待支付订单
 		confirmPaidBookingAfterFreeChange(booking, previewSnapshot) {
 			const amountYuan = (booking.amount / 100).toFixed(2);
 			let content = `免费条件已变化，本次预约需支付 ¥${amountYuan}，是否继续？`;
@@ -816,16 +821,8 @@ export default {
 					if (modalRes.confirm) {
 						this.handlePayment(booking.bookingId);
 					} else {
-						// 订单已创建为待支付，告知用户可主动取消或等 30 分钟自动取消
-						uni.showModal({
-							title: '订单已生成',
-							content: '订单已创建，未支付将在 30 分钟后自动取消。如需立即取消，请前往「预约记录」操作。',
-							showCancel: false,
-							confirmText: '我知道了',
-							success: () => {
-								uni.redirectTo({ url: `/pages/booking-detail/booking-detail?bookingId=${booking.bookingId}` });
-							}
-						});
+						// 订单已创建为待支付，用户取消则直接删除该订单，不遗留待支付单
+						cancelPendingBooking(booking.bookingId);
 					}
 				}
 			});
@@ -1269,7 +1266,7 @@ export default {
 
 .free-tip {
 	margin: 0 24rpx 24rpx;
-	padding: 18rpx 24rpx;
+	padding: 22rpx 28rpx;
 	border-radius: 12rpx;
 }
 
@@ -1279,9 +1276,9 @@ export default {
 }
 
 .free-tip-text {
-	font-size: 24rpx;
+	font-size: 28rpx;
 	color: #999;
-	line-height: 1.5;
+	line-height: 1.6;
 }
 
 /* ===== 步进器 ===== */

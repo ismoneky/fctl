@@ -771,18 +771,18 @@ export default {
 					if (booking && booking.isFree) {
 						uni.showToast({ title: '预约成功', icon: 'success' });
 						setTimeout(() => {
-							uni.reLaunch({ url: '/pages/booking/booking' });
+							uni.reLaunch({ url: `/pages/booking-detail/booking-detail?bookingId=${booking.bookingId}` });
 						}, 800);
 						return;
 					}
 					// 收费订单：若提交前 preview 显示免费，说明免费条件已变化（名额被抢完/会员失效等），需二次确认
 					const wasFreeInPreview = !!(previewSnapshot && previewSnapshot.isFree);
 					if (wasFreeInPreview) {
-						this.confirmPaidBookingAfterFreeChange(booking, previewSnapshot);
-					} else {
-						// preview 本就收费，金额一致，直接支付
-						this.handlePayment(booking.bookingId);
-					}
+					this.confirmPaidBookingAfterFreeChange(booking, previewSnapshot);
+				} else {
+					// preview 本就收费，金额一致，直接支付
+					this.handlePayment(booking.bookingId, booking.bookingId);
+				}
 				} else {
                                     uni.showModal({
                                         title: "预约失败",
@@ -818,18 +818,21 @@ export default {
 				confirmText: '继续支付',
 				cancelText: '取消订单',
 				success: (modalRes) => {
-					if (modalRes.confirm) {
-						this.handlePayment(booking.bookingId);
-					} else {
+				if (modalRes.confirm) {
+					this.handlePayment(booking.bookingId, booking.bookingId);
+				} else {
 						// 订单已创建为待支付，用户取消则直接删除该订单，不遗留待支付单
 						cancelPendingBooking(booking.bookingId);
 					}
 				}
 			});
 		},
-		// 处理支付（使用公共方法）
-		handlePayment(bookingId) {
-			handlePayment(bookingId);
+		// 处理支付（使用公共方法），支付成功后跳转到订单详情页
+		handlePayment(bookingId, detailBookingId) {
+			const onSuccess = (id) => {
+				uni.reLaunch({ url: `/pages/booking-detail/booking-detail?bookingId=${detailBookingId || id}` });
+			};
+			handlePayment(bookingId, onSuccess);
 		},
 		// 获取预约详情（回显）
 		getBookingDetail(bookingId) {

@@ -96,8 +96,17 @@
 					<view class="field-block">
 						<text class="field-label required-star">姓名</text>
 						<view class="input-box">
-							<input class="field-input" v-model="p.name" placeholder="请输入姓名" placeholder-style="color:#c8c8c8" maxlength="20" />
+							<input class="field-input" :value="p.name" placeholder="请输入姓名" placeholder-style="color:#c8c8c8" maxlength="20" @input="onPassengerNameInput($event, idx)" @blur="onPassengerNameBlur(idx)" />
 						</view>
+					</view>
+					<!-- 姓名匹配常用人员弱提示卡片（仅展示掩码手机号，绝不展示身份证明文） -->
+					<view v-if="getProfileMatchesForIdx(idx).length === 1" class="profile-hint-card" @click="applyProfileToPassenger(getProfileMatchesForIdx(idx)[0], idx)">
+						<text class="profile-hint-icon">👤</text>
+						<text class="profile-hint-text">找到常用人员：{{ getProfileMatchesForIdx(idx)[0].name }} {{ maskPhone(getProfileMatchesForIdx(idx)[0].phone) }}　点击填入</text>
+					</view>
+					<view v-else-if="getProfileMatchesForIdx(idx).length > 1" class="profile-hint-card" @click="openProfilePicker(idx, getProfileMatchesForIdx(idx))">
+						<text class="profile-hint-icon">👤</text>
+						<text class="profile-hint-text">找到 {{ getProfileMatchesForIdx(idx).length }} 位同名常用人员，点击选择</text>
 					</view>
 					<view class="field-block">
 						<text class="field-label required-star">手机号码</text>
@@ -158,18 +167,18 @@
 					<text class="profile-picker-close" @click="closeProfilePicker">✕</text>
 				</view>
 				<scroll-view class="profile-picker-body" scroll-y>
-					<view v-if="profileList.length === 0" class="profile-picker-empty">
+					<view v-if="currentPickerOptions.length === 0" class="profile-picker-empty">
 						<text class="profile-picker-empty-text">暂无常用信息，请先在个人中心添加</text>
 					</view>
 					<view
-						v-for="item in (profileList || [])"
+						v-for="item in currentPickerOptions"
 						:key="item.profileId"
 						class="profile-picker-item"
-						@click="selectProfile(item)"
+						@click="applyProfileToPassenger(item, currentPickerIdx)"
 					>
 						<view class="profile-picker-item-main">
 							<text class="profile-picker-name">{{ item.name }}</text>
-							<text class="profile-picker-phone">{{ item.phone }}</text>
+							<text class="profile-picker-phone">{{ maskPhone(item.phone) }}</text>
 						</view>
 						<text class="profile-picker-idcard">{{ maskIdCard(item.idCard) }}</text>
 					</view>
@@ -292,6 +301,7 @@ import {
 import { handlePayment } from '../../utils/payment';
 import { validateIdCard as validateIdCardStrict } from '../../utils/validator';
 import { normalizeIdCardInput, getIdCardError } from '../../utils/id-card-input.js';
+import { findExactProfileMatches } from '../../utils/profile-matcher.js';
 
 export default {
 	data() {
@@ -310,9 +320,11 @@ export default {
 				remarks: ''
 			},
 			inputDisplayValue: 1,
-			profileList: [], // 常用人员列表
+			profileList: [], // 常用人员列表（全部，主动“选择常用”时展示）
 			profilePickerVisible: false, // 选择常用人员弹窗
 			currentPickerIdx: 0, // 当前正在填写的人员索引
+			profilePickerOptions: null, // 弹层展示的候选列表；null 时用全部 profileList，同名匹配时传筛选后的子集
+			profileMatchesByIndex: [], // 每位出行人按姓名匹配到的常用人员数组（与 passengers 同长，避免删除/插位时 key 残留串位）
 			travelModeList: [{
 				label: '景区摆渡车',
 				value: 'scenicBus',
@@ -358,6 +370,10 @@ export default {
 		}
 	},
 	computed: {
+		// 弹层当前展示的候选列表：同名匹配时用筛选子集，否则用全部常用人员
+		currentPickerOptions() {
+			return Array.isArray(this.profilePickerOptions) ? this.profilePickerOptions : (this.profileList || []);
+		},
 		// 会员免费：preview 判定为会员免费
 		isMemberFree() {
 			return !!(this.previewResult && this.previewResult.isFree && this.previewResult.freeReason === 'member');
@@ -446,6 +462,14 @@ export default {
 			} else if (count < current.length) {
 				current.splice(count);
 			}
+			// 同步匹配状态长度，新增位补空数组，减少位截断
+			if (this.profileMatchesByIndex.length < current.length) {
+				for (let i = this.profileMatchesByIndex.length; i < current.length; i++) {
+					this.profileMatchesByIndex.push([]);
+				}
+			} else if (this.profileMatchesByIndex.length > current.length) {
+				this.profileMatchesByIndex.splice(current.length);
+			}
 		},
 		// 人数增加
 		increasePerson() {
@@ -459,6 +483,8 @@ export default {
 		removePassenger(idx) {
 			this.formData.passengers.splice(idx, 1);
 			this.formData.personCount = this.formData.passengers.length;
+			// 同步删除该位匹配状态，避免后续出行人串位
+			this.profileMatchesByIndex.splice(idx, 1);
 			// 乘客变化后重新预览费用
 			this.fetchPreview();
 		},
@@ -496,26 +522,74 @@ export default {
 				if (res.success) this.profileList = Array.isArray(res.data) ? res.data : [];
 			} catch (e) {}
 		},
-		// 打开选择常用人员弹窗
-		openProfilePicker(idx) {
+		// 打开选择常用人员弹窗；options 可选，传入时弹层只展示该子集（同名匹配场景），不传展示全部
+		openProfilePicker(idx, options) {
 			this.currentPickerIdx = idx;
+			this.profilePickerOptions = Array.isArray(options) ? options : null;
 			this.profilePickerVisible = true;
 		},
 		closeProfilePicker() {
 			this.profilePickerVisible = false;
+			this.profilePickerOptions = null;
 		},
-		// 选中常用人员
-		selectProfile(item) {
-			const p = {
-				name: item.name,
-				phone: item.phone,
-				idCard: item.idCard,
-				idCardError: getIdCardError(normalizeIdCardInput(item.idCard || '')),
-			};
-			this.formData.passengers[this.currentPickerIdx] = p;
+		// 统一填入函数：主动“选择常用”与同名匹配弱提示都走这里
+		// 仅写入 item 的字段；不自动覆盖用户已手动填写的手机号或身份证号（弱提示仅在两者均空时出现，故此处安全）
+		applyProfileToPassenger(item, idx) {
+			const p = this.formData.passengers[idx];
+			if (!p || !item) return;
+			this.$set(p, 'name', item.name || p.name);
+			this.$set(p, 'phone', item.phone || p.phone);
+			this.$set(p, 'idCard', item.idCard || p.idCard);
+			this.$set(p, 'idCardError', getIdCardError(normalizeIdCardInput(p.idCard || '')));
+			// 填入后清理该索引匹配状态、关闭弹层
+			this.$set(this.profileMatchesByIndex, idx, []);
 			this.profilePickerVisible = false;
+			this.profilePickerOptions = null;
+			// 非阻塞 Toast 提示已填入（不超过 1.5 秒）
+			uni.showToast({ title: '已填入常用信息', icon: 'none', duration: 1500 });
 			// 乘客信息变化后重新预览费用
 			this.fetchPreview();
+		},
+		// 姓名输入：更新姓名并立即清除该索引匹配结果
+		onPassengerNameInput(e, idx) {
+			const p = this.formData.passengers[idx];
+			if (!p) return;
+			const raw = (e && e.detail && e.detail.value != null) ? e.detail.value : '';
+			this.$set(p, 'name', raw);
+			// 姓名变化后立即清除该出行人上一轮匹配结果
+			if (this.profileMatchesByIndex[idx] && this.profileMatchesByIndex[idx].length) {
+				this.$set(this.profileMatchesByIndex, idx, []);
+			}
+		},
+		// 姓名失焦：仅在手机号与身份证号均为空时建立匹配结果，避免覆盖用户已手动填写的内容
+		onPassengerNameBlur(idx) {
+			const p = this.formData.passengers[idx];
+			if (!p) return;
+			const nameTrimmed = String(p.name || '').trim();
+			// 只输入一个字或空姓名不提示（设计要求不做单字匹配提示；这里用 trim 后非空即尝试，纯函数内已做完全相等判断）
+			if (!nameTrimmed) {
+				this.$set(this.profileMatchesByIndex, idx, []);
+				return;
+			}
+			// 手机号或身份证号已有手动内容时不出现弱提示
+			if ((p.phone && String(p.phone).trim()) || (p.idCard && String(p.idCard).trim())) {
+				this.$set(this.profileMatchesByIndex, idx, []);
+				return;
+			}
+			const matches = findExactProfileMatches(this.profileList, p.name);
+			this.$set(this.profileMatchesByIndex, idx, matches);
+		},
+		// 取某位出行人的匹配结果（模板用）
+		getProfileMatchesForIdx(idx) {
+			const m = this.profileMatchesByIndex[idx];
+			return Array.isArray(m) ? m : [];
+		},
+		// 遮罩手机号：138****1234
+		maskPhone(phone) {
+			if (!phone) return '';
+			const s = String(phone);
+			if (s.length < 7) return s;
+			return s.substring(0, 3) + '****' + s.substring(s.length - 4);
 		},
 		// 遮罩身份证号
 		maskIdCard(idCard) {
@@ -893,6 +967,8 @@ export default {
 					}
 					this.syncPassengers(this.formData.personCount);
 					this.inputDisplayValue = this.formData.personCount;
+					// 切换订单/重新进入页面时清空旧匹配状态
+					this.profileMatchesByIndex = this.formData.passengers.map(() => []);
 					this.formData.licensePlate = d.licensePlate || '';
 					this.formData.vehicleType = d.vehicleType || 'smallCar';
 				}
@@ -1193,10 +1269,32 @@ export default {
 /* ===== 字段错误提示文字 ===== */
 .field-error-text {
 	display: block;
-	font-size: 22rpx;
+	font-size: 26rpx;
 	color: #e64340;
 	margin-top: 8rpx;
 	line-height: 1.4;
+}
+
+/* ===== 姓名匹配常用人员弱提示卡片 ===== */
+.profile-hint-card {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	margin-top: 12rpx;
+	padding: 16rpx 20rpx;
+	background-color: #eef7fb;
+	border: 1rpx solid #cfe6f1;
+	border-radius: 12rpx;
+}
+.profile-hint-icon {
+	font-size: 28rpx;
+	margin-right: 10rpx;
+}
+.profile-hint-text {
+	font-size: 26rpx;
+	color: #2F6E8E;
+	line-height: 1.4;
+	flex: 1;
 }
 
 .required-star::before {

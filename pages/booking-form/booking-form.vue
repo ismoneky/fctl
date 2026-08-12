@@ -108,7 +108,7 @@
 					<view class="field-block" style="margin-bottom:0">
 						<text class="field-label required-star">身份证号</text>
 						<view class="input-box">
-							<input class="field-input" maxlength="18" v-model="p.idCard" placeholder="请输入身份证号码" placeholder-style="color:#c8c8c8" @blur="onIdCardBlur($event, idx)" />
+							<input class="field-input" maxlength="18" :value="p.idCard" placeholder="请输入18位身份证号码" placeholder-style="color:#c8c8c8" @input="onIdCardInput($event, idx)" @blur="onIdCardBlur($event, idx)" />
 						</view>
 						<text v-if="p.idCardError" class="field-error-text">{{ p.idCardError }}</text>
 					</view>
@@ -237,7 +237,7 @@
 				<view class="price-info" v-else>
 					<view style="flex:1"></view>
 				</view>
-				<button class="submit-btn" @click="handleSubmit">立即预约</button>
+				<button class="submit-btn" :class="{ 'submit-btn--disabled': submitting || paymentLaunching }" :disabled="submitting || paymentLaunching" @click="handleSubmit">{{ submitting ? '提交中…' : (paymentLaunching ? '支付准备中…' : '立即预约') }}</button>
 			</view>
 		</view>
 
@@ -289,8 +289,9 @@
 import {
 	request
 } from '../../utils/request';
-import { handlePayment, pollPaymentStatus } from '../../utils/payment';
+import { handlePayment } from '../../utils/payment';
 import { validateIdCard as validateIdCardStrict } from '../../utils/validator';
+import { normalizeIdCardInput, getIdCardError } from '../../utils/id-card-input.js';
 
 export default {
 	data() {
@@ -351,7 +352,9 @@ export default {
 			noticeVisible: false, // 预约须知弹层显示
 			flashNotice: false,   // 预约须知勾选框闪烁
 			flashPrivacy: false,  // 隐私协议勾选框闪烁
-			hasSubmitted: false   // 是否点击过提交（用于触发常亮红边）
+			hasSubmitted: false,  // 是否点击过提交（用于触发常亮红边）
+			submitting: false,       // 正在创建预约订单
+			paymentLaunching: false  // 正在准备支付
 		}
 	},
 	computed: {
@@ -507,7 +510,7 @@ export default {
 				name: item.name,
 				phone: item.phone,
 				idCard: item.idCard,
-				idCardError: (item.idCard && !this.validateIdCard(item.idCard)) ? '身份证号有误，请检查' : '',
+				idCardError: getIdCardError(normalizeIdCardInput(item.idCard || '')),
 			};
 			this.formData.passengers[this.currentPickerIdx] = p;
 			this.profilePickerVisible = false;
@@ -564,17 +567,31 @@ export default {
 				});
 			}, 100);
 		},
-		// 身份证输入完成后校验并重新预览费用；校验不通过时在输入框下方显示错误文字
+		// 身份证输入：归一化（去空格/全角数字/全角X）并立即清除上一轮红色错误状态
+		// 使用 :value + @input 显式写回，避免 v-model 与事件回调时序不一致
+		onIdCardInput(e, idx) {
+			const p = this.formData.passengers[idx];
+			if (!p) return;
+			const raw = (e && e.detail && e.detail.value != null) ? e.detail.value : '';
+			const normalized = normalizeIdCardInput(raw);
+			this.$set(p, 'idCard', normalized);
+			// 输入值变化后立即清除上一轮错误，不能让用户改对后仍看到旧错误
+			if (p.idCardError) {
+				this.$set(p, 'idCardError', '');
+			}
+		},
+		// 身份证失焦：按错误分类设置提示；通过时清空错误并调用 fetchPreview()
 		onIdCardBlur(e, idx) {
 			const p = this.formData.passengers[idx];
 			if (!p) return;
-			// 已填但校验不通过 → 显示错误；空或通过 → 清错误
-			if (p.idCard && !this.validateIdCard(p.idCard)) {
-				this.$set(p, 'idCardError', '身份证号有误，请检查');
-			} else {
-				this.$set(p, 'idCardError', '');
+			const normalized = normalizeIdCardInput(p.idCard || '');
+			this.$set(p, 'idCard', normalized);
+			const err = getIdCardError(normalized);
+			this.$set(p, 'idCardError', err);
+			// 校验通过时才重新预览费用；避免无效输入触发后端请求
+			if (!err) {
+				this.fetchPreview();
 			}
-			this.fetchPreview();
 		},
 		// 时间段选择
 		onTimePeriodChange(period) {
@@ -717,9 +734,8 @@ export default {
 		},
 		// 提交表单
 		handleSubmit() {
-			const now = Date.now();
-			if (now - this._lastClickTime < 2000) return;
-			this._lastClickTime = now;
+			// submitting 或 paymentLaunching 为 true 时直接返回，按钮处于禁用状态
+			if (this.submitting || this.paymentLaunching) return;
 
 			// 协议校验（优先级最高）
 			if (!this.agreedNotice || !this.agreedPrivacy) {
@@ -740,10 +756,9 @@ export default {
 				return;
 			}
 
-			// 显示加载提示
-			const loading = uni.showLoading({
-				title: '提交中...'
-			});
+			// 开始创建订单
+			this.submitting = true;
+
 			// 快照提交前的 preview 状态，用于判定是否需要二次确认（preview 免费 vs 创建收费）
 			const previewSnapshot = this.previewResult;
 			const submitData = {
@@ -769,21 +784,27 @@ export default {
 					const booking = res.data;
 					// 免费订单（月卡会员 / 每日免费名额）直接确认生效，无需支付
 					if (booking && booking.isFree) {
+						// 保持禁用，等待跳转订单详情
 						uni.showToast({ title: '预约成功', icon: 'success' });
 						setTimeout(() => {
 							uni.reLaunch({ url: `/pages/booking-detail/booking-detail?bookingId=${booking.bookingId}` });
 						}, 800);
 						return;
 					}
-					// 收费订单：若提交前 preview 显示免费，说明免费条件已变化（名额被抢完/会员失效等），需二次确认
+					// 收费订单：由 submitting 交接给 paymentLaunching
+					// 若提交前 preview 显示免费，说明免费条件已变化，需二次确认
 					const wasFreeInPreview = !!(previewSnapshot && previewSnapshot.isFree);
 					if (wasFreeInPreview) {
-					this.confirmPaidBookingAfterFreeChange(booking, previewSnapshot);
+						// 弹出确认框期间保持 submitting=true
+						this.confirmPaidBookingAfterFreeChange(booking, previewSnapshot);
+					} else {
+						// preview 本就收费，金额一致，直接交接给 paymentLaunching
+						this.submitting = false;
+						this.handlePayment(booking.bookingId, booking.bookingId);
+					}
 				} else {
-					// preview 本就收费，金额一致，直接支付
-					this.handlePayment(booking.bookingId, booking.bookingId);
-				}
-				} else {
+					// 创建失败：恢复 submitting
+					this.submitting = false;
                                     uni.showModal({
                                         title: "预约失败",
                                         content: res.message || '预约失败，请稍后再试',
@@ -792,18 +813,18 @@ export default {
                                     });
 				}
 			}).catch(err => {
+				// 创建失败：恢复 submitting
+				this.submitting = false;
                                 uni.showModal({
                                     title: "预约失败",
                                     content: (err.data && err.data.message) || '预约失败，请稍后再试',
                                     showCancel: false,
                                     confirmText: "我知道了",
                                 });
-			}).finally(() =>{
-                            uni.hideLoading();
-            })
+			});
 		},
 		// 二次确认：preview 显示免费但提交后实际收费，弹窗告知用户免费条件已变化
-		// 文案按 preview 时的 freeReason 动态生成；确认→支付，取消→直接删除已创建的待支付订单
+		// 文案按 preview 时的 freeReason 动态生成；确认→交接给 paymentLaunching，取消→直接进入订单详情
 		confirmPaidBookingAfterFreeChange(booking, previewSnapshot) {
 			const amountYuan = (booking.amount / 100).toFixed(2);
 			let content = `免费条件已变化，本次预约需支付 ¥${amountYuan}，是否继续？`;
@@ -818,21 +839,37 @@ export default {
 				confirmText: '继续支付',
 				cancelText: '取消订单',
 				success: (modalRes) => {
-				if (modalRes.confirm) {
-					this.handlePayment(booking.bookingId, booking.bookingId);
-				} else {
-					// 用户取消订单，跳转到详情页，待支付订单由后端超时自动清理
-					uni.redirectTo({ url: `/pages/booking-detail/booking-detail?bookingId=${booking.bookingId}` });
-				}
+					if (modalRes.confirm) {
+						// 确认支付：submitting 交接给 paymentLaunching
+						this.submitting = false;
+						this.handlePayment(booking.bookingId, booking.bookingId);
+					} else {
+						// 用户取消订单，恢复 submitting，跳转到详情页
+						this.submitting = false;
+						uni.redirectTo({ url: `/pages/booking-detail/booking-detail?bookingId=${booking.bookingId}` });
+					}
 				}
 			});
 		},
-		// 处理支付（使用公共方法），支付成功后跳转到订单详情页
+		// 处理支付（使用公共方法）
+		// 微信支付面板关闭后只查一次状态：已支付→onSuccess跳转详情，未支付→catch也进入详情
 		handlePayment(bookingId, detailBookingId) {
+			if (this.paymentLaunching) return;
+			this.paymentLaunching = true;
+
 			const onSuccess = (id) => {
+				// 已支付：跳转到订单详情
 				uni.reLaunch({ url: `/pages/booking-detail/booking-detail?bookingId=${detailBookingId || id}` });
 			};
-			handlePayment(bookingId, onSuccess);
+
+			handlePayment(bookingId, onSuccess)
+				.catch(() => {
+					// 未支付/查询失败/准备失败：直接进入订单详情
+					uni.reLaunch({ url: `/pages/booking-detail/booking-detail?bookingId=${detailBookingId || bookingId}` });
+				})
+				.finally(() => {
+					this.paymentLaunching = false;
+				});
 		},
 		// 获取预约详情（回显）
 		getBookingDetail(bookingId) {

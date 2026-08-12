@@ -58,10 +58,13 @@
 					<text class="title-text">基本信息</text>
 				</view>
 
-				<!-- 人数 -->
+				<!-- 人数（突出展示：数字 48rpx 加粗主题色，单位 32rpx） -->
 				<view class="form-item">
 					<text class="label">预约人数</text>
-					<view class="detail-value">{{ formData.personCount }} 人</view>
+					<view class="detail-value person-count-value">
+						<text class="person-count-number">{{ formData.personCount }}</text>
+						<text class="person-count-unit">人</text>
+					</view>
 				</view>
 
 				<!-- 出行人员列表 -->
@@ -193,7 +196,7 @@
 
 			<!-- 待支付 - 支付按钮 -->
 			<view class="action-bar" v-if="formData.status === 'pending'">
-				<view class="pay-btn" @tap="onPay">立即支付</view>
+				<view class="pay-btn" :class="{ 'pay-btn--disabled': paymentLaunching }" @tap="onPay">{{ paymentLaunching ? '正在准备支付…' : '立即支付' }}</view>
 			</view>
 		</view>
 	</view>
@@ -234,7 +237,9 @@
 				qrImageUrl: '',
 				countdown: 0,
 				countdownTimer: null,
-				_lastClickTime: 0
+				_lastClickTime: 0,
+				paymentLaunching: false,  // 支付准备中状态锁（替代节流，真实状态控制）
+				timer: null  // 详情刷新定时器
 			}
 		},
 		computed: {
@@ -256,8 +261,15 @@
 				this.getBookingDetail(options.bookingId);
 			}
 		},
+		onShow() {
+			// 从微信支付返回或从其他页面返回时，重新拉取订单详情，避免展示旧状态
+			if (this.formData.bookingId && !this.paymentLaunching) {
+				this.getBookingDetail(this.formData.bookingId);
+			}
+		},
 		onUnload() {
 			this.clearCountdown();
+			this.clearDetailTimer();
 		},
 		methods: {
 			formatDateText(dateStr) {
@@ -323,6 +335,12 @@
 					this.countdownTimer = null;
 				}
 			},
+			clearDetailTimer() {
+				if (this.timer) {
+					clearTimeout(this.timer);
+					this.timer = null;
+				}
+			},
 			_throttle(fn, interval = 2000) {
 				const now = Date.now();
 				if (now - this._lastClickTime < interval) return;
@@ -330,9 +348,26 @@
 				fn();
 			},
 			onPay() {
-				this._throttle(() => {
-					handlePayment(this.formData.bookingId);
-				});
+				if (this.paymentLaunching) return;
+
+				this.paymentLaunching = true;
+
+				const onSuccess = () => {
+					// 支付成功后重新拉取订单详情，展示最新状态（二维码等）
+					this.getBookingDetail(this.formData.bookingId);
+				};
+
+				handlePayment(this.formData.bookingId, onSuccess)
+					.then(() => {
+						// 已支付：onSuccess 已刷新详情
+					})
+					.catch(() => {
+						// 未支付/查询失败/准备失败：留在当前页面并刷新一次
+						this.getBookingDetail(this.formData.bookingId);
+					})
+					.finally(() => {
+						this.paymentLaunching = false;
+					});
 			},
 			onRefund() {
 				this._throttle(() => { this._doRefund(); });
@@ -406,6 +441,8 @@
 							this.passengerList = [];
 						}
 						this.startCountdown();
+						// 详情重新加载后，先清理上一条定时器链
+						this.clearDetailTimer();
 						this.loopDetail();
 					} else {
 						uni.showToast({ title: '加载详情失败', icon: 'none' });
@@ -418,7 +455,11 @@
 			},
 			loopDetail() {
 				if(this.formData.status === 'confirmed') {
+					// 创建新五秒定时器前先清理旧定时器
+					this.clearDetailTimer();
 					this.timer = setTimeout(() => {
+						// 定时器触发时先把当前 timer 置空，再请求详情并决定是否继续下一轮
+						this.timer = null;
 						request({
 							method: 'GET',
 							url: `/bookings/${this.formData.bookingId}`
@@ -577,7 +618,7 @@
 	}
 
 	.countdown-unit {
-		font-size: 22rpx;
+		font-size: 24rpx;
 		color: rgba(255, 255, 255, 0.75);
 		margin-left: 6rpx;
 		font-weight: 500;
@@ -665,13 +706,33 @@
 	}
 
 	.detail-value {
-		font-size: 28rpx;
+		font-size: 30rpx;
 		color: #2F6E8E;
 		font-weight: 500;
 		line-height: 1.5;
 		word-break: break-all;
 		text-align: right;
 		flex: 1;
+	}
+
+	/* 预约人数突出展示：数字 48rpx 加粗主题色，单位 32rpx，独立于普通详情值 */
+	.person-count-value {
+		display: flex;
+		align-items: baseline;
+		justify-content: flex-end;
+		gap: 6rpx;
+	}
+	.person-count-number {
+		font-size: 48rpx;
+		font-weight: 800;
+		color: #2F6E8E;
+		line-height: 1.1;
+		font-variant-numeric: tabular-nums;
+	}
+	.person-count-unit {
+		font-size: 32rpx;
+		font-weight: 600;
+		color: #2F6E8E;
 	}
 
 	/* 出行人员列表 */
@@ -697,7 +758,7 @@
 	}
 
 	.passenger-item-tag {
-		font-size: 22rpx;
+		font-size: 24rpx;
 		color: #3F99F6;
 		background: #f0f7fb;
 		padding: 4rpx 16rpx;
@@ -746,7 +807,7 @@
 		right: 0;
 		background: #fff;
 		color: #B8860B;
-		font-size: 22rpx;
+		font-size: 24rpx;
 		font-weight: bold;
 		padding: 6rpx 20rpx;
 		border-bottom-left-radius: 16rpx;
@@ -801,7 +862,7 @@
 
 	.qr-booking-id {
 		margin-top: 28rpx;
-		font-size: 22rpx;
+		font-size: 24rpx;
 		color: rgba(255, 255, 255, 0.6);
 		letter-spacing: 1px;
 	}
@@ -821,6 +882,11 @@
 		font-weight: bold;
 		border-radius: 45rpx;
 		box-shadow: 0 8rpx 24rpx rgba(102, 126, 234, 0.35);
+	}
+
+	.pay-btn--disabled {
+		opacity: 0.6;
+		pointer-events: none;
 	}
 
 	.refund-btn {

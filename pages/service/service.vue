@@ -179,7 +179,7 @@ export default {
 }
 
 .insurance-badge {
-	font-size: 20rpx;
+	font-size: 24rpx;
 	font-weight: 700;
 	color: #fff;
 	background: linear-gradient(135deg, #3F99F6, #33C5A0);
@@ -269,7 +269,7 @@ export default {
 
 .insurance-note__text {
 	display: block;
-	font-size: 22rpx;
+	font-size: 26rpx;
 	color: #aaa;
 	line-height: 1.7;
 }

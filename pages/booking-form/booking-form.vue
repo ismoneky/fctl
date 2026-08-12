@@ -1025,12 +1025,12 @@ export default {
 }
 
 .notice-icon {
-	font-size: 22rpx;
+	font-size: 24rpx;
 	color: #3F99F6;
 }
 
 .notice-text {
-	font-size: 22rpx;
+	font-size: 26rpx;
 	color: #3F99F6;
 	font-weight: 500;
 }
@@ -1146,7 +1146,7 @@ export default {
 	border-radius: 50%;
 	background: #ff4757;
 	color: #fff;
-	font-size: 22rpx;
+	font-size: 26rpx;
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -1510,7 +1510,7 @@ export default {
 }
 
 .time-item__sub {
-	font-size: 22rpx;
+	font-size: 26rpx;
 	color: #aaa;
 }
 
@@ -1536,7 +1536,7 @@ export default {
 }
 
 .radio-check {
-	font-size: 22rpx;
+	font-size: 24rpx;
 	color: #fff;
 	font-weight: bold;
 }
@@ -1624,7 +1624,7 @@ export default {
 
 .fee-tip {
 	display: block;
-	font-size: 22rpx;
+	font-size: 26rpx;
 	color: #999;
 	padding: 0rpx 0 20rpx 0;
 	line-height: 40rpx;
@@ -1676,7 +1676,7 @@ export default {
 }
 
 .agree-check-icon {
-	font-size: 22rpx;
+	font-size: 24rpx;
 	color: #fff;
 	font-weight: bold;
 }
@@ -1689,7 +1689,7 @@ export default {
 .agree-text--warn {
 	color: #e53935;
 	font-weight: 500;
-	font-size: 20rpx;
+	font-size: 24rpx;
 }
 
 .agree-link {
@@ -1738,7 +1738,7 @@ export default {
 }
 
 .price-desc {
-	font-size: 22rpx;
+	font-size: 26rpx;
 	color: #999;
 	margin-top: 6rpx;
 }
@@ -1875,7 +1875,7 @@ export default {
 
 .notice-tag {
 	flex-shrink: 0;
-	font-size: 22rpx;
+	font-size: 24rpx;
 	font-weight: 600;
 	padding: 6rpx 14rpx;
 	border-radius: 8rpx;

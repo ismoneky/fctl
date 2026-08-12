@@ -444,7 +444,7 @@ export default {
 }
 
 .tag-label {
-  font-size: 20rpx;
+  font-size: 26rpx;
   color: #2F6E8E;
 }
 
@@ -503,7 +503,7 @@ export default {
 }
 
 .action-sub {
-  font-size: 22rpx;
+  font-size: 26rpx;
   color: rgba(255, 255, 255, 0.85);
   margin-top: 4rpx;
 }

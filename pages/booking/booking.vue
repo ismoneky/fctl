@@ -401,7 +401,7 @@ export default {
 }
 
 .copy-btn {
-    font-size: 22rpx;
+    font-size: 24rpx;
     color: #3F99F6;
     border: 1rpx solid #3F99F6;
     border-radius: 8rpx;
@@ -418,7 +418,7 @@ export default {
 .booking-free-tag {
     padding: 8rpx 16rpx;
     border-radius: 30rpx;
-    font-size: 22rpx;
+    font-size: 24rpx;
     background: #e8f5e9;
     color: #4caf50;
     font-weight: 600;

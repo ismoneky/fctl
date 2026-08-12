@@ -170,6 +170,12 @@
 			<view class="qr-section" v-if="formData.status === 'confirmed' && formData.bookingId">
 				<view class="qr-card" :class="{ 'qr-card--member': isMotorcycleMember }">
 					<view v-if="isMotorcycleMember" class="qr-member-badge">会员</view>
+					<!-- 预约人数醒目展示（二维码上方，半透明白底胶囊 + 大号数字） -->
+					<view class="qr-person-count">
+						<text class="qr-person-count-label">预约人数</text>
+						<text class="qr-person-count-number">{{ formData.personCount }}</text>
+						<text class="qr-person-count-unit">人</text>
+					</view>
 					<text class="qr-card-title">{{ isMotorcycleMember ? '会员免费核验码' : '入场核验码' }}</text>
 					<text class="qr-card-subtitle">{{ isMotorcycleMember ? '摩托车月卡会员免费订单' : '请向管理员出示此二维码' }}</text>
 					<view class="qr-code-wrap">
@@ -811,6 +817,38 @@
 		font-weight: bold;
 		padding: 6rpx 20rpx;
 		border-bottom-left-radius: 16rpx;
+	}
+
+	/* 二维码上方预约人数醒目展示：主题深蓝渐变实色胶囊 + 白字，水平居中 */
+	.qr-person-count {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: center;
+		gap: 10rpx;
+		background: linear-gradient(135deg, #2F6E8E 0%, #1F4E6E 100%);
+		border-radius: 60rpx;
+		padding: 12rpx 40rpx;
+		margin-bottom: 20rpx;
+		box-shadow: 0 4rpx 12rpx rgba(31, 78, 110, 0.45);
+	}
+	.qr-person-count-label {
+		font-size: 28rpx;
+		color: #ffffff;
+		font-weight: 500;
+	}
+	.qr-person-count-number {
+		font-size: 52rpx;
+		color: #ffffff;
+		font-weight: 800;
+		line-height: 1;
+		font-variant-numeric: tabular-nums;
+		margin: 0 16rpx;
+	}
+	.qr-person-count-unit {
+		font-size: 32rpx;
+		color: #ffffff;
+		font-weight: 600;
 	}
 
 	.qr-card-title {

@@ -101,11 +101,9 @@
 					</view>
 					<!-- 姓名匹配常用人员弱提示卡片（仅展示掩码手机号，绝不展示身份证明文） -->
 					<view v-if="getProfileMatchesForIdx(idx).length === 1" class="profile-hint-card" @click="applyProfileToPassenger(getProfileMatchesForIdx(idx)[0], idx)">
-						<text class="profile-hint-icon">👤</text>
 						<text class="profile-hint-text">找到常用人员：{{ getProfileMatchesForIdx(idx)[0].name }} {{ maskPhone(getProfileMatchesForIdx(idx)[0].phone) }}　点击填入</text>
 					</view>
 					<view v-else-if="getProfileMatchesForIdx(idx).length > 1" class="profile-hint-card" @click="openProfilePicker(idx, getProfileMatchesForIdx(idx))">
-						<text class="profile-hint-icon">👤</text>
 						<text class="profile-hint-text">找到 {{ getProfileMatchesForIdx(idx).length }} 位同名常用人员，点击选择</text>
 					</view>
 					<view class="field-block">
@@ -1281,18 +1279,15 @@ export default {
 	flex-direction: row;
 	align-items: center;
 	margin-top: 12rpx;
-	padding: 16rpx 20rpx;
-	background-color: #eef7fb;
-	border: 1rpx solid #cfe6f1;
+	margin-bottom: 24rpx;
+	padding: 20rpx 24rpx;
+	background-color: #2F6E8E;
 	border-radius: 12rpx;
-}
-.profile-hint-icon {
-	font-size: 28rpx;
-	margin-right: 10rpx;
 }
 .profile-hint-text {
 	font-size: 26rpx;
-	color: #2F6E8E;
+	color: #ffffff;
+	font-weight: 500;
 	line-height: 1.4;
 	flex: 1;
 }
@@ -1759,8 +1754,7 @@ export default {
 }
 
 .submit-btn--disabled {
-	background: linear-gradient(135deg, #b0b8f0 0%, #c0a8d8 100%);
-	opacity: 0.7;
+	opacity: 0.6;
 }
 
 .submit-btn::after {

@@ -31,10 +31,6 @@
               <text class="booking-subtitle">体验浪漫风车之旅</text>
               <view class="booking-tags">
                 <view class="tag-item">
-                  <image class="tag-icon-svg" src="/static/svg/tag-cloud.svg" mode="aspectFit" />
-                  <text class="tag-label">免费开放</text>
-                </view>
-                <view class="tag-item">
                   <image class="tag-icon-svg" src="/static/svg/tag-sun.svg" mode="aspectFit" />
                   <text class="tag-label">全天候</text>
                 </view>
@@ -453,7 +449,7 @@ export default {
   height: 480rpx;
   position: absolute;
   right: -60rpx;
-  top: -60rpx;
+  top: -75rpx;
   z-index: 0;
 }
 

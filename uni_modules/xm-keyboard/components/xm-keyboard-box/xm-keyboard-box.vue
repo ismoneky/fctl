@@ -7,6 +7,8 @@
 			<view v-for="(item, index) in line.list" :key="index" class="xm-keyboard-box-item" :class="{
 				'xm-keyboard-box-item-empty': item == '',
 				'xm-keyboard-box-item-disable': (mode == 2 || disable) && disable.indexOf(item) != -1,
+				// 项目定制：省份模式（mode==0）下“豫”轻微主题色高亮；升级 xm-keyboard 时保留
+				'xm-keyboard-box-item--henan': mode == 0 && item === '豫',
 			}" :style="{
 				width: btnWidth + 'px',
 				height: btnHeight + 'px'
@@ -85,7 +87,8 @@
 				handlerWidth: 10,
 				lines: [
 					[{
-							list: ["京", "沪", "浙", "苏", "粤", "鲁", "晋", "冀", "豫", "川"],
+							// 项目定制：河南用户较多，将“豫”前置；升级 xm-keyboard 时保留
+							list: ["豫", "京", "沪", "浙", "苏", "粤", "鲁", "晋", "冀", "川"],
 							diff: 0,
 						},
 						{
@@ -242,6 +245,12 @@
 			}
 			&-disable{
 				background-color: #BDBEC3;
+			}
+			// 项目定制：省份键盘“豫”轻微高亮（浅蓝背景 + 主题色边框）；升级 xm-keyboard 时保留
+			&--henan {
+				background-color: #eef7fb;
+				border: 1px solid #2F6E8E;
+				box-sizing: border-box;
 			}
 		}
 

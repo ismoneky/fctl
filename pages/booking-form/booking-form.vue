@@ -75,32 +75,30 @@
 					<text class="title-text">基本信息</text>
 				</view>
 
-				<!-- 人数：只读汇总，由出行人员列表驱动 -->
-				<view class="field-block">
-					<text class="field-label required-star">预约人数</text>
-					<view class="count-summary">
-						<text class="count-number">{{ personSummary.total }}</text>
-						<text class="count-unit">人</text>
-						<text class="count-detail">成人 {{ personSummary.adult }} · 儿童 {{ personSummary.child }} · 老人 {{ personSummary.senior }}</text>
-						<text class="count-limit">当前车型最多可预约 {{ maxPerson }} 人</text>
-					</view>
-				</view>
-
 				<!-- 动态出行人员列表 -->
 				<block v-if="formData.passengers && formData.passengers.length">
 				<view class="passenger-card" v-for="(p, idx) in formData.passengers" :key="p._key">
 					<view class="passenger-card-header">
 						<text class="passenger-index">{{ idx === 0 ? '联系人（第1位）' : `第${idx + 1}位出行人` }}</text>
 						<view class="passenger-card-actions">
-							<!-- 儿童/老人：编辑（重开弹窗原位替换）；普通人员：选择常用 -->
+							<!-- 儿童/老人：编辑（重开弹窗原位替换）；普通人员：选择常用（原生 picker，规避 iOS 自定义弹层顶起页面问题） -->
 							<text v-if="idx > 0 && (p.passengerType === 'child' || p.passengerType === 'senior')" class="passenger-edit-btn" @click="openChildSeniorPopup('edit', p._key)">编辑</text>
-							<text v-else class="passenger-quick-btn" @click="openProfilePicker(p._key)">选择常用</text>
+							<picker
+								v-else-if="getProfilePickerRange(p._key).length"
+								mode="selector"
+								:range="getProfilePickerRange(p._key)"
+								range-key="label"
+								@change="onProfilePickerChange($event, p._key)"
+							>
+								<text class="passenger-quick-btn">选择常用</text>
+							</picker>
+							<text v-else class="passenger-quick-btn" @click="showNoProfileToast">选择常用</text>
 							<text v-if="idx > 0" class="passenger-delete-btn" @click="removePassenger(p._key)">✕</text>
 						</view>
 					</view>
 					<!-- 人员类型与年龄/免身份证状态标签 -->
-					<view class="passenger-tags" v-if="p.passengerType === 'child' || p.passengerType === 'senior'">
-						<text class="passenger-type-tag">{{ p.passengerType === 'child' ? '同行儿童' : '同行老人' }}</text>
+					<view class="passenger-tags" v-if="p.passengerType === 'child' || p.passengerType === 'senior' || getAgeFreeLabel(p)">
+						<text v-if="p.passengerType === 'child' || p.passengerType === 'senior'" class="passenger-type-tag">{{ p.passengerType === 'child' ? '同行儿童' : '同行老人' }}</text>
 						<text v-if="getAgeFreeLabel(p)" class="passenger-age-free-tag">{{ getAgeFreeLabel(p) }}</text>
 						<text v-if="p.idCardUnavailable" class="passenger-unavailable-tag">未提供身份证号 · 按正常价格收费 · 暂时无法投保</text>
 						<!-- 类型与年龄不符（含预约日期变化后的重算）：标红并阻止提交 -->
@@ -116,9 +114,17 @@
 					<view v-if="getProfileMatchesForKey(p._key).length === 1" class="profile-hint-card" @click="applyProfileToPassenger(getProfileMatchesForKey(p._key)[0], p._key)">
 						<text class="profile-hint-text">找到常用人员：{{ getProfileMatchesForKey(p._key)[0].name }} {{ maskPhone(getProfileMatchesForKey(p._key)[0].phone) }}　点击填入</text>
 					</view>
-					<view v-else-if="getProfileMatchesForKey(p._key).length > 1" class="profile-hint-card" @click="openProfilePicker(p._key, getProfileMatchesForKey(p._key))">
-						<text class="profile-hint-text">找到 {{ getProfileMatchesForKey(p._key).length }} 位同名常用人员，点击选择</text>
-					</view>
+					<picker
+						v-else-if="getProfileMatchesForKey(p._key).length > 1"
+						mode="selector"
+						:range="getMatchedProfilePickerRange(p._key)"
+						range-key="label"
+						@change="onMatchedProfileChange($event, p._key)"
+					>
+						<view class="profile-hint-card">
+							<text class="profile-hint-text">找到 {{ getProfileMatchesForKey(p._key).length }} 位同名常用人员，点击选择</text>
+						</view>
+					</picker>
 					<view class="field-block">
 						<text class="field-label required-star">手机号码</text>
 						<view class="input-box">
@@ -140,7 +146,13 @@
 					<button class="add-entry-btn" :class="{ 'add-entry-btn--disabled': atMaxPerson }" :disabled="atMaxPerson" @click="addAdultPassenger">＋ 添加同行人</button>
 					<button class="add-entry-btn add-entry-btn--secondary" :class="{ 'add-entry-btn--disabled': atMaxPerson }" :disabled="atMaxPerson" @click="openChildSeniorPopup('add')">＋ 添加同行儿童/老人</button>
 				</view>
-				<text v-if="atMaxPerson" class="add-entry-limit-text">当前车型最多可预约 {{ maxPerson }} 人</text>
+
+				<!-- 人数汇总：只读，由出行人员列表驱动 -->
+				<view class="count-summary">
+					<text class="count-text">预约人数 <text class="count-number">{{ personSummary.total }}</text><text class="count-unit">人</text></text>
+					<text class="count-breakdown" v-if="personSummary.child || personSummary.senior">成人 {{ personSummary.adult }} · 儿童 {{ personSummary.child }} · 老人 {{ personSummary.senior }}</text>
+					<text class="count-limit">最多可预约 {{ maxPerson }} 人</text>
+				</view>
 
 				<!-- 预约日期 -->
 				<view class="field-block" style="margin-top:24rpx">
@@ -175,32 +187,6 @@
 				</view>
 
 				<!-- 预约时间段（隐藏展示，字段保留） -->
-			</view>
-
-			<!-- 选择常用人员弹窗 -->
-			<view class="modal-mask" v-if="profilePickerVisible" @click="closeProfilePicker"></view>
-			<view class="profile-picker-popup" :class="{ 'profile-picker-popup--show': profilePickerVisible }">
-				<view class="profile-picker-header">
-					<text class="profile-picker-title">选择常用人员</text>
-					<text class="profile-picker-close" @click="closeProfilePicker">✕</text>
-				</view>
-				<scroll-view class="profile-picker-body" scroll-y>
-					<view v-if="currentPickerOptions.length === 0" class="profile-picker-empty">
-						<text class="profile-picker-empty-text">暂无常用信息，请先在个人中心添加</text>
-					</view>
-					<view
-						v-for="item in currentPickerOptions"
-						:key="item.profileId"
-						class="profile-picker-item"
-						@click="applyProfileToPassenger(item, currentPickerKey)"
-					>
-						<view class="profile-picker-item-main">
-							<text class="profile-picker-name">{{ item.name }}</text>
-							<text class="profile-picker-phone">{{ maskPhone(item.phone) }}</text>
-						</view>
-						<text class="profile-picker-idcard">{{ maskIdCard(item.idCard) }}</text>
-					</view>
-				</scroll-view>
 			</view>
 
 			<!-- 儿童/老人新增与编辑底部弹窗（独立于常用人员选择） -->
@@ -252,50 +238,28 @@
 					<view class="price-row">
 						<text class="price-value price-value--free">会员免费</text>
 					</view>
-					<text class="price-desc">月卡会员免费预约，本次预约免费</text>
-					<text class="price-desc" v-if="previewResult">
-						{{ previewResult.personCount }} 人出行<template v-if="previewResult.ageFreePeople > 0"> · 年龄免费 {{ previewResult.ageFreePeople }} 人</template>
-					</text>
 				</view>
 				<view class="price-info" v-else-if="isDailyQuotaFree">
 					<view class="price-row">
 						<text class="price-value price-value--free">免费预约</text>
 					</view>
-					<text class="price-desc">每日前{{ previewResult.freeQuotaInfo.limit }}名免费</text>
-					<text class="price-desc" v-if="previewResult">
-						{{ previewResult.personCount }} 人出行<template v-if="previewResult.ageFreePeople > 0"> · 年龄免费 {{ previewResult.ageFreePeople }} 人</template>
-					</text>
 				</view>
 				<view class="price-info" v-else-if="isAgeFree">
 					<view class="price-row">
 						<text class="price-value price-value--free">年龄免费</text>
 					</view>
-					<text class="price-desc">儿童/老人年龄免费，本次预约免费</text>
-					<text class="price-desc" v-if="previewResult">
-						{{ previewResult.personCount }} 人出行 · 年龄免费 {{ previewResult.ageFreePeople }} 人
-					</text>
 				</view>
 				<view class="price-info" v-else-if="previewState === 'success' && previewResult && previewResult.amount != null">
 					<view class="price-row">
 						<text class="price-symbol">¥</text>
 						<text class="price-value">{{ (previewResult.amount / 100).toFixed(2) }}</text>
 					</view>
-					<!-- 费用摘要：总人数 / 年龄免费人数（为 0 时不展示）/ 收费人数，全部来自后端 -->
-					<text class="price-desc" v-if="previewResult.ageFreePeople > 0">
-						{{ previewResult.personCount }} 人出行 · 年龄免费 {{ previewResult.ageFreePeople }} 人 · 收费 {{ previewResult.chargedPeople }} 人
-					</text>
-					<text class="price-desc" v-else>
-						{{ previewResult.personCount }} 人出行 · 收费 {{ previewResult.chargedPeople }} 人
-					</text>
 				</view>
 				<view class="price-info" v-else-if="previewState === 'loading'">
 					<text class="price-status-text">价格计算中…</text>
 				</view>
 				<view class="price-info" v-else-if="previewState === 'error'">
 					<text class="price-status-text price-status-text--error">{{ previewError }}</text>
-				</view>
-				<view class="price-info" v-else>
-					<text class="price-status-text">请完善信息</text>
 				</view>
 				<button class="submit-btn" :class="{ 'submit-btn--disabled': submitting || paymentLaunching }" :disabled="submitting || paymentLaunching" @click="handleSubmit">{{ submitting ? '提交中…' : (paymentLaunching ? '支付准备中…' : '立即预约') }}</button>
 			</view>
@@ -354,9 +318,12 @@ import { validateIdCard as validateIdCardStrict } from '../../utils/validator';
 import { normalizeIdCardInput, getIdCardError } from '../../utils/id-card-input.js';
 import { findExactProfileMatches } from '../../utils/profile-matcher.js';
 import {
+	CHILD_MAX_AGE,
 	createAdultPassenger,
 	normalizePassenger,
 	summarizePassengers,
+	resolveEffectivePassengerType,
+	removePassengerByKey,
 	calculateYearAge,
 	getPassengerTypeError,
 	getPassengerLimit,
@@ -406,9 +373,6 @@ export default {
 				remarks: ''
 			},
 			profileList: [], // 常用人员列表（全部，主动“选择常用”时展示）
-			profilePickerVisible: false, // 选择常用人员弹窗
-			currentPickerKey: '', // 当前正在填写的人员 _key
-			profilePickerOptions: null, // 弹层展示的候选列表；null 时用全部 profileList，同名匹配时传筛选后的子集
 			profileMatchesByKey: {}, // 每位出行人按姓名匹配到的常用人员数组（key 为 _key，删除/插位不串位）
 			childSeniorPopupVisible: false, // 儿童/老人底部弹窗
 			childSeniorEditingKey: null, // 编辑中人员的 _key；null 为新增
@@ -458,13 +422,9 @@ export default {
 		}
 	},
 	computed: {
-		// 弹层当前展示的候选列表：同名匹配时用筛选子集，否则用全部常用人员
-		currentPickerOptions() {
-			return Array.isArray(this.profilePickerOptions) ? this.profilePickerOptions : (this.profileList || []);
-		},
 		// 人数区域只读汇总（人数唯一来源为 passengers.length）
 		personSummary() {
-			return summarizePassengers(this.formData.passengers);
+			return summarizePassengers(this.formData.passengers, this.formData.bookingDate);
 		},
 		// 是否已达到当前车型人数上限（两个添加入口同时禁用）
 		atMaxPerson() {
@@ -610,9 +570,7 @@ export default {
 				cancelText: '取消',
 				success: (res) => {
 					if (!res.confirm) return;
-					this.formData.passengers.splice(idx, 1);
-					// 同步删除该位匹配状态，避免残留
-					this.$delete(this.profileMatchesByKey, key);
+					if (!removePassengerByKey(this.formData.passengers, this.profileMatchesByKey, key)) return;
 					this.syncPersonCount();
 					// 乘客变化后重新预览费用
 					this.fetchPreview();
@@ -644,12 +602,12 @@ export default {
 				const idx = this.findPassengerIndexByKey(this.childSeniorEditingKey);
 				if (idx >= 0) {
 					const p = this.formData.passengers[idx];
-					this.$set(p, 'name', payload.name);
-					this.$set(p, 'phone', payload.phone);
-					this.$set(p, 'idCard', payload.idCard);
-					this.$set(p, 'passengerType', payload.passengerType);
-					this.$set(p, 'idCardUnavailable', payload.idCardUnavailable);
-					this.$set(p, 'idCardError', '');
+					p.name = payload.name;
+					p.phone = payload.phone;
+					p.idCard = payload.idCard;
+					p.passengerType = payload.passengerType;
+					p.idCardUnavailable = payload.idCardUnavailable;
+					p.idCardError = '';
 				}
 				this.childSeniorPopupVisible = false;
 			}
@@ -663,43 +621,63 @@ export default {
 				if (res.success) this.profileList = Array.isArray(res.data) ? res.data : [];
 			} catch (e) {}
 		},
-		// 打开选择常用人员弹窗；options 可选，传入时弹层只展示该子集（同名匹配场景），不传展示全部
-		openProfilePicker(key, options) {
-			this.currentPickerKey = key;
-			this.profilePickerOptions = Array.isArray(options) ? options : null;
-			this.profilePickerVisible = true;
-		},
-		closeProfilePicker() {
-			this.profilePickerVisible = false;
-			this.profilePickerOptions = null;
-		},
 		// 统一填入函数：主动“选择常用”与同名匹配弱提示都走这里
 		// 仅写入 item 的字段；不自动覆盖用户已手动填写的手机号或身份证号（弱提示仅在两者均空时出现，故此处安全）
 		applyProfileToPassenger(item, key) {
 			const p = this.findPassengerByKey(key);
 			if (!p || !item) return;
-			this.$set(p, 'name', item.name || p.name);
-			this.$set(p, 'phone', item.phone || p.phone);
-			this.$set(p, 'idCard', item.idCard || p.idCard);
-			this.$set(p, 'idCardError', getIdCardError(normalizeIdCardInput(p.idCard || '')));
-			// 填入后清理该出行人匹配状态、关闭弹层
-			this.$delete(this.profileMatchesByKey, key);
-			this.profilePickerVisible = false;
-			this.profilePickerOptions = null;
+			p.name = item.name || p.name;
+			p.phone = item.phone || p.phone;
+			p.idCard = item.idCard || p.idCard;
+			p.idCardError = getIdCardError(normalizeIdCardInput(p.idCard || ''));
+			// 填入后清理该出行人匹配状态
+			delete this.profileMatchesByKey[key];
 			// 非阻塞 Toast 提示已填入（不超过 1.5 秒）
 			uni.showToast({ title: '已填入常用信息', icon: 'none', duration: 1500 });
 			// 乘客信息变化后重新预览费用
 			this.fetchPreview();
+		},
+		// 原生 picker 的候选文案：姓名 + 掩码手机号 + 掩码身份证（picker 单行展示）
+		getProfilePickerRange(key) {
+			const matches = this.getProfileMatchesForKey(key);
+			const list = (matches && matches.length) ? matches : (this.profileList || []);
+			return list.map(item => ({
+				...item,
+				label: `${item.name || ''}  ${this.maskPhone(item.phone)}  ${this.maskIdCard(item.idCard)}`
+			}));
+		},
+		// 原生 picker 选中：填入对应出行人
+		onProfilePickerChange(e, key) {
+			const list = this.getProfilePickerRange(key);
+			const item = list[Number(e.detail.value)];
+			if (item) this.applyProfileToPassenger(item, key);
+		},
+		// 同名匹配多条时，picker 的候选文案（姓名相同，用掩码手机号/身份证区分）
+		getMatchedProfilePickerRange(key) {
+			return this.getProfileMatchesForKey(key).map(item => ({
+				...item,
+				label: `${item.name || ''}  ${this.maskPhone(item.phone)}  ${this.maskIdCard(item.idCard)}`
+			}));
+		},
+		// 同名匹配多条时，从弱提示卡片打开的原生 picker 选中
+		onMatchedProfileChange(e, key) {
+			const list = this.getMatchedProfilePickerRange(key);
+			const item = list[Number(e.detail.value)];
+			if (item) this.applyProfileToPassenger(item, key);
+		},
+		// 常用人员为空时点击“选择常用”的引导提示
+		showNoProfileToast() {
+			uni.showToast({ title: '暂无常用人员，请先在个人中心添加', icon: 'none', duration: 2000 });
 		},
 		// 姓名输入：更新姓名并立即清除该出行人匹配结果
 		onPassengerNameInput(e, key) {
 			const p = this.findPassengerByKey(key);
 			if (!p) return;
 			const raw = (e && e.detail && e.detail.value != null) ? e.detail.value : '';
-			this.$set(p, 'name', raw);
+			p.name = raw;
 			// 姓名变化后立即清除该出行人上一轮匹配结果
 			if (this.profileMatchesByKey[key] && this.profileMatchesByKey[key].length) {
-				this.$delete(this.profileMatchesByKey, key);
+				delete this.profileMatchesByKey[key];
 			}
 		},
 		// 姓名失焦：仅在手机号与身份证号均为空时建立匹配结果，避免覆盖用户已手动填写的内容
@@ -709,16 +687,16 @@ export default {
 			const nameTrimmed = String(p.name || '').trim();
 			// 只输入一个字或空姓名不提示（设计要求不做单字匹配提示；这里用 trim 后非空即尝试，纯函数内已做完全相等判断）
 			if (!nameTrimmed) {
-				this.$delete(this.profileMatchesByKey, key);
+				delete this.profileMatchesByKey[key];
 				return;
 			}
 			// 手机号或身份证号已有手动内容时不出现弱提示
 			if ((p.phone && String(p.phone).trim()) || (p.idCard && String(p.idCard).trim())) {
-				this.$delete(this.profileMatchesByKey, key);
+				delete this.profileMatchesByKey[key];
 				return;
 			}
 			const matches = findExactProfileMatches(this.profileList, p.name);
-			this.$set(this.profileMatchesByKey, key, matches);
+			this.profileMatchesByKey[key] = matches;
 		},
 		// 取某位出行人的匹配结果（模板用）
 		getProfileMatchesForKey(key) {
@@ -739,16 +717,17 @@ export default {
 		},
 		// 人员卡片绿色弱状态：有身份证且符合年龄时显示（仅即时展示，计费以后端为准）
 		getAgeFreeLabel(p) {
-			if (!p || (p.passengerType !== 'child' && p.passengerType !== 'senior')) return '';
+			if (!p) return '';
 			if (p.idCardUnavailable === true) return '';
 			const card = p.idCard || '';
 			if (!card || getIdCardError(card) !== '') return '';
 			if (!this.formData.bookingDate) return '';
 			const age = calculateYearAge(card, this.formData.bookingDate);
 			if (age === null) return '';
+			const effectiveType = resolveEffectivePassengerType(p, this.formData.bookingDate);
 			// 年龄值为负（未来出生年份）不显示免费标签
-			if (p.passengerType === 'child' && age >= 0 && age <= 7) return '7岁及以下，年龄免费';
-			if (p.passengerType === 'senior' && age >= 70) return '70岁及以上，年龄免费';
+			if (effectiveType === 'child' && age >= 0 && age <= CHILD_MAX_AGE) return '13岁及以下，年龄免费';
+			if (effectiveType === 'senior' && age >= 70) return '70岁及以上，年龄免费';
 			return '';
 		},
 		// 年龄段选择
@@ -825,10 +804,10 @@ export default {
 			if (!p) return;
 			const raw = (e && e.detail && e.detail.value != null) ? e.detail.value : '';
 			const normalized = normalizeIdCardInput(raw);
-			this.$set(p, 'idCard', normalized);
+			p.idCard = normalized;
 			// 输入值变化后立即清除上一轮错误，不能让用户改对后仍看到旧错误
 			if (p.idCardError) {
-				this.$set(p, 'idCardError', '');
+				p.idCardError = '';
 			}
 		},
 		// 身份证失焦：按错误分类设置提示；通过时清空错误并调用 fetchPreview()
@@ -836,9 +815,9 @@ export default {
 			const p = this.findPassengerByKey(key);
 			if (!p) return;
 			const normalized = normalizeIdCardInput(p.idCard || '');
-			this.$set(p, 'idCard', normalized);
+			p.idCard = normalized;
 			const err = getIdCardError(normalized);
-			this.$set(p, 'idCardError', err);
+			p.idCardError = err;
 			// 校验通过时才重新预览费用；避免无效输入触发后端请求
 			if (!err) {
 				this.fetchPreview();
@@ -1402,93 +1381,6 @@ export default {
 	justify-content: center;
 }
 
-/* ===== 选择常用人员弹窗 ===== */
-.profile-picker-popup {
-	position: fixed;
-	left: 0;
-	right: 0;
-	bottom: 0;
-	background: #fff;
-	border-radius: 32rpx 32rpx 0 0;
-	box-shadow: 0 -8rpx 40rpx rgba(0, 0, 0, 0.15);
-	z-index: 201;
-	transform: translateY(100%);
-	transition: transform 0.3s ease;
-	max-height: 70vh;
-	display: flex;
-	flex-direction: column;
-	padding-bottom: env(safe-area-inset-bottom);
-}
-
-.profile-picker-popup--show {
-	transform: translateY(0);
-}
-
-.profile-picker-header {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	padding: 36rpx 40rpx 24rpx;
-	border-bottom: 1.5rpx solid #f0f0f0;
-	flex-shrink: 0;
-}
-
-.profile-picker-title {
-	font-size: 34rpx;
-	font-weight: 700;
-	color: #2F6E8E;
-}
-
-.profile-picker-close {
-	font-size: 36rpx;
-	color: #999;
-	padding: 8rpx;
-}
-
-.profile-picker-body {
-	flex: 1;
-	overflow: hidden;
-	height: 0;
-}
-
-.profile-picker-empty {
-	padding: 60rpx 40rpx;
-	text-align: center;
-}
-
-.profile-picker-empty-text {
-	font-size: 28rpx;
-	color: #bbb;
-}
-
-.profile-picker-item {
-	padding: 28rpx 40rpx;
-	border-bottom: 1.5rpx solid #f5f5f5;
-}
-
-.profile-picker-item-main {
-	display: flex;
-	align-items: center;
-	gap: 20rpx;
-	margin-bottom: 8rpx;
-}
-
-.profile-picker-name {
-	font-size: 30rpx;
-	font-weight: 700;
-	color: #2F6E8E;
-}
-
-.profile-picker-phone {
-	font-size: 26rpx;
-	color: #666;
-}
-
-.profile-picker-idcard {
-	font-size: 24rpx;
-	color: #999;
-}
-
 /* ===== 两列行（已弃用，保留避免样式报错） ===== */
 .form-row-two {
 	display: flex;
@@ -1665,39 +1557,40 @@ export default {
 	line-height: 1.6;
 }
 
-/* ===== 人数只读汇总（由人员列表驱动） ===== */
+/* ===== 人数只读汇总（由人员列表驱动，展示在添加入口下方） ===== */
 .count-summary {
-	width: 100%;
-	background: #fff;
-	border: 1.5rpx solid #e6e6e6;
-	border-radius: 12rpx;
-	padding: 20rpx 24rpx;
+	margin: 20rpx 24rpx 0;
 	display: flex;
-	align-items: baseline;
-	box-sizing: border-box;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 8rpx 16rpx;
+	font-size: 24rpx;
+	color: #888;
+}
+
+.count-text {
+	color: #666;
 }
 
 .count-number {
-	font-size: 56rpx;
+	font-size: 34rpx;
 	font-weight: 800;
 	color: #3f99f6;
-	line-height: 1;
+	margin: 0 4rpx;
 }
 
 .count-unit {
-	font-size: 28rpx;
-	color: #2f6e8e;
-	margin-left: 8rpx;
-}
-
-.count-detail {
-	flex: 1;
 	font-size: 24rpx;
 	color: #888;
-	margin-left: 20rpx;
+}
+
+.count-breakdown {
+	font-size: 22rpx;
+	color: #999;
 }
 
 .count-limit {
+	margin-left: auto;
 	font-size: 22rpx;
 	color: #bbb;
 }
@@ -1736,14 +1629,6 @@ export default {
 
 .add-entry-btn::after {
 	border: none;
-}
-
-.add-entry-limit-text {
-	display: block;
-	margin-top: 12rpx;
-	font-size: 22rpx;
-	color: #bbb;
-	text-align: center;
 }
 
 /* ===== 人员卡片：操作区与类型标签 ===== */
@@ -2078,12 +1963,6 @@ export default {
 .price-value--free {
 	font-size: 44rpx;
 	color: #3F99F6;
-}
-
-.price-desc {
-	font-size: 26rpx;
-	color: #999;
-	margin-top: 6rpx;
 }
 
 .submit-btn {

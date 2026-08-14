@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import * as passengerDisplay from '../utils/passenger-display.js';
 import {
+	getAgeFreeStatusText,
 	getPassengerTypeLabel,
 	maskIdCardText,
 	normalizePassengerForDisplay,
@@ -92,10 +94,39 @@ test('人员类型标签：联系人 / 普通同行人 / 同行儿童 / 同行�
 	assert.equal(getPassengerTypeLabel(undefined, 1), '普通同行人');
 });
 
+test('年龄免费状态：儿童显示13岁及以下，老人规则保持70岁及以上', () => {
+	assert.equal(getAgeFreeStatusText({ passengerType: 'child', ageFree: true }), '13岁及以下，年龄免费');
+	assert.equal(getAgeFreeStatusText({ passengerType: 'senior', ageFree: true }), '70岁及以上，年龄免费');
+});
+
 test('maskIdCardText：掩码与未提供', () => {
 	assert.equal(maskIdCardText(VALID_CARD), '1101**********1237');
 	assert.equal(maskIdCardText(''), '未提供');
 	assert.equal(maskIdCardText(null), '未提供');
 	// 短字符串原样返回（防御）
 	assert.equal(maskIdCardText('123'), '123');
+});
+
+test('订单详情人员列表：一次归一化出模板可直接渲染的字段', () => {
+	const list = passengerDisplay.normalizePassengerListForDisplay(
+		JSON.stringify([{ name: '张三', phone: '13800000001', idCard: VALID_CARD }]),
+		{ isFree: true, freeReason: 'dailyQuota' },
+	);
+
+	assert.equal(list.length, 1);
+	assert.deepEqual(list[0], {
+		name: '张三',
+		phone: '13800000001',
+		idCard: VALID_CARD,
+		idCardText: VALID_CARD,
+		passengerType: 'adult',
+		idCardUnavailable: false,
+		ageValue: null,
+		ageFree: false,
+		finalCharged: false,
+		pricingReason: 'daily_quota_order_free',
+		typeLabel: '联系人',
+		maskedIdCardText: '1101**********1237',
+		ageFreeStatusText: '',
+	});
 });

@@ -1,5 +1,5 @@
 <template>
-	<view>
+	<view v-if="visible">
 		<!-- 半透明遮罩 -->
 		<view class="cs-mask" v-if="visible" @click="handleClose"></view>
 
@@ -17,7 +17,7 @@
 						class="cs-type-btn"
 						:class="{ 'cs-type-btn--active': draft.passengerType === 'child' }"
 						@click="switchType('child')"
-					>7岁及以下儿童</view>
+					>13岁及以下儿童</view>
 					<view
 						class="cs-type-btn"
 						:class="{ 'cs-type-btn--active': draft.passengerType === 'senior' }"
@@ -80,7 +80,7 @@
 
 				<!-- 勾选后只展示浅黄色弱提示，不弹二次 Modal -->
 				<view class="cs-hint" v-if="draft.idCardUnavailable">
-					未提供身份证号时无法核验年龄，不能享受年龄免费，本次按正常价格收费，且暂时无法投保。
+					未提供身份证号时无法核验年龄，不能享受年龄免费，本次按正常价格收费。
 				</view>
 				<!-- 未选预约日期时只提示，不展示免费结论 -->
 				<view class="cs-hint" v-else-if="!bookingDate">选择预约日期后计算年龄优惠</view>

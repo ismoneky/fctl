@@ -23,7 +23,7 @@
       </view>
 
       <!-- 立即预约入口 -->
-      <view class="booking-entry">
+      <view class="booking-entry" :class="{ 'with-notice': noticeList.length > 0 }">
         <view class="booking-card">
           <view class="booking-top">
             <view class="booking-info">
@@ -53,6 +53,31 @@
             <image class="action-chevron-svg" src="/static/svg/chevron-right.svg" mode="aspectFit" />
           </view>
         </view>
+      </view>
+
+      <!-- 公告轮播条 -->
+      <view
+        class="notice-bar"
+        v-if="noticeList.length > 0"
+        @click="onNoticeBarClick"
+      >
+        <image class="notice-bar-icon" src="/static/svg/megaphone.svg" mode="aspectFit" />
+        <swiper
+          class="notice-bar-swiper"
+          :vertical="true"
+          :autoplay="noticeList.length > 1"
+          :circular="noticeList.length > 1"
+          :interval="4000"
+          :duration="500"
+          @change="onNoticeSwiperChange"
+        >
+          <swiper-item v-for="(item, index) in noticeList" :key="index">
+            <view class="notice-bar-item">
+              <text class="notice-bar-text">{{ item.content }}</text>
+            </view>
+          </swiper-item>
+        </swiper>
+        <text class="notice-bar-more">›</text>
       </view>
 
       <!-- 风车天路特色 -->
@@ -131,6 +156,7 @@ export default {
   data() {
     return {
       bannerList: [],
+      noticeBarIndex: 0,
       featureList: [
         {
           icon: "icon-Energy-",
@@ -295,6 +321,17 @@ export default {
         confirmText: "我知道了",
       });
     },
+    // 公告轮播切换
+    onNoticeSwiperChange(e) {
+      this.noticeBarIndex = e.detail.current;
+    },
+    // 点击公告轮播条，查看当前轮播到的公告详情
+    onNoticeBarClick() {
+      const item = this.noticeList[this.noticeBarIndex];
+      if (item) {
+        this.showNoticeDetail(item);
+      }
+    },
     // 跳转到预约页面
     goToBooking() {
       // 白名单用户不受「关闭预约」开关限制，直接进入预约页
@@ -381,6 +418,11 @@ export default {
 /* ===== 预约入口卡片 ===== */
 .booking-entry {
   padding: 30rpx 30rpx 80rpx;
+}
+
+/* 有公告轮播条时，由轮播条的 margin-top 预留按钮悬出空间 */
+.booking-entry.with-notice {
+  padding-bottom: 0;
 }
 
 .booking-card {
@@ -520,6 +562,51 @@ export default {
 .btn-arrow {
   font-size: 32rpx;
   color: #3F99F6;
+}
+
+/* ===== 公告轮播条 ===== */
+.notice-bar {
+  margin: 72rpx 30rpx 0;
+  display: flex;
+  align-items: center;
+  background: #FFF7E8;
+  border: 1rpx solid #FFD591;
+  border-radius: 16rpx;
+  padding: 14rpx 20rpx;
+  gap: 14rpx;
+}
+
+.notice-bar-icon {
+  width: 36rpx;
+  height: 36rpx;
+  flex-shrink: 0;
+}
+
+.notice-bar-swiper {
+  flex: 1;
+  height: 44rpx;
+}
+
+.notice-bar-item {
+  height: 44rpx;
+  display: flex;
+  align-items: center;
+}
+
+.notice-bar-text {
+  flex: 1;
+  font-size: 26rpx;
+  color: #ED6A0C;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notice-bar-more {
+  font-size: 32rpx;
+  color: #FFD591;
+  flex-shrink: 0;
+  line-height: 1;
 }
 
 /* 通用section */

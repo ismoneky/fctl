@@ -80,10 +80,38 @@ export function getAgeFreeStatusText(p) {
 		return '';
 	}
 	if (p.passengerType === 'child') {
-		return '7岁及以下，年龄免费';
+		return '13岁及以下，年龄免费';
 	}
 	if (p.passengerType === 'senior') {
 		return '70岁及以上，年龄免费';
 	}
 	return '';
+}
+
+/**
+ * 将订单 passengers 字符串/数组转换为模板可直接渲染的列表。
+ * 展示字段在数据层一次生成，避免 Vue Options API 模板调用未绑定的模块函数。
+ * @param {String|Array} passengers
+ * @param {Object} booking
+ * @returns {Array}
+ */
+export function normalizePassengerListForDisplay(passengers, booking) {
+	let rawList = passengers;
+	if (typeof rawList === 'string') {
+		try {
+			rawList = JSON.parse(rawList);
+		} catch (e) {
+			return [];
+		}
+	}
+	if (!Array.isArray(rawList)) return [];
+	return rawList.map((raw, index) => {
+		const passenger = normalizePassengerForDisplay(raw, booking);
+		return {
+			...passenger,
+			typeLabel: getPassengerTypeLabel(passenger.passengerType, index),
+			maskedIdCardText: maskIdCardText(passenger.idCard),
+			ageFreeStatusText: getAgeFreeStatusText(passenger),
+		};
+	});
 }

@@ -65,17 +65,13 @@
 						<text class="person-count-number">{{ formData.personCount }}</text>
 						<text class="person-count-unit">人</text>
 					</view>
-					<!-- 免费/收费人数（来自订单保存的计费快照） -->
-					<view class="detail-value person-count-summary" v-if="passengerList.length > 0">
-						免费 {{ freePeopleCount }} 人 · 收费 {{ chargedPeopleCount }} 人
-					</view>
 				</view>
 
 				<!-- 出行人员列表 -->
 				<view class="passenger-list" v-if="passengerList.length > 0">
 					<view class="passenger-item" v-for="(p, idx) in passengerList" :key="idx">
 						<view class="passenger-item-header">
-							<text class="passenger-item-tag">{{ getPassengerTypeLabel(p.passengerType, idx) }}</text>
+							<text class="passenger-item-tag">{{ p.typeLabel }}</text>
 							<text class="passenger-item-name">{{ p.name }}</text>
 						</view>
 						<view class="form-item passenger-sub-item">
@@ -85,11 +81,11 @@
 						<view class="form-item passenger-sub-item" style="margin-bottom:0">
 							<text class="label">身份证号</text>
 							<!-- 掩码展示；未提供身份证时显示「未提供」 -->
-							<view class="detail-value">{{ maskIdCardText(p.idCard) }}</view>
+							<view class="detail-value">{{ p.maskedIdCardText }}</view>
 						</view>
 						<!-- 计费状态：年龄免费（绿）/ 暂时无法投保（黄）/ 整单免费 / 正常收费 -->
 						<view class="passenger-status-tags">
-							<text v-if="getAgeFreeStatusText(p)" class="passenger-status-tag passenger-status-tag--free">{{ getAgeFreeStatusText(p) }}</text>
+							<text v-if="p.ageFreeStatusText" class="passenger-status-tag passenger-status-tag--free">{{ p.ageFreeStatusText }}</text>
 							<text v-if="p.idCardUnavailable" class="passenger-status-tag passenger-status-tag--warn">按正常价格收费 · 暂时无法投保</text>
 							<text v-if="!p.ageFree && !p.idCardUnavailable && !p.finalCharged" class="passenger-status-tag passenger-status-tag--free">整单免费</text>
 							<text v-if="!p.ageFree && !p.idCardUnavailable && p.finalCharged" class="passenger-status-tag passenger-status-tag--normal">正常收费</text>
@@ -229,12 +225,7 @@
 		request
 	} from '../../utils/request';
 	import { handlePayment } from '../../utils/payment';
-	import {
-		normalizePassengerForDisplay,
-		getPassengerTypeLabel,
-		getAgeFreeStatusText,
-		maskIdCardText,
-	} from '../../utils/passenger-display.js';
+	import { normalizePassengerListForDisplay } from '../../utils/passenger-display.js';
 
 	export default {
 		data() {
@@ -292,9 +283,10 @@
 				return this.passengerList.filter((p) => p.finalCharged === true).length;
 			}
 		},
-		onLoad(options) {
-			if (options.bookingId) {
-				this.getBookingDetail(options.bookingId);
+		onLoad(options = {}) {
+			const bookingId = options.bookingId || options.id;
+			if (bookingId) {
+				this.getBookingDetail(String(bookingId));
 			}
 		},
 		onShow() {
@@ -462,21 +454,10 @@
 					url: `/bookings/${bookingId}`
 				}).then(res => {
 					if (res.success && res.data) {
-						this.formData = res.data;
+						// 保留 Vue 已观察的 formData 对象，避免小程序端整体替换对象后视图不刷新。
+						Object.assign(this.formData, res.data);
 						// 解析出行人员列表
-						if (res.data.passengers) {
-							try {
-								const list = typeof res.data.passengers === 'string'
-									? JSON.parse(res.data.passengers)
-									: res.data.passengers;
-								this.passengerList = (Array.isArray(list) ? list : [])
-									.map((p) => normalizePassengerForDisplay(p, res.data));
-							} catch(e) {
-								this.passengerList = [];
-							}
-						} else {
-							this.passengerList = [];
-						}
+						this.passengerList = normalizePassengerListForDisplay(res.data.passengers, res.data);
 						this.startCountdown();
 						// 详情重新加载后，先清理上一条定时器链
 						this.clearDetailTimer();
@@ -502,7 +483,8 @@
 							url: `/bookings/${this.formData.bookingId}`
 						}).then(res => {
 							if (res.success && res.data) {
-								this.formData = res.data;
+								Object.assign(this.formData, res.data);
+								this.passengerList = normalizePassengerListForDisplay(res.data.passengers, res.data);
 								this.loopDetail();
 							}
 						})

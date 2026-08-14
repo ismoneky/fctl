@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import * as passengerPricing from '../utils/passenger-pricing.js';
 import {
 	calculateYearAge,
 	createAdultPassenger,
@@ -21,30 +22,57 @@ function makeIdCard(birth, seq = '001') {
 	return prefix + checkCodes[sum % 11];
 }
 
-// 预约 2026 年时：2019 年生 → 7 岁，2018 年生 → 8 岁，1956 年生 → 70 岁，1957 年生 → 69 岁
-const CHILD_7 = makeIdCard('20190101');
-const CHILD_8 = makeIdCard('20180101');
+// 预约 2026 年时：2013 年生 → 13 岁，2012 年生 → 14 岁，1956 年生 → 70 岁，1957 年生 → 69 岁
+const CHILD_13 = makeIdCard('20130101');
+const CHILD_14 = makeIdCard('20120101');
 const SENIOR_70 = makeIdCard('19560101');
 const SENIOR_69 = makeIdCard('19570101');
 
-test('calculateYearAge: 年龄边界 7/8/69/70', () => {
-	assert.equal(calculateYearAge(CHILD_7, '2026-08-13'), 7);
-	assert.equal(calculateYearAge(CHILD_8, '2026-08-13'), 8);
+test('calculateYearAge: 年龄边界 13/14/69/70', () => {
+	assert.equal(calculateYearAge(CHILD_13, '2026-08-13'), 13);
+	assert.equal(calculateYearAge(CHILD_14, '2026-08-13'), 14);
 	assert.equal(calculateYearAge(SENIOR_70, '2026-08-13'), 70);
 	assert.equal(calculateYearAge(SENIOR_69, '2026-08-13'), 69);
 });
 
 test('calculateYearAge: 跨年预约日期按年份重算', () => {
-	assert.equal(calculateYearAge(CHILD_7, '2026-12-31'), 7);
-	assert.equal(calculateYearAge(CHILD_7, '2027-01-01'), 8);
+	assert.equal(calculateYearAge(CHILD_13, '2026-12-31'), 13);
+	assert.equal(calculateYearAge(CHILD_13, '2027-01-01'), 14);
 });
 
 test('calculateYearAge: 日期为空或非法身份证返回 null', () => {
-	assert.equal(calculateYearAge(CHILD_7, ''), null);
-	assert.equal(calculateYearAge(CHILD_7, null), null);
-	assert.equal(calculateYearAge(CHILD_7, 'abc'), null);
+	assert.equal(calculateYearAge(CHILD_13, ''), null);
+	assert.equal(calculateYearAge(CHILD_13, null), null);
+	assert.equal(calculateYearAge(CHILD_13, 'abc'), null);
 	assert.equal(calculateYearAge('110101199013011234', '2026-08-13'), null);
 	assert.equal(calculateYearAge('', '2026-08-13'), null);
+});
+
+test('resolveEffectivePassengerType: 普通联系人/同行人按身份证年龄自动分类，显式类型保持不变', () => {
+	const childContact = { passengerType: 'adult', idCard: CHILD_13 };
+	const seniorCompanion = { passengerType: 'adult', idCard: SENIOR_70 };
+
+	assert.equal(passengerPricing.resolveEffectivePassengerType(childContact, '2026-08-13'), 'child');
+	assert.equal(passengerPricing.resolveEffectivePassengerType(seniorCompanion, '2026-08-13'), 'senior');
+	assert.equal(passengerPricing.resolveEffectivePassengerType({ passengerType: 'adult', idCard: CHILD_14 }, '2026-08-13'), 'adult');
+	assert.equal(passengerPricing.resolveEffectivePassengerType({ passengerType: 'child', idCard: CHILD_14 }, '2026-08-13'), 'child');
+	assert.equal(passengerPricing.resolveEffectivePassengerType({ passengerType: 'senior', idCard: SENIOR_69 }, '2026-08-13'), 'senior');
+	assert.equal(childContact.passengerType, 'adult');
+	assert.equal(seniorCompanion.passengerType, 'adult');
+});
+
+test('summarizePassengers: 有预约日期时按有效年龄类型汇总普通联系人和同行人', () => {
+	assert.deepEqual(
+		summarizePassengers(
+			[
+				{ passengerType: 'adult', idCard: CHILD_13 },
+				{ passengerType: 'adult', idCard: SENIOR_70 },
+				{ passengerType: 'adult', idCard: CHILD_14 },
+			],
+			'2026-08-13',
+		),
+		{ total: 3, adult: 1, child: 1, senior: 1, idCardUnavailable: 0 },
+	);
 });
 
 test('createAdultPassenger: 默认联系人结构', () => {
@@ -57,16 +85,16 @@ test('createAdultPassenger: 默认联系人结构', () => {
 });
 
 test('createAdultPassenger: seed 预填姓名/手机号/身份证，但类型强制为 adult', () => {
-	const p = createAdultPassenger({ name: '张三', phone: '13800000001', idCard: CHILD_7, passengerType: 'child', idCardUnavailable: true });
+	const p = createAdultPassenger({ name: '张三', phone: '13800000001', idCard: CHILD_13, passengerType: 'child', idCardUnavailable: true });
 	assert.equal(p.name, '张三');
 	assert.equal(p.phone, '13800000001');
-	assert.equal(p.idCard, CHILD_7);
+	assert.equal(p.idCard, CHILD_13);
 	assert.equal(p.passengerType, 'adult');
 	assert.equal(p.idCardUnavailable, false);
 });
 
 test('normalizePassenger: 旧乘客补 adult 字段与 finalCharged 默认值', () => {
-	const old = normalizePassenger({ name: '张三', phone: '13800000001', idCard: CHILD_7 });
+	const old = normalizePassenger({ name: '张三', phone: '13800000001', idCard: CHILD_13 });
 	assert.equal(old.passengerType, 'adult');
 	assert.equal(old.idCardUnavailable, false);
 	assert.equal(old.ageValue, null);
@@ -75,7 +103,7 @@ test('normalizePassenger: 旧乘客补 adult 字段与 finalCharged 默认值', 
 });
 
 test('normalizePassenger: 旧会员/每日免费订单 finalCharged=false', () => {
-	const free = normalizePassenger({ name: '张三', phone: '13800000001', idCard: CHILD_7 }, true);
+	const free = normalizePassenger({ name: '张三', phone: '13800000001', idCard: CHILD_13 }, true);
 	assert.equal(free.finalCharged, false);
 });
 
@@ -83,16 +111,16 @@ test('normalizePassenger: 新快照字段透传', () => {
 	const snap = normalizePassenger({
 		name: '儿童',
 		phone: '13800000002',
-		idCard: CHILD_7,
+		idCard: CHILD_13,
 		passengerType: 'child',
 		idCardUnavailable: false,
-		ageValue: 7,
+		ageValue: 13,
 		ageFree: true,
 		finalCharged: false,
 		pricingReason: 'child_age_free',
 	});
 	assert.equal(snap.passengerType, 'child');
-	assert.equal(snap.ageValue, 7);
+	assert.equal(snap.ageValue, 13);
 	assert.equal(snap.ageFree, true);
 	assert.equal(snap.finalCharged, false);
 	assert.equal(snap.pricingReason, 'child_age_free');
@@ -125,11 +153,11 @@ test('normalizePassenger: 空对象与 undefined 兜底', () => {
 	assert.equal(p.idCardUnavailable, false);
 });
 
-test('getPassengerTypeError: 儿童 7 岁通过、8 岁报类型不符', () => {
-	assert.equal(getPassengerTypeError({ passengerType: 'child', idCard: CHILD_7 }, '2026-08-13'), '');
+test('getPassengerTypeError: 儿童 13 岁通过、14 岁报类型不符', () => {
+	assert.equal(getPassengerTypeError({ passengerType: 'child', idCard: CHILD_13 }, '2026-08-13'), '');
 	assert.equal(
-		getPassengerTypeError({ passengerType: 'child', idCard: CHILD_8 }, '2026-08-13'),
-		'身份证年龄不符合7岁及以下儿童条件',
+		getPassengerTypeError({ passengerType: 'child', idCard: CHILD_14 }, '2026-08-13'),
+		'身份证年龄不符合13岁及以下儿童条件',
 	);
 });
 
@@ -138,7 +166,7 @@ test('getPassengerTypeError: 未来出生年份（校验码正确）报类型不
 	assert.equal(calculateYearAge(future, '2026-08-13'), -4);
 	assert.equal(
 		getPassengerTypeError({ passengerType: 'child', idCard: future }, '2026-08-13'),
-		'身份证年龄不符合7岁及以下儿童条件',
+		'身份证年龄不符合13岁及以下儿童条件',
 	);
 	assert.equal(
 		getPassengerTypeError({ passengerType: 'senior', idCard: future }, '2026-08-13'),
@@ -155,12 +183,12 @@ test('getPassengerTypeError: 老人 70 岁通过、69 岁报类型不符', () =>
 });
 
 test('getPassengerTypeError: 预约日期为空时不产生类型错误', () => {
-	assert.equal(getPassengerTypeError({ passengerType: 'child', idCard: CHILD_8 }, ''), '');
+	assert.equal(getPassengerTypeError({ passengerType: 'child', idCard: CHILD_14 }, ''), '');
 	assert.equal(getPassengerTypeError({ passengerType: 'senior', idCard: SENIOR_69 }, ''), '');
 });
 
 test('getPassengerTypeError: 成人、无身份证、身份证不合法均不报类型错误', () => {
-	assert.equal(getPassengerTypeError({ passengerType: 'adult', idCard: CHILD_7 }, '2026-08-13'), '');
+	assert.equal(getPassengerTypeError({ passengerType: 'adult', idCard: CHILD_13 }, '2026-08-13'), '');
 	assert.equal(
 		getPassengerTypeError({ passengerType: 'child', idCard: '', idCardUnavailable: true }, '2026-08-13'),
 		'',
@@ -182,7 +210,7 @@ test('getPassengerLimit: 与后端一致的 2/7/10 口径（摆渡车等不受 v
 test('summarizePassengers: 各类人员汇总与无身份证计数', () => {
 	const summary = summarizePassengers([
 		{ name: '张三', passengerType: 'adult' },
-		{ name: '儿童', passengerType: 'child', idCard: CHILD_7 },
+		{ name: '儿童', passengerType: 'child', idCard: CHILD_13 },
 		{ name: '儿童乙', passengerType: 'child', idCardUnavailable: true },
 		{ name: '老人', passengerType: 'senior', idCard: SENIOR_70 },
 	]);
@@ -197,4 +225,24 @@ test('summarizePassengers: 旧数据缺失类型按 adult 汇总', () => {
 test('summarizePassengers: 空数组与非数组兜底', () => {
 	assert.deepEqual(summarizePassengers([]), { total: 0, adult: 0, child: 0, senior: 0, idCardUnavailable: 0 });
 	assert.deepEqual(summarizePassengers(null), { total: 0, adult: 0, child: 0, senior: 0, idCardUnavailable: 0 });
+});
+
+test('removePassengerByKey: 删除同行人并清理该人员的匹配状态', () => {
+	assert.equal(typeof passengerPricing.removePassengerByKey, 'function');
+	const passengers = [
+		{ _key: 'contact', name: '联系人' },
+		{ _key: 'companion', name: '同行人' },
+	];
+	const profileMatchesByKey = {
+		contact: [{ profileId: 'profile-contact' }],
+		companion: [{ profileId: 'profile-companion' }],
+	};
+
+	const removed = passengerPricing.removePassengerByKey(passengers, profileMatchesByKey, 'companion');
+
+	assert.equal(removed, true);
+	assert.deepEqual(passengers, [{ _key: 'contact', name: '联系人' }]);
+	assert.deepEqual(profileMatchesByKey, {
+		contact: [{ profileId: 'profile-contact' }],
+	});
 });

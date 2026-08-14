@@ -12,8 +12,8 @@ export const PASSENGER_TYPES = {
 	SENIOR: 'senior',
 };
 
-/** 儿童年龄免费边界：年龄值 <= 7 */
-export const CHILD_MAX_AGE = 7;
+/** 儿童年龄免费边界：年龄值 <= 13 */
+export const CHILD_MAX_AGE = 13;
 /** 老人年龄免费边界：年龄值 >= 70 */
 export const SENIOR_MIN_AGE = 70;
 
@@ -95,6 +95,26 @@ export function calculateYearAge(idCard, bookingDate) {
 }
 
 /**
+ * 解析实际用于展示和计费的年龄类型。
+ * child/senior 表示用户显式选择，保持原类型；兼容值 adult 表示未显式选择，
+ * 此时根据合法身份证与预约年份自动识别儿童/老人。
+ * @param {Object} passenger
+ * @param {String} bookingDate
+ * @returns {'adult'|'child'|'senior'}
+ */
+export function resolveEffectivePassengerType(passenger, bookingDate) {
+	const p = passenger || {};
+	if (p.passengerType === PASSENGER_TYPES.CHILD || p.passengerType === PASSENGER_TYPES.SENIOR) {
+		return p.passengerType;
+	}
+	const age = calculateYearAge(p.idCard, bookingDate);
+	if (age === null || age < 0) return PASSENGER_TYPES.ADULT;
+	if (age <= CHILD_MAX_AGE) return PASSENGER_TYPES.CHILD;
+	if (age >= SENIOR_MIN_AGE) return PASSENGER_TYPES.SENIOR;
+	return PASSENGER_TYPES.ADULT;
+}
+
+/**
  * 人员类型与年龄一致性错误（即时 UI 提示）。
  * 预约日期未选、成人、无身份证或身份证未通过校验时不产生类型错误；
  * 类型与年龄不符时返回对应提示，由页面阻止提交，不静默改为普通收费。
@@ -119,7 +139,7 @@ export function getPassengerTypeError(passenger, bookingDate) {
 	}
 	// 年龄值为负（出生年份晚于预约年份）属于无效身份/类型组合，必须报类型不符
 	if (type === PASSENGER_TYPES.CHILD && (age < 0 || age > CHILD_MAX_AGE)) {
-		return '身份证年龄不符合7岁及以下儿童条件';
+		return '身份证年龄不符合13岁及以下儿童条件';
 	}
 	if (type === PASSENGER_TYPES.SENIOR && age < SENIOR_MIN_AGE) {
 		return '身份证年龄不符合70岁及以上老人条件';
@@ -132,14 +152,15 @@ export function getPassengerTypeError(passenger, bookingDate) {
  * @param {Array} passengers
  * @returns {{total: number, adult: number, child: number, senior: number, idCardUnavailable: number}}
  */
-export function summarizePassengers(passengers) {
+export function summarizePassengers(passengers, bookingDate = '') {
 	const list = Array.isArray(passengers) ? passengers : [];
 	const summary = { total: list.length, adult: 0, child: 0, senior: 0, idCardUnavailable: 0 };
 	for (const raw of list) {
 		const p = normalizePassenger(raw);
-		if (p.passengerType === PASSENGER_TYPES.CHILD) {
+		const effectiveType = resolveEffectivePassengerType(p, bookingDate);
+		if (effectiveType === PASSENGER_TYPES.CHILD) {
 			summary.child += 1;
-		} else if (p.passengerType === PASSENGER_TYPES.SENIOR) {
+		} else if (effectiveType === PASSENGER_TYPES.SENIOR) {
 			summary.senior += 1;
 		} else {
 			summary.adult += 1;
@@ -149,4 +170,23 @@ export function summarizePassengers(passengers) {
 		}
 	}
 	return summary;
+}
+
+/**
+ * 按 UI 稳定 key 删除同行人，并同步清理该人员的常用信息匹配状态。
+ * 联系人固定为首位，不允许通过此函数删除。
+ * @param {Array} passengers
+ * @param {Object} profileMatchesByKey
+ * @param {String} key
+ * @returns {Boolean} 是否成功删除
+ */
+export function removePassengerByKey(passengers, profileMatchesByKey, key) {
+	if (!Array.isArray(passengers)) return false;
+	const idx = passengers.findIndex((p) => p && p._key === key);
+	if (idx <= 0) return false;
+	passengers.splice(idx, 1);
+	if (profileMatchesByKey && typeof profileMatchesByKey === 'object') {
+		delete profileMatchesByKey[key];
+	}
+	return true;
 }

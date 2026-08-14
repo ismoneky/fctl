@@ -168,7 +168,7 @@
       </view>
 
       <!-- 联系方式 -->
-      <text class="contact-tip">如有问题可直接联系：18639220123</text>
+      <text class="contact-tip">如有问题可直接联系：0392-6878889，15670077072</text>
     </view>
     <my-tab-bar :current="2"></my-tab-bar>
   </view>

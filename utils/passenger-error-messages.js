@@ -8,7 +8,7 @@ const PASSENGER_ERROR_MESSAGES = {
 	PASSENGER_TYPE_AGE_MISMATCH: '身份证年龄与所选人员类型不符，请检查或切换类型',
 	PASSENGER_COUNT_MISMATCH: '预约人数与人员列表不一致，请刷新后重试',
 	PASSENGER_LIMIT_EXCEEDED: '当前车型最多可预约该人数，请删除多余出行人',
-	PASSENGER_CONTACT_INVALID: '联系人必须为成年人并填写有效身份证号',
+	PASSENGER_CONTACT_INVALID: '联系人必须填写有效身份证号',
 	PASSENGER_ID_CARD_UNAVAILABLE_NOT_ALLOWED: '该人员类型必须填写身份证号',
 };
 

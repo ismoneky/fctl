@@ -36,6 +36,10 @@ test('不同错误码映射为不同文案', () => {
     assert.equal(set.size, 7);
 });
 
+test('联系人错误不再包含成年人限制', () => {
+    assert.equal(getPassengerErrorMessage('PASSENGER_CONTACT_INVALID'), '联系人必须填写有效身份证号');
+});
+
 test('未知 code 返回后端 message fallback', () => {
     assert.equal(getPassengerErrorMessage('UNKNOWN_CODE', '后端原始错误文案'), '后端原始错误文案');
 });

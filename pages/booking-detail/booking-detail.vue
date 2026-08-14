@@ -24,7 +24,7 @@
 				<view class="status-bar-info">
 					<text class="status-bar-label">{{ formData.isFree ? '免费预约' : '待使用' }}</text>
 					<text class="status-bar-desc" v-if="formData.isFree">
-						{{ formData.freeReason === 'member' ? '月卡会员免费预约，凭预约码入场' : '每日免费预约成功，凭预约码入场' }}
+						{{ formData.freeReason === 'member' ? '月卡会员免费预约，凭预约码入场' : (formData.freeReason === 'age' ? '儿童/老人年龄免费预约，凭预约码入场' : '每日免费预约成功，凭预约码入场') }}
 					</text>
 					<text class="status-bar-desc" v-else>预约成功，凭预约码入场</text>
 				</view>
@@ -65,13 +65,17 @@
 						<text class="person-count-number">{{ formData.personCount }}</text>
 						<text class="person-count-unit">人</text>
 					</view>
+					<!-- 免费/收费人数（来自订单保存的计费快照） -->
+					<view class="detail-value person-count-summary" v-if="passengerList.length > 0">
+						免费 {{ freePeopleCount }} 人 · 收费 {{ chargedPeopleCount }} 人
+					</view>
 				</view>
 
 				<!-- 出行人员列表 -->
 				<view class="passenger-list" v-if="passengerList.length > 0">
 					<view class="passenger-item" v-for="(p, idx) in passengerList" :key="idx">
 						<view class="passenger-item-header">
-							<text class="passenger-item-tag">{{ idx === 0 ? '联系人' : `第${idx + 1}位` }}</text>
+							<text class="passenger-item-tag">{{ getPassengerTypeLabel(p.passengerType, idx) }}</text>
 							<text class="passenger-item-name">{{ p.name }}</text>
 						</view>
 						<view class="form-item passenger-sub-item">
@@ -80,7 +84,15 @@
 						</view>
 						<view class="form-item passenger-sub-item" style="margin-bottom:0">
 							<text class="label">身份证号</text>
-							<view class="detail-value">{{ p.idCard }}</view>
+							<!-- 掩码展示；未提供身份证时显示「未提供」 -->
+							<view class="detail-value">{{ maskIdCardText(p.idCard) }}</view>
+						</view>
+						<!-- 计费状态：年龄免费（绿）/ 暂时无法投保（黄）/ 整单免费 / 正常收费 -->
+						<view class="passenger-status-tags">
+							<text v-if="getAgeFreeStatusText(p)" class="passenger-status-tag passenger-status-tag--free">{{ getAgeFreeStatusText(p) }}</text>
+							<text v-if="p.idCardUnavailable" class="passenger-status-tag passenger-status-tag--warn">按正常价格收费 · 暂时无法投保</text>
+							<text v-if="!p.ageFree && !p.idCardUnavailable && !p.finalCharged" class="passenger-status-tag passenger-status-tag--free">整单免费</text>
+							<text v-if="!p.ageFree && !p.idCardUnavailable && p.finalCharged" class="passenger-status-tag passenger-status-tag--normal">正常收费</text>
 						</view>
 					</view>
 				</view>
@@ -109,7 +121,11 @@
 				<!-- 免费来源 -->
 				<view class="form-item" v-if="formData.isFree">
 					<text class="label">免费来源</text>
-					<view class="detail-value">{{ formData.freeReason === 'member' ? '月卡会员免费' : '每日免费名额' }}</view>
+					<view class="detail-value">
+						<text v-if="formData.freeReason === 'member'">月卡会员免费</text>
+						<text v-else-if="formData.freeReason === 'age'">儿童/老人年龄免费</text>
+						<text v-else>每日免费名额</text>
+					</view>
 				</view>
 
 				<!-- 预约时间段（隐藏展示，字段保留） -->
@@ -213,6 +229,12 @@
 		request
 	} from '../../utils/request';
 	import { handlePayment } from '../../utils/payment';
+	import {
+		normalizePassengerForDisplay,
+		getPassengerTypeLabel,
+		getAgeFreeStatusText,
+		maskIdCardText,
+	} from '../../utils/passenger-display.js';
 
 	export default {
 		data() {
@@ -260,6 +282,14 @@
 				return !!(this.formData.isFree
 					&& this.formData.freeReason === 'member'
 					&& this.formData.vehicleType === 'wheelMotorcycle');
+			},
+			// 免费人数（finalCharged=false，含整单免费与年龄免费）
+			freePeopleCount() {
+				return this.passengerList.filter((p) => p.finalCharged === false).length;
+			},
+			// 收费人数（finalCharged=true）
+			chargedPeopleCount() {
+				return this.passengerList.filter((p) => p.finalCharged === true).length;
 			}
 		},
 		onLoad(options) {
@@ -439,7 +469,8 @@
 								const list = typeof res.data.passengers === 'string'
 									? JSON.parse(res.data.passengers)
 									: res.data.passengers;
-								this.passengerList = Array.isArray(list) ? list : [];
+								this.passengerList = (Array.isArray(list) ? list : [])
+									.map((p) => normalizePassengerForDisplay(p, res.data));
 							} catch(e) {
 								this.passengerList = [];
 							}
@@ -739,6 +770,36 @@
 		font-size: 32rpx;
 		font-weight: 600;
 		color: #2F6E8E;
+	}
+	.person-count-summary {
+		margin-top: 8rpx;
+		font-size: 24rpx;
+		color: #888;
+	}
+
+	/* 人员计费状态标签 */
+	.passenger-status-tags {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 10rpx;
+		margin-top: 14rpx;
+	}
+	.passenger-status-tag {
+		font-size: 22rpx;
+		border-radius: 8rpx;
+		padding: 4rpx 14rpx;
+	}
+	.passenger-status-tag--free {
+		color: #2e9e5b;
+		background: #e8f7ee;
+	}
+	.passenger-status-tag--warn {
+		color: #a0761a;
+		background: #fff8e1;
+	}
+	.passenger-status-tag--normal {
+		color: #888;
+		background: #f2f3f5;
 	}
 
 	/* 出行人员列表 */

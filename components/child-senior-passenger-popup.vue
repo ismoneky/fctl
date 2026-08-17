@@ -1,10 +1,11 @@
 <template>
-	<view v-if="visible">
-		<!-- 半透明遮罩 -->
-		<view class="cs-mask" v-if="visible" @click="handleClose"></view>
+	<!-- 根节点常驻，避免组件本身参与页面节点切换；未打开时不挂载弹窗内容，规避 iOS 隐藏节点渲染异常。 -->
+	<view>
+		<!-- 半透明遮罩：仅在打开时挂载，避免透明遮罩拦截页面交互 -->
+		<view v-if="visible" class="cs-mask" @click="handleClose"></view>
 
-		<!-- 底部弹窗 -->
-		<view class="cs-popup" :class="{ 'cs-popup--show': visible }">
+		<!-- 底部弹窗：仅在打开时挂载，保留组件本身及后续功能代码 -->
+		<view v-if="visible" class="cs-popup cs-popup--show">
 			<view class="cs-header">
 				<text class="cs-title">添加同行儿童/老人</text>
 				<text class="cs-close" @click="handleClose">×</text>
@@ -306,16 +307,13 @@ export default {
 	border-radius: 32rpx 32rpx 0 0;
 	box-shadow: 0 -8rpx 40rpx rgba(0, 0, 0, 0.15);
 	z-index: 201;
-	transform: translateY(100%);
-	transition: transform 0.3s ease;
-	max-height: 80vh;
+	transform: translateY(0);
+	/* 固定高度：iOS WKWebView 对不定高 flex 子项撑开计算为 0，导致弹窗中间内容空白 */
+	height: 80vh;
 	display: flex;
 	flex-direction: column;
 	padding-bottom: env(safe-area-inset-bottom);
-}
-
-.cs-popup--show {
-	transform: translateY(0);
+	box-sizing: border-box;
 }
 
 .cs-header {
@@ -342,6 +340,7 @@ export default {
 .cs-body {
 	flex: 1;
 	overflow: hidden;
+	/* flex 撑开写法：父容器已有固定高度，此处的 height:0 让 flex:1 接管实际高度 */
 	height: 0;
 	padding: 0 40rpx;
 	box-sizing: border-box;

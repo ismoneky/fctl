@@ -257,12 +257,18 @@ export default {
         },
         bookAgain(item) {
             this.checkEnabled(() => {
-               uni.navigateTo({ url: `/pages/booking-form/booking-form?bookingId=${item.bookingId}`});
+               // 推迟跳转：tap 内同步 navigateTo 会让 iOS clickCheckTask 拿到已销毁的节点链而报错
+               setTimeout(() => {
+                   uni.navigateTo({ url: `/pages/booking-form/booking-form?bookingId=${item.bookingId}`});
+               }, 60);
             })
         },
         goToHome() {
             this.checkEnabled(() => {
-                uni.navigateTo({ url: "/pages/booking-form/booking-form" });
+                // 推迟跳转：同上，规避 iOS clickCheckTask
+                setTimeout(() => {
+                    uni.navigateTo({ url: "/pages/booking-form/booking-form" });
+                }, 60);
             })
         },
         checkEnabled(callback) {

@@ -12,6 +12,13 @@ export const PASSENGER_TYPES = {
 	SENIOR: 'senior',
 };
 
+/**
+ * 年龄免费总开关：false 时儿童/老人一律正常收费（自动分类仅用于打标展示），
+ * 会员/每日名额整单免费不受影响。与后端 nest/src/modules/booking/passenger-pricing.ts
+ * 的 AGE_FREE_ENABLED 保持一致；金额以后端 preview 返回为准，本开关只影响 UI 文案。
+ */
+export const AGE_FREE_ENABLED = false;
+
 /** 儿童年龄免费边界：年龄值 <= 13 */
 export const CHILD_MAX_AGE = 13;
 /** 老人年龄免费边界：年龄值 >= 70 */

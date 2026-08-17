@@ -73,7 +73,7 @@
         >
           <swiper-item v-for="(item, index) in noticeList" :key="index">
             <view class="notice-bar-item">
-              <text class="notice-bar-text">{{ item.content }}</text>
+              <text class="notice-bar-text">{{ item.oneline }}</text>
             </view>
           </swiper-item>
         </swiper>
@@ -298,11 +298,20 @@ export default {
           if (res.success && Array.isArray(res.data)) {
             this.noticeList = res.data.map((item) => ({
               content: item.content,
+              // 轮播条单行展示：折叠换行为空格（text 组件对 \n 是组件级换行，CSS nowrap 管不住）
+              oneline: this.toOnelineNotice(item.content),
               time: this.formatNoticeDate(item.updatedAt),
             }));
           }
         })
         .catch(() => {});
+    },
+    // 公告单行化：换行/连续空白折叠为一个空格
+    toOnelineNotice(text) {
+      return String(text || "")
+        .replace(/[\r\n]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
     },
     // 格式化公告日期为 MM-DD
     formatNoticeDate(dateStr) {
@@ -336,7 +345,10 @@ export default {
     goToBooking() {
       // 白名单用户不受「关闭预约」开关限制，直接进入预约页
       if (isWhitelistedUser()) {
-        uni.navigateTo({ url: "/pages/booking-form/booking-form" });
+        // 推迟跳转：tap 内同步 navigateTo 会让 iOS clickCheckTask 拿到已销毁的节点链而报错
+        setTimeout(() => {
+          uni.navigateTo({ url: "/pages/booking-form/booking-form" });
+        }, 60);
         return;
       }
       uni.showLoading({ title: "加载中..." });
@@ -585,16 +597,20 @@ export default {
 .notice-bar-swiper {
   flex: 1;
   height: 44rpx;
+  overflow: hidden;
 }
 
 .notice-bar-item {
   height: 44rpx;
   display: flex;
   align-items: center;
+  overflow: hidden;
 }
 
 .notice-bar-text {
   flex: 1;
+  height: 44rpx;
+  line-height: 44rpx;
   font-size: 26rpx;
   color: #ED6A0C;
   overflow: hidden;

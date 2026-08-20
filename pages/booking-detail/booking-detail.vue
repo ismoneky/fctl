@@ -206,9 +206,13 @@
 					</view>
 					<text class="qr-booking-id">订单号：{{ formData.bookingId }}</text>
 				</view>
-				<!-- 免费订单不支持退款，隐藏退款按钮 -->
-				<view class="action-bar" v-if="!formData.isFree">
-					<view class="refund-btn" @tap="onRefund">申请退款</view>
+				<!-- 导航前往（免费订单不支持退款，仅显示导航按钮） -->
+				<view class="action-bar action-bar--row">
+					<view class="nav-btn" @tap="goToScenic">
+						<image class="nav-btn-icon" src="/static/svg/location-white.svg" mode="aspectFit" />
+						<text>导航前往</text>
+					</view>
+					<view class="refund-btn" v-if="!formData.isFree" @tap="onRefund">申请退款</view>
 				</view>
 			</view>
 
@@ -225,6 +229,7 @@
 		request
 	} from '../../utils/request';
 	import { handlePayment } from '../../utils/payment';
+	import { SCENIC_LOCATION } from '../../utils/scenic-location.js';
 	import { normalizePassengerListForDisplay } from '../../utils/passenger-display.js';
 
 	export default {
@@ -396,6 +401,16 @@
 					.finally(() => {
 						this.paymentLaunching = false;
 					});
+			},
+			// 导航前往景区（微信内置地图，支持导航）
+			goToScenic() {
+				uni.openLocation({
+					latitude: SCENIC_LOCATION.latitude,
+					longitude: SCENIC_LOCATION.longitude,
+					name: SCENIC_LOCATION.name,
+					address: SCENIC_LOCATION.address,
+					scale: SCENIC_LOCATION.scale
+				});
 			},
 			onRefund() {
 				this._throttle(() => { this._doRefund(); });
@@ -980,5 +995,35 @@
 		font-weight: bold;
 		border-radius: 45rpx;
 		border: 2rpx solid #f5515f;
+	}
+
+	/* 已确认订单操作栏：导航 + 退款并列 */
+	.action-bar--row {
+		display: flex;
+		gap: 20rpx;
+	}
+
+	.nav-btn {
+		flex: 1.4;
+		height: 90rpx;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 10rpx;
+		background: linear-gradient(135deg, #3F99F6 0%, #2F6E8E 100%);
+		color: #fff;
+		font-size: 32rpx;
+		font-weight: bold;
+		border-radius: 45rpx;
+		box-shadow: 0 8rpx 24rpx rgba(63, 153, 246, 0.3);
+	}
+
+	.nav-btn-icon {
+		width: 34rpx;
+		height: 34rpx;
+	}
+
+	.action-bar--row .refund-btn {
+		flex: 1;
 	}
 </style>

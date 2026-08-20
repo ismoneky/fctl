@@ -77,7 +77,7 @@
 		<text class="section-body">我们保留修改本协议的权利，修改后将在小程序内公告。继续使用本小程序视为您接受修订后的协议。</text>
 
 		<text class="section-title">九、联系方式</text>
-		<text class="section-body">服务电话：18639220123（工作时间 09:00-18:00）{{ '\n' }}运营主体：河南省云玺旅游有限公司</text>
+		<text class="section-body">服务电话：15670077072，0392-6878889（工作时间 09:00-18:00）{{ '\n' }}运营主体：河南省云玺旅游有限公司</text>
 
 		<text class="doc-footer">本协议最终解释权归河南省云玺旅游有限公司所有。</text>
 	</scroll-view>

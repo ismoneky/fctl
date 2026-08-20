@@ -23,7 +23,7 @@
       </view>
 
       <!-- 立即预约入口 -->
-      <view class="booking-entry" :class="{ 'with-notice': noticeList.length > 0 }">
+      <view class="booking-entry">
         <view class="booking-card">
           <view class="booking-top">
             <view class="booking-info">
@@ -53,6 +53,13 @@
             <image class="action-chevron-svg" src="/static/svg/chevron-right.svg" mode="aspectFit" />
           </view>
         </view>
+      </view>
+
+      <!-- 景区位置导航条 -->
+      <view class="location-bar" @click="openScenicLocation">
+        <image class="location-bar-icon" src="/static/svg/location.svg" mode="aspectFit" />
+        <text class="location-bar-text">{{ scenicLocation.name }}</text>
+        <text class="location-bar-nav">导航 ›</text>
       </view>
 
       <!-- 公告轮播条 -->
@@ -149,6 +156,7 @@
 import myTabBar from "../../components/my-tab-bar.vue";
 import { request } from "../../utils/request.js";
 import { isWhitelistedUser } from "../../utils/whitelist.js";
+import { SCENIC_LOCATION } from "../../utils/scenic-location.js";
 export default {
   components: {
     myTabBar,
@@ -157,6 +165,7 @@ export default {
     return {
       bannerList: [],
       noticeBarIndex: 0,
+      scenicLocation: SCENIC_LOCATION,
       featureList: [
         {
           icon: "icon-Energy-",
@@ -341,6 +350,16 @@ export default {
         this.showNoticeDetail(item);
       }
     },
+    // 打开景区位置（微信内置地图，支持导航）
+    openScenicLocation() {
+      uni.openLocation({
+        latitude: this.scenicLocation.latitude,
+        longitude: this.scenicLocation.longitude,
+        name: this.scenicLocation.name,
+        address: this.scenicLocation.address,
+        scale: this.scenicLocation.scale
+      });
+    },
     // 跳转到预约页面
     goToBooking() {
       // 白名单用户不受「关闭预约」开关限制，直接进入预约页
@@ -428,13 +447,43 @@ export default {
 }
 
 /* ===== 预约入口卡片 ===== */
+/* 位置导航条常驻，由其 margin-top 预留「立即预约」按钮悬出空间 */
 .booking-entry {
-  padding: 30rpx 30rpx 80rpx;
+  padding: 30rpx 30rpx 0;
 }
 
-/* 有公告轮播条时，由轮播条的 margin-top 预留按钮悬出空间 */
-.booking-entry.with-notice {
-  padding-bottom: 0;
+/* ===== 景区位置导航条 ===== */
+.location-bar {
+  margin: 72rpx 30rpx 0;
+  display: flex;
+  align-items: center;
+  background: #EAF6FF;
+  border: 1rpx solid #B3DCF9;
+  border-radius: 16rpx;
+  padding: 14rpx 20rpx;
+  gap: 14rpx;
+}
+
+.location-bar-icon {
+  width: 34rpx;
+  height: 34rpx;
+  flex-shrink: 0;
+}
+
+.location-bar-text {
+  flex: 1;
+  font-size: 26rpx;
+  color: #2F6E8E;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.location-bar-nav {
+  font-size: 26rpx;
+  font-weight: bold;
+  color: #3F99F6;
+  flex-shrink: 0;
 }
 
 .booking-card {
@@ -578,7 +627,7 @@ export default {
 
 /* ===== 公告轮播条 ===== */
 .notice-bar {
-  margin: 72rpx 30rpx 0;
+  margin: 20rpx 30rpx 0;
   display: flex;
   align-items: center;
   background: #FFF7E8;

@@ -42,20 +42,8 @@
 					<text class="cs-error" v-if="errors.name">{{ errors.name }}</text>
 				</view>
 
-				<!-- 手机号：新增模式且默认手机号有效时自动带入 -->
-				<view class="cs-field">
-					<text class="cs-label">手机号码</text>
-					<input
-						class="cs-input"
-						v-model="draft.phone"
-						type="number"
-						placeholder="默认使用联系人手机号"
-						maxlength="11"
-						placeholder-class="cs-placeholder"
-						@input="clearError('phone')"
-					/>
-					<text class="cs-error" v-if="errors.phone">{{ errors.phone }}</text>
-				</view>
+				<!-- 手机号已移除：本弹窗只用于同行儿童/老人，同行人不填写手机号，
+				     提交时由页面统一补主出行人的号码；draft.phone 仅为保持提交结构不变而保留 -->
 
 				<!-- 身份证号：复用已落地的归一化与错误分类 -->
 				<view class="cs-field">
@@ -115,7 +103,7 @@ export default {
 			type: String,
 			default: '',
 		},
-		/** 联系人手机号（仅在有效时带入新增表单） */
+		/** 主出行人手机号（同行人不填写手机号，此处仅内部保留以维持提交结构不变，界面不展示） */
 		defaultPhone: {
 			type: String,
 			default: '',
@@ -139,7 +127,6 @@ export default {
 			errors: {
 				type: '',
 				name: '',
-				phone: '',
 				idCard: '',
 				age: '',
 			},
@@ -169,9 +156,9 @@ export default {
 		},
 	},
 	methods: {
-		// 打开时初始化草稿：编辑回填全部状态；新增只带入有效的联系人手机号
+		// 打开时初始化草稿：编辑回填全部状态；新增带入有效的主出行人手机号（仅内部保留，界面不展示）
 		resetDraft() {
-			this.errors = { type: '', name: '', phone: '', idCard: '', age: '' };
+			this.errors = { type: '', name: '', idCard: '', age: '' };
 			if (this.mode === 'edit' && this.passenger) {
 				const p = this.passenger;
 				this.draft = {
@@ -219,9 +206,9 @@ export default {
 				this.bookingDate || '',
 			);
 		},
-		// 确认校验顺序：类型 → 姓名 → 手机号 → 身份证/暂时无法提供 → 年龄与类型
+		// 确认校验顺序：类型 → 姓名 → 身份证/暂时无法提供 → 年龄与类型（手机号已不在此弹窗校验）
 		validate() {
-			this.errors = { type: '', name: '', phone: '', idCard: '', age: '' };
+			this.errors = { type: '', name: '', idCard: '', age: '' };
 			const d = this.draft;
 
 			if (d.passengerType !== 'child' && d.passengerType !== 'senior') {
@@ -232,16 +219,6 @@ export default {
 			const name = (d.name || '').trim();
 			if (!name) {
 				this.errors.name = '请输入真实姓名';
-				return false;
-			}
-
-			const phone = (d.phone || '').trim();
-			if (!phone) {
-				this.errors.phone = '请输入手机号码';
-				return false;
-			}
-			if (!validatePhone(phone)) {
-				this.errors.phone = '请输入正确的手机号码';
 				return false;
 			}
 

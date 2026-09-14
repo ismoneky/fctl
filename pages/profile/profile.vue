@@ -116,6 +116,14 @@
       <!-- 功能菜单 -->
       <view class="menu-section">
         <view class="menu-group">
+          <view class="menu-item" @click="goToMessages">
+            <view class="menu-left">
+              <image class="menu-icon-svg" src="/static/svg/xiaoxi.svg" mode="aspectFit" />
+              <text class="menu-text">消息中心</text>
+              <view v-if="unreadCount > 0" class="badge">{{ unreadText }}</view>
+            </view>
+            <text class="menu-arrow">›</text>
+          </view>
           <!-- <view class="menu-item" @click="goToBooking(0)">
             <view class="menu-left">
               <image class="menu-icon-svg" src="/static/svg/tab-booking-dark.svg" mode="aspectFit" />
@@ -170,13 +178,14 @@
       <!-- 联系方式 -->
       <text class="contact-tip">如有问题可直接联系：0392-6878889，15670077072</text>
     </view>
-    <my-tab-bar :current="2"></my-tab-bar>
+    <my-tab-bar :current="2" :unread="unreadCount"></my-tab-bar>
   </view>
 </template>
 
 <script>
 import myTabBar from "@/components/my-tab-bar.vue";
 import { request } from "@/utils/request.js";
+import { fetchUnreadCount, getCachedUnreadCount } from "@/utils/message-center.js";
 export default {
   components: {
     myTabBar,
@@ -184,6 +193,8 @@ export default {
   data() {
     return {
       isAdmin: false,
+      // 消息中心入口的未读数字（tab 上的小红点用同一个值）
+      unreadCount: getCachedUnreadCount(),
       avatarTapCount: 0,
       avatarTapTimer: null,
       applyModal: {
@@ -213,9 +224,16 @@ export default {
       couponCount: 3,
     };
   },
+  computed: {
+    /** 超过 99 就不再显示具体数字：气泡宽度会撑破图标位，且用户不关心是 103 还是 108 */
+    unreadText() {
+      return this.unreadCount > 99 ? "99+" : String(this.unreadCount);
+    },
+  },
   onShow() {
     this.isAdmin = uni.getStorageSync("isAdmin") === true;
     this.refreshData();
+    this.refreshUnread();
   },
   // 分享给好友
   onShareAppMessage() {
@@ -249,6 +267,20 @@ export default {
           }
         })
         .catch(() => {});
+    },
+    /**
+     * 刷新未读数（30 秒节流，见 utils/message-center.js）。
+     *
+     * 从消息中心返回时也会走这里：那边读完后写的是同一个模块级缓存，
+     * 节流窗口已被重置，所以拿到的是新值而不是旧数字。
+     */
+    refreshUnread() {
+      fetchUnreadCount().then((n) => {
+        this.unreadCount = n;
+      });
+    },
+    goToMessages() {
+      uni.navigateTo({ url: "/pages/messages/messages" });
     },
     onAvatarTap() {
       this.avatarTapCount++;

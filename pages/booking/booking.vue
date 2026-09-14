@@ -104,7 +104,7 @@
                 </view>
             </view>
         </view>
-        <my-tab-bar :current="1"></my-tab-bar>
+        <my-tab-bar :current="1" :unread="unreadCount"></my-tab-bar>
     </view>
 
 </template>
@@ -112,12 +112,15 @@
 <script>
 import myTabBar from '@/components/my-tab-bar.vue';
 import { request } from '../../utils/request.js';
+import { fetchUnreadCount, getCachedUnreadCount } from '../../utils/message-center.js';
 export default {
     components: {
         myTabBar
     },
     data() {
         return {
+            // 未读消息红点（「我的」tab 上）。三个 tab 页读同一份模块级缓存，数字不会打架
+            unreadCount: getCachedUnreadCount(),
             currentTab: 0,
             showCancel: false,
             currentCancelItem: null,
@@ -155,8 +158,15 @@ export default {
             uni.removeStorageSync('bookingInitTab');
         }
         this.getList();
+        this.refreshUnread();
     },
     methods: {
+        /** 刷新未读红点（30 秒节流，见 utils/message-center.js），失败静默 */
+        refreshUnread() {
+            fetchUnreadCount().then((n) => {
+                this.unreadCount = n;
+            });
+        },
         copyOrderId(bookingId) {
             uni.setClipboardData({
                 data: bookingId,
@@ -217,7 +227,9 @@ export default {
                 confirmed: '待使用',
                 completed: '已完成',
                 cancelled: '已取消',
-                refunded: '已退款'
+                refunded: '已退款',
+                // 后端 2026-09-13 起由 T1 扫描写入。不加这条时此处返回 ''，状态标签会是一片空白
+                expired: '已过期'
             };
             return statusMap[status] || '';
         },
@@ -227,23 +239,24 @@ export default {
         },
         confirmCancel() {
             if (this.currentCancelItem) {
-                this.currentCancelItem.status = 'cancelled';
+                const bookingId = this.currentCancelItem.bookingId;
                 request({
-                    url: "/bookings/" + this.currentCancelItem.bookingId,
-                    method: "PUT",
-                    data: {
-                        status: 'cancelled'
-                    }
-                }).then(res => {
-                    if (res.success) {
-                        uni.showToast({ title: '预约已取消', icon: 'success' });
-                        this.getList();
-                    } else {
-                        uni.showToast({ title: '取消预约失败，请稍后再试', icon: 'none' });
-                    }
+                    url: `/bookings/${bookingId}/cancel`,
+                    method: "POST"
+                }).then(() => {
+                    uni.showToast({ title: '预约已取消', icon: 'success' });
+                    this.getList();
                     this.currentCancelItem = null;
                 }).catch(err => {
-                    uni.showToast({ title: '取消预约失败，请稍后再试', icon: 'none' });
+                    // 后端返回 400 + 稳定错误码，request 封装会 reject，响应体在 err.data
+                    const code = err && err.data && err.data.errorCode;
+                    let title = '取消预约失败，请稍后再试';
+                    if (code === 'ORDER_PAYMENT_IN_PROGRESS') {
+                        title = '支付处理中，请稍后重试';
+                    } else if (code === 'ORDER_CANNOT_CANCEL') {
+                        title = '订单状态已变化，请刷新后重试';
+                    }
+                    uni.showToast({ title, icon: 'none' });
                     this.currentCancelItem = null;
                 });
             }
@@ -460,6 +473,13 @@ export default {
 .status-refunded {
     background: #f3e5f5;
     color: #9c27b0;
+}
+
+/* 已过期：中性灰。不用红色——红色是「已取消」的语义，两者混淆会让用户以为订单已被自己取消，
+   从而不再关心后续（expired 之后仍有退款申请入口，见技术方案 §4.3.5） */
+.status-expired {
+    background: #f0f0f0;
+    color: #616161;
 }
 
 .booking-content {

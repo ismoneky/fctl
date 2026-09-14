@@ -1,6 +1,60 @@
 <template>
 	<view class="container">
 		<view class="form-container">
+			<!-- 预约日期（前置：日期决定当日免费名额与年龄口径，故先选日期） -->
+			<view class="form-section">
+				<view class="section-title">
+					<view class="title-icon-wrap">
+						<image class="title-icon-svg rili" src="/static/svg/rili.svg" mode="aspectFit" />
+					</view>
+					<text class="title-text required-star">预约日期</text>
+				</view>
+
+				<view class="field-block">
+					<picker mode="date" :start="minDate" :end="maxDate" @change="onDateChange">
+						<view class="input-box input-box--picker">
+							<text class="picker-text" :class="formData.bookingDate ? 'picker-text--filled' : ''">
+								{{ formData.bookingDate || '请选择预约日期' }}
+							</text>
+							<image class="picker-icon-svg" src="/static/svg/rili.svg" mode="aspectFit" />
+						</view>
+					</picker>
+				</view>
+
+				<!-- 预约日期的信息卡：preview 的免费提示与 today-quota 的今日名额合成一张。
+				     两个数据源、两种到达时间，所以是「谁有内容谁进来」，不是谁替代谁；
+				     三样都没有时整张卡不渲染 -->
+				<view
+					class="free-banner"
+					:class="{ 'free-banner--plain': !freeBanner }"
+					v-if="freeBanner || showFreeTip || todayQuotaItems.length"
+				>
+					<text class="free-banner-icon" v-if="freeBanner">免</text>
+					<view class="free-banner-main">
+						<template v-if="freeBanner">
+							<text class="free-banner-title">{{ freeBanner.title }}</text>
+							<text class="free-banner-desc">{{ freeBanner.desc }}</text>
+						</template>
+						<text class="free-banner-tip" v-else-if="showFreeTip">{{ freeTipText }}</text>
+
+						<!-- 今日名额：与上面的说明文字同处一张卡，所以用与 .free-banner-desc 同级的字号，
+						     数字也不再放大加粗 —— 它是补充信息，抢眼就会把这张卡顶得突兀 -->
+						<view
+							class="quota-line"
+							:class="{ 'quota-line--divided': freeBanner || showFreeTip }"
+							v-if="todayQuotaItems.length"
+						>
+							<text
+								v-for="(item, i) in todayQuotaItems"
+								:key="i"
+								class="quota-line-text"
+								:class="'quota-line-text--' + item.tone"
+							>{{ item.text }}</text>
+						</view>
+					</view>
+				</view>
+			</view>
+
 			<!-- 出行方式 + 车辆/观光团信息（前置：先选出行方式再填出行人） -->
 			<view class="form-section">
 				<view class="section-title">
@@ -78,18 +132,17 @@
 				<!-- 动态出行人员列表 -->
 				<block v-if="formData.passengers && formData.passengers.length">
 				<view class="passenger-card" v-for="(p, idx) in formData.passengers" :key="p._key">
-					<view class="passenger-card-header">
-						<text class="passenger-index">{{ idx === 0 ? '联系人（第1位）' : `第${idx + 1}位出行人` }}</text>
+					<!-- 操作区：仅在确有按钮时渲染（第一位没有按钮，不留空行） -->
+					<view class="passenger-card-header" v-if="idx > 0">
+						<text class="passenger-card-label">同行人</text>
 						<view class="passenger-card-actions">
-							<!-- 儿童/老人：编辑（重开弹窗原位替换）；普通人员：选择常用（原生 ActionSheet，页面树中无原生组件，规避 iOS clickCheckTask 报错与自定义弹层顶起页面问题） -->
-							<text v-if="idx > 0 && (p.passengerType === 'child' || p.passengerType === 'senior')" class="passenger-edit-btn" @click="openChildSeniorPopup('edit', p._key)">编辑</text>
-							<text v-else class="passenger-quick-btn" @click="onSelectProfile(p._key)">选择常用</text>
-							<text v-if="idx > 0" class="passenger-delete-btn" @click="removePassenger(p._key)">✕</text>
+							<!-- 儿童/老人：编辑（重开弹窗原位替换） -->
+							<text v-if="p.passengerType === 'child' || p.passengerType === 'senior'" class="passenger-edit-btn" @click="openChildSeniorPopup('edit', p._key)">编辑</text>
+							<text class="passenger-delete-btn" @click="removePassenger(p._key)">删除</text>
 						</view>
 					</view>
-					<!-- 人员类型与年龄/免身份证状态标签 -->
-					<view class="passenger-tags" v-if="p.passengerType === 'child' || p.passengerType === 'senior' || getAgeFreeLabel(p)">
-						<text v-if="p.passengerType === 'child' || p.passengerType === 'senior'" class="passenger-type-tag">{{ p.passengerType === 'child' ? '同行儿童' : '同行老人' }}</text>
+					<!-- 身份证与年龄状态标签（人员类型标签不在页面展示） -->
+					<view class="passenger-tags" v-if="getAgeFreeLabel(p) || p.idCardUnavailable || ageMismatchMap[p._key]">
 						<text v-if="getAgeFreeLabel(p)" class="passenger-age-free-tag">{{ getAgeFreeLabel(p) }}</text>
 						<text v-if="p.idCardUnavailable" class="passenger-unavailable-tag">未提供身份证号 · 按正常价格收费 · 暂时无法投保</text>
 						<!-- 类型与年龄不符（含预约日期变化后的重算）：标红并阻止提交 -->
@@ -97,27 +150,49 @@
 					</view>
 					<view class="field-block">
 						<text class="field-label required-star">姓名</text>
-						<view class="input-box">
+						<view class="input-box input-box--name">
 							<input class="field-input" :value="p.name" placeholder="请输入姓名" placeholder-style="color:#c8c8c8" maxlength="20" @input="onPassengerNameInput($event, p._key)" @blur="onPassengerNameBlur(p._key)" />
+							<!-- 常用人员内嵌下拉入口：仅当存在常用人员时显示；不填也能直接手输 -->
+							<view v-if="profileList.length > 0" class="name-picker-trigger" @click="openProfilePanel(p._key)">
+								<text class="name-picker-text">选择常用</text>
+								<text class="name-picker-caret">▾</text>
+							</view>
+							<!-- 常用人员下拉：absolute 锚定在姓名输入框下方，随页面滚动自然跟随，无需 JS 实测几何 -->
+							<view v-if="profilePanelKey === p._key" class="profile-panel" @touchmove.stop>
+								<scroll-view class="profile-panel-body" scroll-y :style="{ height: profilePanelHeight + 'rpx' }">
+									<view class="profile-panel-item" v-for="(item, pIdx) in profilePanelItems" :key="item.profileId || pIdx" @click="onPickProfile(item)">
+										<text class="profile-panel-item-name">{{ item.name }}</text>
+										<text class="profile-panel-item-phone">{{ maskPhone(item.phone) }}</text>
+									</view>
+								</scroll-view>
+							</view>
 						</view>
 					</view>
 					<!-- 姓名匹配常用人员弱提示卡片（仅展示掩码手机号，绝不展示身份证明文） -->
 					<view v-if="getProfileMatchesForKey(p._key).length === 1" class="profile-hint-card" @click="applyProfileToPassenger(getProfileMatchesForKey(p._key)[0], p._key)">
 						<text class="profile-hint-text">找到常用人员：{{ getProfileMatchesForKey(p._key)[0].name }} {{ maskPhone(getProfileMatchesForKey(p._key)[0].phone) }}　点击填入</text>
 					</view>
-					<view v-else-if="getProfileMatchesForKey(p._key).length > 1" class="profile-hint-card" @click="onSelectProfile(p._key)">
+					<view v-else-if="getProfileMatchesForKey(p._key).length > 1" class="profile-hint-card" @click="openProfilePanel(p._key)">
 						<text class="profile-hint-text">找到 {{ getProfileMatchesForKey(p._key).length }} 位同名常用人员，点击选择</text>
 					</view>
-					<view class="field-block">
+					<!-- 手机号仅主出行人填写；同行人不填，提交时自动使用主出行人的号码 -->
+					<view class="field-block" v-if="idx === 0">
 						<text class="field-label required-star">手机号码</text>
-						<view class="input-box">
+						<view class="input-box" v-if="!profilePanelKey">
 							<input class="field-input" type="number" maxlength="11" v-model="p.phone" placeholder="请输入手机号码" placeholder-style="color:#c8c8c8" />
+						</view>
+						<!-- 内嵌下拉展开期间降级为静态文本：让浮层下方不存在原生组件，规避遮挡 -->
+						<view class="input-box" v-else>
+							<text class="field-input field-input--static">{{ p.phone }}</text>
 						</view>
 					</view>
 					<view class="field-block" style="margin-bottom:0">
 						<text class="field-label required-star">身份证号</text>
-						<view class="input-box">
+						<view class="input-box" v-if="!profilePanelKey">
 							<input class="field-input" maxlength="18" :value="p.idCard" :disabled="p.idCardUnavailable === true" placeholder="请输入18位身份证号码" placeholder-style="color:#c8c8c8" @input="onIdCardInput($event, p._key)" @blur="onIdCardBlur($event, p._key)" />
+						</view>
+						<view class="input-box" v-else>
+							<text class="field-input field-input--static">{{ p.idCard }}</text>
 						</view>
 						<text v-if="p.idCardError" class="field-error-text">{{ p.idCardError }}</text>
 					</view>
@@ -135,38 +210,6 @@
 					<text class="count-text">预约人数 <text class="count-number">{{ personSummary.total }}</text><text class="count-unit">人</text></text>
 					<text class="count-breakdown" v-if="personSummary.child || personSummary.senior">成人 {{ personSummary.adult }} · 儿童 {{ personSummary.child }} · 老人 {{ personSummary.senior }}</text>
 					<text class="count-limit">最多可预约 {{ maxPerson }} 人</text>
-				</view>
-
-				<!-- 预约日期 -->
-				<view class="field-block" style="margin-top:24rpx">
-					<text class="field-label required-star">预约日期</text>
-					<picker mode="date" :start="minDate" :end="maxDate" @change="onDateChange">
-						<view class="input-box input-box--picker">
-							<text class="picker-text" :class="formData.bookingDate ? 'picker-text--filled' : ''">
-								{{ formData.bookingDate || '请选择预约日期' }}
-							</text>
-							<image class="picker-icon-svg" src="/static/svg/rili.svg" mode="aspectFit" />
-						</view>
-					</picker>
-				</view>
-
-				<!-- 免费预约提示（三档优先级，由后端 preview 统一判定） -->
-				<view class="free-banner" v-if="isMemberFree">
-					<text class="free-banner-icon">免</text>
-					<view class="free-banner-main">
-						<text class="free-banner-title">会员免费</text>
-						<text class="free-banner-desc">月卡会员免费预约，不限次数，不占每日免费名额</text>
-					</view>
-				</view>
-				<view class="free-banner" v-else-if="isDailyQuotaFree">
-					<text class="free-banner-icon">免</text>
-					<view class="free-banner-main">
-						<text class="free-banner-title">免费预约</text>
-						<text class="free-banner-desc">今日前 {{ previewResult.freeQuotaInfo.limit }} 名预约免费，剩余 {{ previewResult.freeQuotaInfo.remaining }} 个名额，本次预约免费</text>
-					</view>
-				</view>
-				<view class="free-tip free-tip--muted" v-else-if="previewResult && !previewResult.isFree && freeTipText">
-					<text class="free-tip-text">{{ freeTipText }}</text>
 				</view>
 
 				<!-- 预约时间段（隐藏展示，字段保留） -->
@@ -233,6 +276,8 @@
 					</view>
 				</view>
 				<view class="price-info" v-else-if="previewState === 'success' && previewResult && previewResult.amount != null">
+					<!-- 付费原因贴身展示在金额上方：滚到底部填写完信息后，这里依然能看到为何收费 -->
+					<text class="price-reason" v-if="priceReasonShort">{{ priceReasonShort }}</text>
 					<view class="price-row">
 						<text class="price-symbol">¥</text>
 						<text class="price-value">
@@ -294,6 +339,10 @@
 				<text class="notice-footer">感谢您的配合与理解。让我们一起守护风车天路的纯净与壮美，平安出行，尽兴而归！</text>
 			</scroll-view>
 		</view>
+
+		<!-- 点击面板外部收起；不再拦截 touchmove，面板已随页面滚动跟随，允许滚动才能把靠下的面板滚进视口 -->
+		<!-- 展开期间同卡片内的手机号/身份证 input 已降级为静态文本，面板下方不存在原生组件，故不会被穿透遮挡 -->
+		<view class="profile-panel-mask" v-if="profilePanelKey" @click="closeProfilePanel"></view>
 	</view>
 </template>
 
@@ -341,6 +390,40 @@ function toFormPassenger(raw) {
 	};
 }
 
+// 今日名额轮询间隔（用自链 setTimeout，见 pollTodayQuota）。
+// 页面不再写「数据 90 秒更新一次」的小字：这是内部节流，不是用户要看的信息
+const TODAY_QUOTA_POLL_MS = 90 * 1000;
+
+// 不能免费时的提示文案（由后端 preview 的 reason 驱动），双端同源：
+//   tip   预约日期区块下的完整说明，面向“选日期时判断要不要花钱”的决策场景
+//   short 底部结算栏用，金额就在旁边，重复“本次预约需支付”反而啰嗦
+const FREE_REASON_TEXT = {
+	member_idcard_not_matched: {
+		tip: '乘客身份证与会员记录不一致，本次预约需支付',
+		short: '身份证与会员记录不一致',
+	},
+	member_plate_not_matched: {
+		tip: '车牌号与会员记录不一致，本次预约需支付',
+		short: '车牌与会员记录不一致',
+	},
+	daily_quota_used: {
+		tip: '您今日已享受过免费预约，本次预约需支付',
+		short: '今日已享受过免费预约',
+	},
+	daily_quota_full: {
+		tip: '今日免费名额已用完，本次预约需支付',
+		short: '今日免费名额已用完',
+	},
+	not_today: {
+		tip: '每日免费名额仅限预约当天有效，选择其他日期需正常支付',
+		short: '免费名额仅限预约当天',
+	},
+};
+
+// 会员类原因码：仅当后端确实返回了会员记录（memberInfo 非空）时才允许展示，
+// 避免非会员被误报为“与会员记录不一致”
+const MEMBER_REASONS = ['member_idcard_not_matched', 'member_plate_not_matched'];
+
 export default {
 	components: {
 		ChildSeniorPassengerPopup,
@@ -361,8 +444,9 @@ export default {
 				personCount: 1,
 				remarks: ''
 			},
-			profileList: [], // 常用人员列表（全部，主动“选择常用”时展示）
+			profileList: [], // 常用人员列表（全部，姓名栏下拉浮层展示）
 			profileMatchesByKey: {}, // 每位出行人按姓名匹配到的常用人员数组（key 为 _key，删除/插位不串位）
+			profilePanelKey: null, // 姓名栏内嵌下拉面板展开中的出行人 _key；null 为收起
 			childSeniorPopupVisible: false, // 儿童/老人底部弹窗
 			childSeniorEditingKey: null, // 编辑中人员的 _key；null 为新增
 			travelModeList: [
@@ -401,6 +485,11 @@ export default {
 			previewResult: null, // 后端费用预览结果（isFree/freeReason/reason/amount/freeQuotaInfo/memberInfo）
 			previewState: 'incomplete', // preview 状态机：incomplete | loading | success | error（不再使用本地金额兜底）
 			previewError: '', // preview 失败时的稳定错误码中文文案
+			// —— 今日名额（GET /bookings/today-quota，匿名接口，与 preview 完全独立）——
+			todayQuota: null,      // { date, capacity:{level,remaining?}, freeQuota:{enabled,limit,remaining} }；null = 尚未取到，整行不渲染
+			_quotaTimer: null,     // 自链 setTimeout 句柄
+			_quotaInFlight: false, // 请求单飞锁：防止定时器与 onShow 叠加出并发请求
+			_quotaActive: false,   // 轮询开关：onHide/onUnload 置 false，在途请求的回调据此不再续期
 			agreedNotice: false,  // 是否同意预约须知
 			agreedPrivacy: false, // 是否同意隐私政策和用户协议
 			noticeVisible: false, // 预约须知弹层显示
@@ -416,11 +505,27 @@ export default {
 		personSummary() {
 			return summarizePassengers(this.formData.passengers, this.formData.bookingDate);
 		},
+		// 姓名栏下拉浮层的列表：同名匹配项排在最前，其余常用人员依次跟在后面；
+		// 匹配项与列表同源（引用相等），无需额外去重键
+		profilePanelItems() {
+			const list = this.profileList || [];
+			if (!this.profilePanelKey) return list;
+			const matches = this.getProfileMatchesForKey(this.profilePanelKey);
+			if (!matches.length) return list;
+			const rest = list.filter((item) => !matches.includes(item));
+			return matches.concat(rest);
+		},
+		// 下拉列表高度：单条 86rpx（上下内边距 22rpx×2 + 文字行高约 40rpx + 分隔线），最多 5 条后内部滚动
+		// 高度是确定值，直接由条数算出，不再依赖 createSelectorQuery 实测
+		profilePanelHeight() {
+			const count = (this.profilePanelItems || []).length;
+			return Math.min(count * 86, 430);
+		},
 		// 是否已达到当前车型人数上限（两个添加入口同时禁用）
 		atMaxPerson() {
 			return this.formData.passengers.length >= this.maxPerson;
 		},
-		// 联系人有效手机号（弹窗默认带入用；无效值不自动填入）
+		// 主出行人有效手机号（同行人提交时统一采用该号码；亦作弹窗默认带入值，无效值不自动填入）
 		contactPhone() {
 			const first = this.formData.passengers[0];
 			if (first && this.validatePhone(first.phone)) {
@@ -466,18 +571,85 @@ export default {
 		maxPerson() {
 			return getPassengerLimit(this.formData.travelMode, this.formData.vehicleType);
 		},
-		// 不能免费时的提示文案（按 reason 驱动）
+		// 当前 reason 对应的文案项；返回 null 表示本次不展示任何原因提示
+		// 上下两处提示（顶部 freeTipText / 底部 priceReasonShort）都从这里取，保证同时出现、同时消失
+		freeReasonItem() {
+			const r = this.previewResult;
+			if (!r || r.isFree) return null;
+			// 会员类原因必须在确有会员记录时才展示：非会员根本不存在可比对的会员记录，
+			// 后端此时也会返回 member_idcard_not_matched（实为“查无会员”），照译会误导用户
+			if (MEMBER_REASONS.includes(r.reason) && !r.memberInfo) return null;
+			// no_free_activity（免费活动未开启）、not_member（非会员，会员免费不适用）均不展示提示，
+			// 表内查不到 key 即自动返回 null，仅由价格区展示应付金额
+			return FREE_REASON_TEXT[r.reason] || null;
+		},
+		// 日期区块下的完整原因提示
 		freeTipText() {
-			if (!this.previewResult || this.previewResult.isFree) return '';
-			const map = {
-				member_idcard_not_matched: '乘客身份证与会员记录不一致，本次预约需支付',
-				member_plate_not_matched: '车牌号与会员记录不一致，本次预约需支付',
-				daily_quota_used: '您今日已享受过免费预约，本次预约需支付',
-				daily_quota_full: '今日免费名额已用完，本次预约需支付',
-				not_today: '每日免费名额仅限预约当天有效，选择其他日期需正常支付',
-			};
-			// no_free_activity（免费活动未开启）不展示提示，活动对用户隐藏，仅由价格区展示应付金额
-			return map[this.previewResult.reason] || '';
+			const item = this.freeReasonItem;
+			return item ? item.tip : '';
+		},
+		// 底部结算栏的付费原因：金额就在旁边，故用短文案，省略“本次预约需支付”
+		priceReasonShort() {
+			const item = this.freeReasonItem;
+			return item ? item.short : '';
+		},
+		// 信息卡上半部分：preview 判定的免费提示，命中才有（两种免费共用一套版式，只有文案不同）。
+		// 返回 null 表示本次不免费或还没判定出来，此时卡片由下面两段之一接管
+		freeBanner() {
+			if (this.isMemberFree) {
+				return { title: '会员免费', desc: '月卡会员免费预约，不限次数，不占每日免费名额' };
+			}
+			if (this.isDailyQuotaFree) {
+				const q = (this.previewResult && this.previewResult.freeQuotaInfo) || {};
+				return {
+					title: '免费预约',
+					desc: `今日前 ${q.limit || 0} 名预约免费，剩余 ${q.remaining || 0} 个名额，本次预约免费`,
+				};
+			}
+			return null;
+		},
+		// 不能免费时的原因提示。freeTipText 非空已蕴含「有 preview 结果且不是免费」，无需再判
+		showFreeTip() {
+			return !this.freeBanner && !!this.freeTipText;
+		},
+		// —— 今日名额（数据源 GET /bookings/today-quota）——
+		// 「今天」以后端返回的 date 为权威，前端不做本地日期运算 —— 后端 beijingDateStr()
+		// 与设备时区可能不一致。要求已选日期：没选日期时整块不出现（此时也还没发过请求）；
+		// 选了未来日期同样不出现，接口只返回今天的数据，拿今天的余量去解释别的日期会误导
+		// （每日免费名额也仅限预约当天有效）
+		showTodayQuota() {
+			return !!(this.formData.bookingDate && this.todayQuota && this.formData.bookingDate === this.todayQuota.date);
+		},
+		// 信息卡下半部分：今日名额，0~2 条，每条就是一句话（数字不再单独拆出来做强调）。
+		// 名额充足时【刻意不提「充足」】：后端在 plenty 时刻意不下发 remaining（安全边界见
+		// 后端 dto/today-quota.dto.ts 顶部），没有数字可报的「充足」对用户也没有信息量；
+		// 免费名额用完也不提 —— preview 结算时会以「本次预约需支付」的口径讲同一件事，
+		// 在这里提前说一遍只是噪音。
+		// full 命中即止：都约不上了，再说免费名额没有意义
+		todayQuotaItems() {
+			const items = [];
+			const c = this.todayQuota && this.todayQuota.capacity;
+			if (!this.showTodayQuota || !c) return items;
+
+			if (c.level === 'full') {
+				items.push({ tone: 'alert', text: '今日名额已满，请选择其他日期' });
+				return items;
+			}
+			if (c.level === 'limited') {
+				items.push({ tone: 'alert', text: `今日仅剩 ${c.remaining} 个名额` });
+			}
+
+			// 免费名额项：preview 已就同一件事表过态时一律让位，否则同一张卡里会出现两种结论
+			// （例：上面的提示写「今日免费名额已用完」，这里却写「还可免费预约 1 人」）。
+			// 不排除 isMemberFree：会员免费不占每日额度，此时这里是补充信息而非重复
+			const fq = this.todayQuota.freeQuota;
+			if (!fq || !fq.enabled || fq.remaining <= 0) return items;
+			if (this.isDailyQuotaFree) return items;
+			const r = this.previewResult;
+			if (r && !r.isFree && (r.reason === 'daily_quota_full' || r.reason === 'daily_quota_used')) return items;
+
+			items.push({ tone: 'free', text: `还可免费预约 ${fq.remaining} 人` });
+			return items;
 		}
 	},
 	onLoad(options) {
@@ -500,6 +672,8 @@ export default {
 		this.fetchPreview();
 		// 预加载常用人员列表
 		this.fetchProfiles();
+		// 今日名额不在这里取：接口只认「今天」，而进页面时用户还没选日期，
+		// 按当天默认发一次请求纯属凭空多出来的一次。启动点见 onDateChange
 		// 温馨提示弹窗（内容由后台系统配置，开关关闭则不弹）
 		request({ method: 'GET', url: '/system-config/notice' }).then(res => {
 			if (res.data && res.data.enabled && res.data.content) {
@@ -513,6 +687,30 @@ export default {
 				}, 800);
 			}
 		}).catch(() => {});
+	},
+
+	onShow() {
+		// 从其他页返回 / 支付返回后立即刷新一次，而不是干等下一个 90 秒。
+		// 必须调 startQuotaPolling() 而不是「if (_quotaActive) pollTodayQuota()」：
+		// onHide 已把 _quotaActive 置 false，受它保护的写法在「离开过一次再回来」时
+		// 永远进不去 —— 轮询会永久停摆，且不报错，极难发现。
+		// 门禁是「这块真在展示」：选了未来日期时整块不出现，回页也就没必要白刷一次。
+		// startQuotaPolling 先 stop 再启是幂等的，不会叠出两个请求
+		if (this.showTodayQuota) this.startQuotaPolling();
+	},
+	onHide() {
+		// 页面被覆盖后必须停表：小程序隐藏页面不会销毁 JS 定时器，
+		// 只写 onUnload 会让被覆盖的实例一直空转
+		this.stopQuotaPolling();
+	},
+	onUnload() {
+		this.stopQuotaPolling();
+		// 顺带补齐的既有清理（本页原先没有任何 cleanup 钩子）
+		if (this._previewTimer) {
+			clearTimeout(this._previewTimer);
+			this._previewTimer = null;
+		}
+		this._previewSeq += 1; // 作废在途 preview 响应，避免回调给已销毁实例赋值
 	},
 
 	// 分享配置
@@ -638,26 +836,30 @@ export default {
 			// 乘客信息变化后重新预览费用
 			this.fetchPreview();
 		},
-		// 选择常用人员：原生 ActionSheet（纯 API 渲染，页面树中无原生组件节点）
-		// 有同名匹配时只列匹配项，否则列全部常用人员；itemList 上限 6 条，超出截断并提示
-		onSelectProfile(key) {
-			const matches = this.getProfileMatchesForKey(key);
-			const list = (matches && matches.length) ? matches : (this.profileList || []);
-			if (!list.length) {
+		// 打开姓名栏的常用人员内嵌下拉面板
+		// 面板用 absolute 锚定在姓名输入框下方（见 .profile-panel），随页面滚动自然跟随，无需实测几何
+		openProfilePanel(key) {
+			// 再次点击同一入口视为收起
+			if (this.profilePanelKey === key) {
+				this.closeProfilePanel();
+				return;
+			}
+			if (!(this.profileList || []).length) {
 				uni.showToast({ title: '暂无常用人员，请先在个人中心添加', icon: 'none', duration: 2000 });
 				return;
 			}
-			const MAX_ITEMS = 6;
-			const truncated = list.length > MAX_ITEMS;
-			const shown = truncated ? list.slice(0, MAX_ITEMS) : list;
-			uni.showActionSheet({
-				itemList: shown.map(item => `${item.name || ''}  ${this.maskPhone(item.phone)}`),
-				success: (res) => {
-					const item = shown[res.tapIndex];
-					if (item) this.applyProfileToPassenger(item, key);
-				},
-				fail: () => {},
-			});
+			// 先收起键盘：避免软键盘与面板同时存在把页面顶起
+			uni.hideKeyboard();
+			this.profilePanelKey = key;
+		},
+		closeProfilePanel() {
+			this.profilePanelKey = null;
+		},
+		// 点选常用人员：复用统一填入函数，不重复写填入逻辑
+		onPickProfile(item) {
+			const key = this.profilePanelKey;
+			this.closeProfilePanel();
+			if (item && key) this.applyProfileToPassenger(item, key);
 		},
 		// 姓名输入：更新姓名并立即清除该出行人匹配结果
 		onPassengerNameInput(e, key) {
@@ -725,12 +927,16 @@ export default {
 			this.formData.bookingDate = e.detail.value;
 			// 切换日期后重新预览费用（仅当天可享受每日免费名额）
 			this.fetchPreview();
+			// 今日名额的唯一启动点：选完日期才发第一次请求，之后由自链维持 90 秒。
+			// 选了非今天时，响应回来会自行停表（见 pollTodayQuota）
+			this.startQuotaPolling();
 		},
-		// 单名乘客是否满足 preview 完整条件：姓名/手机号完整；
+		// 单名乘客是否满足 preview 完整条件：姓名必填；手机号仅主出行人（首位）必填，
+		// 同行人不填手机号、提交时统一采用主出行人的号码，故不参与完整性判断；
 		// 无身份证儿童/老人可预览（正常收费）；其余人员身份证必须通过已落地的严格校验
-		isPassengerCompleteForPreview(p) {
+		isPassengerCompleteForPreview(p, isMain) {
 			if (!p || !p.name || !p.name.trim()) return false;
-			if (!p.phone || !this.validatePhone(p.phone)) return false;
+			if (isMain && (!p.phone || !this.validatePhone(p.phone))) return false;
 			if (p.idCardUnavailable === true) {
 				return p.passengerType === 'child' || p.passengerType === 'senior';
 			}
@@ -742,7 +948,7 @@ export default {
 		// 未完整时不请求后端（半成品身份证只有前端即时提示）；失败时展示稳定错误码文案并禁止提交
 		fetchPreview() {
 			const ps = this.formData.passengers || [];
-			const allComplete = ps.length > 0 && ps.every((p) => this.isPassengerCompleteForPreview(p));
+			const allComplete = ps.length > 0 && ps.every((p, i) => this.isPassengerCompleteForPreview(p, i === 0));
 			if (!allComplete || !this.formData.bookingDate) {
 				this.previewResult = null;
 				this.previewState = 'incomplete';
@@ -782,6 +988,74 @@ export default {
 					}
 				});
 			}, 100);
+		},
+		// ===== 今日名额轮询（90 秒，匿名接口 /bookings/today-quota）=====
+		// 完全独立的一条链，不碰 _previewSeq / _previewTimer / preview* 任何字段，
+		// 因此不会让底部结算栏在 loading/success 之间跳。
+		// 不复用 fetchPreview()：① 它要求表单填完，而名额要尽早可见；② 它走竞态锁，
+		// 复用会让结算栏跟着轮询闪；③ 它带登录态与乘客信息，名额是纯公开信息。
+		// 用自链 setTimeout 而非 setInterval：上一轮结束才起下一轮计时，在途请求恒为 1，
+		// 弱网下（utils/request.js 默认超时 60 秒）不会叠加出并发请求。
+		// 生命周期：onDateChange 启动（选了日期才发第一次），所选日期不是今天时响应里自停；
+		// onHide / onUnload 停表，onShow 在这块真在展示时重启
+		pollTodayQuota() {
+			if (this._quotaInFlight) return;
+			this._quotaInFlight = true;
+			request({ method: 'GET', url: '/bookings/today-quota' })
+				.then(res => {
+					// 白名单校验后再赋值：小程序模板对 undefined 会渲染成空白，
+					// 不校验会出现「今日仅剩 个名额」这种残句
+					const d = res && res.success ? res.data : null;
+					if (!d || !d.capacity || !d.capacity.level) return;
+					const fq = d.freeQuota;
+					const free = (fq && fq.enabled)
+						? { enabled: true, limit: Number(fq.limit) || 0, remaining: Number(fq.remaining) || 0 }
+						: { enabled: false, limit: 0, remaining: 0 };
+					// 收敛成前端自己的形状：后端改字段名时只在这里崩一处，不散落到模板
+					this.todayQuota = {
+						date: d.date || '',
+						// 只有 limited 才带 remaining，充足/已满时刻意不带（后端就不下发）
+						capacity: d.capacity.level === 'limited'
+							? { level: 'limited', remaining: Number(d.capacity.remaining) || 0 }
+							: { level: d.capacity.level },
+						freeQuota: free
+					};
+					// 选中的不是今天：接口只认今天，这块不会展示，继续轮询没有意义。
+					// 自停在赋值之后 —— 用户改回今天时能立刻看到上一次的值，不必等新请求
+					if (d.date !== this.formData.bookingDate) {
+						this.stopQuotaPolling();
+					}
+				})
+				.catch(() => {
+					// 静默降级：名额是辅助信息。不弹 toast、不写 previewError、不清空旧值，
+					// 绝不能因为轮询失败打断用户的下单主路径
+				})
+				.finally(() => {
+					this._quotaInFlight = false;
+					this.scheduleQuotaPoll(); // 成败都续期：失败也要能自愈，否则一次抖动就永久停更
+				});
+		},
+		scheduleQuotaPoll() {
+			if (!this._quotaActive) return; // onHide / onUnload 之后不再续期
+			this._quotaTimer = setTimeout(() => {
+				this._quotaTimer = null; // 先置空再请求（同 booking-detail 的 loopDetail 约定）
+				this.pollTodayQuota();
+			}, TODAY_QUOTA_POLL_MS);
+		},
+		startQuotaPolling() {
+			this.stopQuotaPolling();  // 先停旧链（会置 _quotaActive = false）
+			this._quotaActive = true; // 再开启，顺序不可颠倒
+			this.pollTodayQuota();    // 首次立即拉一次，不留 90 秒空窗
+		},
+		stopQuotaPolling() {
+			this._quotaActive = false;
+			// _quotaActive 不是可选项：onHide 停表时若正好有在途请求，它的 .finally
+			// 会重新武装出一个新定时器 —— 页面已隐藏却继续空转。
+			// scheduleQuotaPoll 里判 _quotaActive 才能堵住这个洞
+			if (this._quotaTimer) {
+				clearTimeout(this._quotaTimer);
+				this._quotaTimer = null;
+			}
 		},
 		// 身份证输入：归一化（去空格/全角数字/全角X）并立即清除上一轮红色错误状态
 		// 使用 :value + @input 显式写回，避免 v-model 与事件回调时序不一致
@@ -918,20 +1192,22 @@ export default {
 				return false;
 			}
 
-			// 验证每位出行人员（联系人/成人身份证必填；儿童/老人按身份证或暂时无法提供二选一）
+			// 验证每位出行人员（主出行人手机号与身份证必填；同行人只需姓名+身份证，手机号提交时补主出行人的；
+			// 儿童/老人按身份证或暂时无法提供二选一）
 			for (let i = 0; i < this.formData.passengers.length; i++) {
 				const p = this.formData.passengers[i];
-				const label = i === 0 ? '联系人' : `第${i + 1}位出行人`;
+				const label = `第${i + 1}位出行人`;
 				if (!p.name || !p.name.trim()) {
 					uni.showToast({ title: `请输入${label}姓名`, icon: 'none' });
 					return false;
 				}
-				if (!p.phone || !this.validatePhone(p.phone)) {
-					uni.showToast({ title: `请输入${label}正确的手机号`, icon: 'none' });
+				// 手机号仅主出行人填写并校验
+				if (i === 0 && (!p.phone || !this.validatePhone(p.phone))) {
+					uni.showToast({ title: '请输入手机号码', icon: 'none' });
 					return false;
 				}
 				if (p.idCardUnavailable === true) {
-					// 只有儿童/老人允许暂时无法提供身份证；联系人与成人必须填写
+					// 只有儿童/老人允许暂时无法提供身份证；主出行人与成人必须填写
 					if (i === 0 || p.passengerType !== 'child' && p.passengerType !== 'senior') {
 						uni.showToast({ title: `${label}必须填写身份证号`, icon: 'none' });
 						return false;
@@ -1029,9 +1305,11 @@ export default {
 			// 快照提交前的 preview 状态，用于判定是否需要二次确认（preview 免费 vs 创建收费）
 			const previewSnapshot = this.previewResult;
 			// 提交净化：白名单字段，不提交 _key、idCardError 等 UI 状态；人数始终为净化后数组长度
-			const sanitizedPassengers = this.formData.passengers.map((p) => ({
+			// 同行人不填写手机号，统一补充主出行人的号码（contactPhone 即主出行人的有效号码）
+			const mainPhone = this.contactPhone || '';
+			const sanitizedPassengers = this.formData.passengers.map((p, i) => ({
 				name: String(p.name || '').trim(),
-				phone: String(p.phone || '').trim(),
+				phone: i === 0 ? String(p.phone || '').trim() : mainPhone,
 				idCard: p.idCard || '',
 				passengerType: p.passengerType === 'child' || p.passengerType === 'senior' ? p.passengerType : 'adult',
 				idCardUnavailable: p.idCardUnavailable === true,
@@ -1270,7 +1548,10 @@ export default {
 	background: #fff;
 	border-radius: 20rpx;
 	margin-bottom: 24rpx;
-	overflow: hidden;
+	/* 必须建立 BFC（flow-root），否则末位子元素的 margin-bottom 会穿透本卡片，
+	   与这里的 margin-bottom 合并到卡片外侧，导致免费横幅/预约人数贴着卡片底边。
+	   不能用 overflow: hidden 替代：姓名栏的常用人员下拉是 absolute 定位，会被裁掉 */
+	display: flow-root;
 }
 
 /* ===== 区块标题 ===== */
@@ -1313,6 +1594,11 @@ export default {
 	width: 38rpx;
 	height: 38rpx;
 }
+
+.rili {
+	width: 34rpx;
+	height: 34rpx;
+}
 .title-text {
 	font-size: 28rpx;
 	font-weight: 700;
@@ -1338,33 +1624,24 @@ export default {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	margin-bottom: 20rpx;
+	margin-bottom: 16rpx;
 }
 
-.passenger-index {
-	font-size: 26rpx;
-	font-weight: 700;
-	color: #3F99F6;
-}
-
-.passenger-quick-btn {
+/* 同行人标识：仅在可删除的卡片（第 2 位起）显示，填补操作按钮左侧的空白 */
+.passenger-card-label {
 	font-size: 24rpx;
-	color: #2F6E8E;
-	border: 1.5rpx solid #2F6E8E;
-	padding: 8rpx 24rpx;
-	border-radius: 8rpx;
+	color: #8c9aa6;
+	letter-spacing: 1rpx;
+	padding-left: 14rpx;
+	border-left: 4rpx solid #cfe0ea;
 }
 
 .passenger-delete-btn {
-	width: 44rpx;
-	height: 44rpx;
-	border-radius: 50%;
-	background: #ff4757;
-	color: #fff;
-	font-size: 26rpx;
-	display: flex;
-	align-items: center;
-	justify-content: center;
+	font-size: 24rpx;
+	color: #ff4757;
+	border: 1.5rpx solid #ff4757;
+	padding: 8rpx 24rpx;
+	border-radius: 8rpx;
 }
 
 /* ===== 两列行（已弃用，保留避免样式报错） ===== */
@@ -1443,6 +1720,11 @@ export default {
 	justify-content: space-between;
 }
 
+/* 姓名输入框：作为常用人员下拉的定位锚点 */
+.input-box--name {
+	position: relative;
+}
+
 .field-input {
 	flex: 1;
 	height: 80rpx;
@@ -1482,7 +1764,7 @@ export default {
 	font-weight: 300;
 }
 
-/* ===== 免费预约提示 ===== */
+/* ===== 预约日期信息卡（免费提示 + 今日名额合成同一张，见模板） ===== */
 .free-banner {
 	display: flex;
 	align-items: center;
@@ -1526,26 +1808,23 @@ export default {
 	line-height: 1.5;
 }
 
-.free-tip {
-	margin: 0 24rpx 24rpx;
-	padding: 22rpx 28rpx;
-	border-radius: 12rpx;
-}
-
-.free-tip--muted {
+/* 没有免费提示、只剩名额信息时转中性色，不蹭「免费」的蓝绿 ——
+   否则「今日名额已满」会顶着一张渐变绿的卡 */
+.free-banner--plain {
 	background: #f5f6f8;
-	border: 1.5rpx solid #e8e8e8;
+	border-color: #e8e8e8;
 }
 
-.free-tip-text {
-	font-size: 28rpx;
+/* 付费原因（preview 驱动），收进同一张卡后与名额行同一层级 */
+.free-banner-tip {
+	font-size: 26rpx;
 	color: #999;
 	line-height: 1.6;
 }
 
 /* ===== 人数只读汇总（由人员列表驱动，展示在添加入口下方） ===== */
 .count-summary {
-	margin: 20rpx 24rpx 0;
+	margin: 20rpx 24rpx 32rpx;
 	display: flex;
 	align-items: center;
 	flex-wrap: wrap;
@@ -1579,6 +1858,35 @@ export default {
 	margin-left: auto;
 	font-size: 22rpx;
 	color: #bbb;
+}
+
+/* ===== 今日名额（信息卡下半部分；文案与展示条件见 todayQuotaItems）
+       与 .free-banner-desc 同级的小字，不再占一行大字：
+       它和上面的免费提示同处一张卡，字号抢过说明文字就会把这张卡顶得突兀 ===== */
+.quota-line {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6rpx 20rpx;
+	font-size: 26rpx;
+	line-height: 1.5;
+}
+
+/* 上面还有免费提示时用分隔线断开；单独成条时不需要 */
+.quota-line--divided {
+	margin-top: 14rpx;
+	padding-top: 14rpx;
+	border-top: 1.5rpx solid rgba(0, 0, 0, 0.07);
+}
+
+/* 两态：alert 名额不够了（红）/ free 还能免费（绿）。
+   绿色由 .free-banner-icon 的 #33C5A0 压深一档 —— 那是给色块用的，
+   这个字号下直接当正文色偏浅 */
+.quota-line-text--alert {
+	color: #e64340;
+}
+
+.quota-line-text--free {
+	color: #2FA98C;
 }
 
 /* ===== 添加入口 ===== */
@@ -1638,14 +1946,6 @@ export default {
 	flex-wrap: wrap;
 	gap: 12rpx;
 	margin-bottom: 16rpx;
-}
-
-.passenger-type-tag {
-	font-size: 22rpx;
-	color: #2f6e8e;
-	background: #eef6ff;
-	border-radius: 8rpx;
-	padding: 6rpx 16rpx;
 }
 
 .passenger-age-free-tag {
@@ -1945,6 +2245,18 @@ export default {
 	font-weight: 700;
 	line-height: 1;
 }
+/* 底部结算栏的付费原因：单行省略，避免长文案换行把结算栏撑高（行高由 90rpx 的按钮决定，此处仍在预算内） */
+.price-reason {
+	max-width: 100%;
+	font-size: 22rpx;
+	color: #a0761a;
+	line-height: 1.3;
+	margin-bottom: 4rpx;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
 .price-tips {
 	font-size: 28rpx;
 	color: #666666;
@@ -2118,4 +2430,91 @@ export default {
 	line-height: 1.6;
 }
 
+/* ===== 姓名栏常用人员内嵌下拉 ===== */
+.name-picker-trigger {
+	flex-shrink: 0;
+	height: 80rpx;
+	min-width: 168rpx;
+	margin-left: 12rpx;
+	padding-left: 20rpx;
+	border-left: 1.5rpx solid #E6E6E6;
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+}
+
+.name-picker-text {
+	font-size: 28rpx;
+	color: #3F99F6;
+	line-height: 1;
+}
+
+.name-picker-caret {
+	font-size: 24rpx;
+	color: #3F99F6;
+	line-height: 1;
+	margin-left: 6rpx;
+}
+
+/* 浮层展开期间 input 的降级占位：与 input 同高同字号，保证卡片高度不跳动 */
+.field-input--static {
+	display: block;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.profile-panel-mask {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: transparent;
+	z-index: 190;
+}
+
+/* 锚定在姓名输入框下方：absolute 定位使其随页面滚动自然跟随，无需监听滚动或重算几何 */
+.profile-panel {
+	position: absolute;
+	top: calc(100% + 8rpx);
+	left: 0;
+	right: 0;
+	background: #fff;
+	border: 1.5rpx solid #E6E6E6;
+	border-radius: 12rpx;
+	box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.16);
+	box-sizing: border-box;
+	overflow: hidden;
+	z-index: 195;
+}
+
+.profile-panel-item {
+	display: flex;
+	align-items: center;
+	padding: 22rpx 24rpx;
+	border-bottom: 1.5rpx solid #f2f2f2;
+	box-sizing: border-box;
+}
+
+.profile-panel-item:last-child {
+	border-bottom: none;
+}
+
+.profile-panel-item-name {
+	flex: 1;
+	font-size: 28rpx;
+	font-weight: 500;
+	color: #2F6E8E;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.profile-panel-item-phone {
+	flex-shrink: 0;
+	margin-left: 20rpx;
+	font-size: 26rpx;
+	color: #999;
+}
 </style>

@@ -55,12 +55,20 @@
         </view>
       </view>
 
-      <!-- 景区位置导航条 -->
-      <view class="location-bar" @click="openScenicLocation">
+      <!-- 景区位置导航条：文案保持通用，不指向具体地点 —— 去哪个由弹窗选择 -->
+      <view class="location-bar" @click="onLocationBarClick">
         <image class="location-bar-icon" src="/static/svg/location.svg" mode="aspectFit" />
-        <text class="location-bar-text">{{ scenicLocation.name }}</text>
+        <text class="location-bar-text">查看景区位置</text>
         <text class="location-bar-nav">导航 ›</text>
       </view>
+
+      <!-- 导航目的地选择（地点数据见 utils/scenic-location.js） -->
+      <location-picker-popup
+        :visible="locationPickerVisible"
+        :locations="scenicLocations"
+        @select="onLocationPicked"
+        @close="locationPickerVisible = false"
+      />
 
       <!-- 公告轮播条 -->
       <view
@@ -148,7 +156,7 @@
         </view>
       </view>
     </view>
-    <my-tab-bar :current="0"></my-tab-bar>
+    <my-tab-bar :current="0" :unread="unreadCount"></my-tab-bar>
   </view>
 </template>
 
@@ -156,16 +164,23 @@
 import myTabBar from "../../components/my-tab-bar.vue";
 import { request } from "../../utils/request.js";
 import { isWhitelistedUser } from "../../utils/whitelist.js";
-import { SCENIC_LOCATION } from "../../utils/scenic-location.js";
+import { SCENIC_LOCATIONS, openScenicLocation } from "../../utils/scenic-location.js";
+import { fetchUnreadCount, getCachedUnreadCount } from "../../utils/message-center.js";
+import LocationPickerPopup from "../../components/location-picker-popup.vue";
 export default {
   components: {
     myTabBar,
+    LocationPickerPopup,
   },
   data() {
     return {
+      // 未读消息红点（「我的」tab 上）。三个 tab 页读的是同一份模块级缓存
+      unreadCount: getCachedUnreadCount(),
       bannerList: [],
       noticeBarIndex: 0,
-      scenicLocation: SCENIC_LOCATION,
+      // 导航候选地点（来源见 utils/scenic-location.js）
+      scenicLocations: SCENIC_LOCATIONS,
+      locationPickerVisible: false,
       featureList: [
         {
           icon: "icon-Energy-",
@@ -240,6 +255,9 @@ export default {
           if (res.success && res.data) {
             uni.setStorageSync("token", res.data.token);
             uni.setStorageSync("isAdmin", res.data.admin === true);
+            // 登录成功后才拿得到未读数。onShow 在 onLoad 之后立刻触发，
+            // 那时 token 还没写进来（本页正是登录的发起处），只靠 onShow 会漏掉第一次
+            this.refreshUnread(true);
           } else {
             uni.showToast({
               title: "微信登录失败",
@@ -262,6 +280,15 @@ export default {
       },
     });
   },
+  /**
+   * 切回首页时刷新未读红点。
+   *
+   * 首页是 tab 页且 `onLoad` 只跑一次，不做这一步的话用户在消息中心读完消息、
+   * 切回首页，红点会一直亮着（三个 tab 页各自负责自己那次的刷新）。
+   */
+  onShow() {
+    this.refreshUnread();
+  },
   // 分享给好友
   onShareAppMessage() {
     return {
@@ -279,6 +306,15 @@ export default {
     };
   },
   methods: {
+    /**
+     * 刷新未读数（30 秒节流，见 utils/message-center.js）。
+     * 失败静默：首页的红点是附属信息，不该因为它弹提示干扰首屏。
+     */
+    refreshUnread(force) {
+      fetchUnreadCount(force === true).then((n) => {
+        this.unreadCount = n;
+      });
+    },
     loadBanners() {
       const fallback = [
         { image: 'https://cdn.hbfctl.com.cn/index/1.jpg' },
@@ -350,15 +386,14 @@ export default {
         this.showNoticeDetail(item);
       }
     },
-    // 打开景区位置（微信内置地图，支持导航）
-    openScenicLocation() {
-      uni.openLocation({
-        latitude: this.scenicLocation.latitude,
-        longitude: this.scenicLocation.longitude,
-        name: this.scenicLocation.name,
-        address: this.scenicLocation.address,
-        scale: this.scenicLocation.scale
-      });
+    // 点击导航条：有多个目的地，先弹窗选择，不直接跳转
+    onLocationBarClick() {
+      this.locationPickerVisible = true;
+    },
+    // 弹窗选中目的地后才打开微信内置地图（导航能力的唯一出口）
+    onLocationPicked(location) {
+      this.locationPickerVisible = false;
+      openScenicLocation(location);
     },
     // 跳转到预约页面
     goToBooking() {

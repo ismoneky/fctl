@@ -25,6 +25,15 @@
 			}
 		},
 		{
+			"path": "pages/messages/messages",
+			"style": {
+				"navigationBarTitleText": "消息中心",
+				"navigationBarBackgroundColor": "#2F6E8E",
+				"navigationBarTextStyle": "white",
+				"enablePullDownRefresh": true
+			}
+		},
+		{
 			"path": "pages/booking-form/booking-form",
 			"style": {
 				"navigationBarTitleText": "立即预约",

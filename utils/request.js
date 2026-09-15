@@ -26,7 +26,7 @@ const shouldRetryStatus = (statusCode) => statusCode >= 500;
 // 通用请求封装
 export const request = (options) => {
     const baseURL = 'https://www.hbfctl.com.cn/'; // 根据环境切换
-    const prefix = 'test'; // 接口前缀：nginx 上 /test/ 反代到后端根路径，与原先的 /api/ 同一套规则
+    const prefix = 'api'; // 接口前缀：nginx 上 /test/ 反代到后端根路径，与原先的 /api/ 同一套规则
     // 削掉调用方 url 的前导斜杠，统一由这里补一个再拼。
     // 全仓两种写法都有（'/bookings' 和 'bookings'），直接字符串相加时后者会拼成
     // `/testbookings`——它匹配不上 nginx 的 `/test/` location，会被兜底到 admin 的 SPA，

@@ -1,4 +1,11 @@
-<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#2F6E8E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-  <circle cx="12" cy="8" r="4"/>
-  <path d="M4 20c0-4 3.6-6 8-6s8 2 8 6"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="url(#tab-active-gradient)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <defs>
+    <linearGradient id="tab-active-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3F99F6"/>
+      <stop offset="90%" stop-color="#2F6E8E"/>
+    </linearGradient>
+  </defs>
+  <path d="M17.925 20.056a6 6 0 0 0-11.851.001"/>
+  <circle cx="12" cy="11" r="4"/>
+  <circle cx="12" cy="12" r="10"/>
 </svg>

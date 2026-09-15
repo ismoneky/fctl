@@ -98,8 +98,8 @@ export default {
         }
 
         .tab-icon-svg {
-            width: 48rpx;
-            height: 48rpx;
+            width: 40rpx;
+            height: 40rpx;
             margin-bottom: 4rpx;
         }
 
@@ -114,11 +114,11 @@ export default {
         }
 
         .tab-text {
-            font-size: 24rpx;
-            color: #7A7E83;
+            font-size: 22rpx;
+            color: #9A9A9A;
 
             &.active {
-                color: #2F6E8E;
+                color: #357FAF;
             }
         }
     }

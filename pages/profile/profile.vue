@@ -4,14 +4,16 @@
     <view v-if="applyModal.show" class="modal-mask" @tap="closeApplyModal">
       <view class="modal-card apply-modal" @tap.stop>
         <view class="apply-modal-header">
-          <text class="apply-modal-icon-bg">🛡️</text>
+          <view class="apply-modal-icon-shell">
+            <image class="apply-modal-icon-svg" src="/static/svg/shield-check-white.svg" mode="aspectFit" />
+          </view>
           <text class="apply-modal-title">申请管理员权限</text>
           <text class="apply-modal-subtitle">提交后等待超级管理员审核</text>
         </view>
         <view class="apply-modal-body">
           <view class="apply-form-item">
             <view class="apply-input-wrap">
-              <text class="apply-input-icon">👤</text>
+              <image class="apply-input-icon-svg" src="/static/svg/user-round.svg" mode="aspectFit" />
               <input
                 class="apply-input"
                 v-model="applyForm.name"
@@ -23,7 +25,7 @@
           </view>
           <view class="apply-form-item">
             <view class="apply-input-wrap">
-              <text class="apply-input-icon">📱</text>
+              <image class="apply-input-icon-svg" src="/static/svg/smartphone.svg" mode="aspectFit" />
               <input
                 class="apply-input"
                 v-model="applyForm.phone"
@@ -53,9 +55,11 @@
           class="verify-result-icon"
           :class="verifyModal.success ? 'icon-success' : 'icon-fail'"
         >
-          <text class="verify-result-emoji">{{
-            verifyModal.success ? "✓" : "✕"
-          }}</text>
+          <image
+            class="verify-result-icon-svg"
+            :src="verifyModal.success ? '/static/svg/circle-check-white.svg' : '/static/svg/circle-x-white.svg'"
+            mode="aspectFit"
+          />
         </view>
         <text
           class="verify-modal-title"
@@ -105,10 +109,10 @@
         <view class="menu-group">
           <view class="menu-item" @click="handleScan">
             <view class="menu-left">
-              <text class="menu-icon">📷</text>
+              <image class="menu-icon-svg" src="/static/svg/scan-line.svg" mode="aspectFit" />
               <text class="menu-text">扫一扫核销</text>
             </view>
-            <text class="menu-arrow">›</text>
+            <image class="menu-chevron-svg" src="/static/svg/chevron-right-neutral.svg" mode="aspectFit" />
           </view>
         </view>
       </view>
@@ -118,61 +122,46 @@
         <view class="menu-group">
           <view class="menu-item" @click="goToMessages">
             <view class="menu-left">
-              <image class="menu-icon-svg" src="/static/svg/xiaoxi.svg" mode="aspectFit" />
-              <text class="menu-text">消息中心</text>
+              <image class="menu-icon-svg" src="/static/svg/inbox.svg" mode="aspectFit" />
+              <text class="menu-text">
+				  消息中心
+			  </text>
               <view v-if="unreadCount > 0" class="badge">{{ unreadText }}</view>
             </view>
-            <text class="menu-arrow">›</text>
+            <image class="menu-chevron-svg" src="/static/svg/chevron-right-neutral.svg" mode="aspectFit" />
           </view>
-          <!-- <view class="menu-item" @click="goToBooking(0)">
-            <view class="menu-left">
-              <image class="menu-icon-svg" src="/static/svg/tab-booking-dark.svg" mode="aspectFit" />
-              <text class="menu-text">我的订单</text>
-            </view>
-            <text class="menu-arrow">›</text>
-          </view> -->
           <view class="menu-item" @click="goToProfiles">
             <view class="menu-left">
-              <image class="menu-icon-svg"  src="/static/svg/renyuanxinxi-dark.svg" mode="aspectFit" />
+              <image class="menu-icon-svg" src="/static/svg/contact-round.svg" mode="aspectFit" />
               <text class="menu-text">常用信息</text>
             </view>
-            <text class="menu-arrow">›</text>
+            <image class="menu-chevron-svg" src="/static/svg/chevron-right-neutral.svg" mode="aspectFit" />
           </view>
           <view class="menu-item" @click="goToFeedback">
             <view class="menu-left">
-              <image class="menu-icon-svg" src="/static/svg/message.svg" mode="aspectFit" />
+              <image class="menu-icon-svg" src="/static/svg/message-square-more.svg" mode="aspectFit" />
               <text class="menu-text">意见反馈</text>
             </view>
-            <text class="menu-arrow">›</text>
+            <image class="menu-chevron-svg" src="/static/svg/chevron-right-neutral.svg" mode="aspectFit" />
           </view>
         </view>
 
         <view class="menu-group">
           <view class="menu-item" @click="goToAgreement('privacy')">
             <view class="menu-left">
-              <image class="menu-icon-svg" src="/static/svg/yinsi.svg" mode="aspectFit" />
+              <image class="menu-icon-svg" src="/static/svg/shield-check.svg" mode="aspectFit" />
               <text class="menu-text">隐私政策</text>
             </view>
-            <text class="menu-arrow">›</text>
+            <image class="menu-chevron-svg" src="/static/svg/chevron-right-neutral.svg" mode="aspectFit" />
           </view>
           <view class="menu-item" @click="goToAgreement('service')">
             <view class="menu-left">
-              <image class="menu-icon-svg" src="/static/svg/xieyi.svg" mode="aspectFit" />
+              <image class="menu-icon-svg" src="/static/svg/file-text.svg" mode="aspectFit" />
               <text class="menu-text">用户服务协议</text>
             </view>
-            <text class="menu-arrow">›</text>
+            <image class="menu-chevron-svg" src="/static/svg/chevron-right-neutral.svg" mode="aspectFit" />
           </view>
         </view>
-
-        <!-- <view class="menu-group">
-				<view class="menu-item" @click="handleMenuClick('settings')">
-					<view class="menu-left">
-						<text class="menu-icon">⚙️</text>
-						<text class="menu-text">设置</text>
-					</view>
-					<text class="menu-arrow">›</text>
-				</view>
-			</view> -->
       </view>
 
       <!-- 联系方式 -->
@@ -638,19 +627,9 @@ export default {
   position: relative;
 }
 
-.menu-icon {
-  font-size: 40rpx;
-  margin-right: 20rpx;
-}
-
-.icon-dingdan {
-	font-size: 37rpx;
-	margin-top: 4rpx;
-}
-
 .menu-icon-svg {
-  width: 40rpx;
-  height: 40rpx;
+  width: 36rpx;
+  height: 36rpx;
   margin-right: 20rpx;
   flex-shrink: 0;
 }
@@ -659,12 +638,13 @@ export default {
 .menu-text {
   font-size: 30rpx;
   color: #333;
+  display: flex;
+  align-items: center;
 }
 
 .badge {
   position: absolute;
-  top: -10rpx;
-  left: 50rpx;
+  left: 190rpx;
   min-width: 32rpx;
   height: 32rpx;
   line-height: 32rpx;
@@ -676,9 +656,10 @@ export default {
   padding: 0 8rpx;
 }
 
-.menu-arrow {
-  font-size: 40rpx;
-  color: #ddd;
+.menu-chevron-svg {
+  width: 36rpx;
+  height: 36rpx;
+  flex-shrink: 0;
 }
 
 /* ── 通用遮罩 & 卡片 ── */
@@ -714,9 +695,23 @@ export default {
   align-items: center;
 }
 
-.apply-modal-icon-bg {
-  font-size: 80rpx;
+.apply-modal-icon-shell {
+  width: 76rpx;
+  height: 76rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.28);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-bottom: 20rpx;
+}
+
+.apply-modal-icon-svg,
+.apply-input-icon-svg,
+.verify-result-icon-svg {
+  width: 36rpx;
+  height: 36rpx;
+  flex-shrink: 0;
 }
 
 .apply-modal-title {
@@ -749,10 +744,8 @@ export default {
   border: 1rpx solid #efefef;
 }
 
-.apply-input-icon {
-  font-size: 34rpx;
+.apply-input-icon-svg {
   margin-right: 18rpx;
-  flex-shrink: 0;
 }
 
 .apply-input {
@@ -813,13 +806,6 @@ export default {
 .icon-fail {
   background: linear-gradient(135deg, #f5515f 0%, #f7971e 100%);
   box-shadow: 0 12rpx 30rpx rgba(245, 81, 95, 0.4);
-}
-
-.verify-result-emoji {
-  font-size: 72rpx;
-  color: #fff;
-  font-weight: bold;
-  line-height: 1;
 }
 
 .verify-modal-title {

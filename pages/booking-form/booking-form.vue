@@ -108,13 +108,13 @@
 					<view class="field-block">
 						<text class="field-label required-star">旅行社名称</text>
 						<view class="input-box">
-							<input class="field-input" v-model="formData.tourGroupName" placeholder="请输入旅行社名称" placeholder-style="color:#c8c8c8" />
+							<input class="field-input" v-model="formData.tourGroupName" placeholder="请输入旅行社名称" placeholder-style="color:#98A2A8" />
 						</view>
 					</view>
 					<view class="field-block">
 						<text class="field-label required-star">团队编号</text>
 						<view class="input-box">
-							<input class="field-input" v-model="formData.tourNumber" placeholder="请输入团队编号" placeholder-style="color:#c8c8c8" />
+							<input class="field-input" v-model="formData.tourNumber" placeholder="请输入团队编号" placeholder-style="color:#98A2A8" />
 						</view>
 					</view>
 				</template>
@@ -151,11 +151,11 @@
 					<view class="field-block">
 						<text class="field-label required-star">姓名</text>
 						<view class="input-box input-box--name">
-							<input class="field-input" :value="p.name" placeholder="请输入姓名" placeholder-style="color:#c8c8c8" maxlength="20" @input="onPassengerNameInput($event, p._key)" @blur="onPassengerNameBlur(p._key)" />
+							<input class="field-input" :value="p.name" placeholder="请输入姓名" placeholder-style="color:#98A2A8" maxlength="20" @input="onPassengerNameInput($event, p._key)" @blur="onPassengerNameBlur(p._key)" />
 							<!-- 常用人员内嵌下拉入口：仅当存在常用人员时显示；不填也能直接手输 -->
 							<view v-if="profileList.length > 0" class="name-picker-trigger" @click="openProfilePanel(p._key)">
 								<text class="name-picker-text">选择常用</text>
-								<text class="name-picker-caret">▾</text>
+								<image class="name-picker-chevron" src="/static/svg/chevron-down-primary.svg" mode="aspectFit"></image>
 							</view>
 							<!-- 常用人员下拉：absolute 锚定在姓名输入框下方，随页面滚动自然跟随，无需 JS 实测几何 -->
 							<view v-if="profilePanelKey === p._key" class="profile-panel" @touchmove.stop>
@@ -179,7 +179,7 @@
 					<view class="field-block" v-if="idx === 0">
 						<text class="field-label required-star">手机号码</text>
 						<view class="input-box" v-if="!profilePanelKey">
-							<input class="field-input" type="number" maxlength="11" v-model="p.phone" placeholder="请输入手机号码" placeholder-style="color:#c8c8c8" />
+							<input class="field-input" type="number" maxlength="11" v-model="p.phone" placeholder="请输入手机号码" placeholder-style="color:#98A2A8" />
 						</view>
 						<!-- 内嵌下拉展开期间降级为静态文本：让浮层下方不存在原生组件，规避遮挡 -->
 						<view class="input-box" v-else>
@@ -189,7 +189,7 @@
 					<view class="field-block" style="margin-bottom:0">
 						<text class="field-label required-star">身份证号</text>
 						<view class="input-box" v-if="!profilePanelKey">
-							<input class="field-input" maxlength="18" :value="p.idCard" :disabled="p.idCardUnavailable === true" placeholder="请输入18位身份证号码" placeholder-style="color:#c8c8c8" @input="onIdCardInput($event, p._key)" @blur="onIdCardBlur($event, p._key)" />
+							<input class="field-input" maxlength="18" :value="p.idCard" :disabled="p.idCardUnavailable === true" placeholder="请输入18位身份证号码" placeholder-style="color:#98A2A8" @input="onIdCardInput($event, p._key)" @blur="onIdCardBlur($event, p._key)" />
 						</view>
 						<view class="input-box" v-else>
 							<text class="field-input field-input--static">{{ p.idCard }}</text>
@@ -201,7 +201,10 @@
 
 				<!-- 添加入口：普通同行人 + 次要入口（儿童/老人） -->
 				<view class="add-entry-row">
-					<button class="add-entry-btn" :class="{ 'add-entry-btn--disabled': atMaxPerson }" :disabled="atMaxPerson" @click="addAdultPassenger">＋ 添加同行人</button>
+					<button class="add-entry-btn" :class="{ 'add-entry-btn--disabled': atMaxPerson }" :disabled="atMaxPerson" @click="addAdultPassenger">
+						<image class="add-entry-icon" :src="atMaxPerson ? '/static/svg/plus-disabled.svg' : '/static/svg/plus-primary.svg'" mode="aspectFit"></image>
+						<text>添加同行人</text>
+					</button>
 					<!-- <button class="add-entry-btn add-entry-btn--secondary" :class="{ 'add-entry-btn--disabled': atMaxPerson }" :disabled="atMaxPerson" @click="openChildSeniorPopup('add')">＋ 添加同行儿童/老人</button> -->
 				</view>
 
@@ -1478,7 +1481,7 @@ export default {
 /* ===== 整体容器 ===== */
 .container {
 	min-height: 100vh;
-	background-color: #f5f8fa;
+	background-color: #F5F8FA;
 	padding-bottom: 200rpx;
 	box-sizing: border-box;
 }
@@ -1489,7 +1492,7 @@ export default {
 	align-items: flex-start;
 	justify-content: space-between;
 	padding: 28rpx 30rpx 20rpx;
-	background: #f5f8fa;
+	background: #F5F8FA;
 }
 
 .header-left {
@@ -1506,14 +1509,14 @@ export default {
 
 .header-sub {
 	font-size: 24rpx;
-	color: #999;
+	color: #98A2A8;
 	margin-top: 6rpx;
 }
 
 .header-notice {
 	display: flex;
 	align-items: center;
-	background: #f0f7fb;
+	background: #F7F9FA;
 	border-radius: 28rpx;
 	padding: 8rpx 16rpx;
 	gap: 4rpx;
@@ -1522,18 +1525,18 @@ export default {
 
 .notice-icon {
 	font-size: 24rpx;
-	color: #3F99F6;
+	color: #2F6E8E;
 }
 
 .notice-text {
 	font-size: 26rpx;
-	color: #3F99F6;
+	color: #2F6E8E;
 	font-weight: 500;
 }
 
 .notice-arrow {
 	font-size: 24rpx;
-	color: #3F99F6;
+	color: #2F6E8E;
 	font-weight: 300;
 }
 
@@ -1545,7 +1548,7 @@ export default {
 
 /* ===== 卡片区块 ===== */
 .form-section {
-	background: #fff;
+	background: #FFFFFF;
 	border-radius: 20rpx;
 	margin-bottom: 24rpx;
 	/* 必须建立 BFC（flow-root），否则末位子元素的 margin-bottom 会穿透本卡片，
@@ -1608,10 +1611,10 @@ export default {
 /* ===== 出行人员卡片 ===== */
 .passenger-card {
 	margin: 0 24rpx 20rpx;
-	background: #f5f8fa;
+	background: #F5F8FA;
 	border-radius: 16rpx;
 	padding: 20rpx 20rpx 24rpx;
-	border: 1.5rpx solid #E6E6E6;
+	border: 1.5rpx solid #DDE4E8;
 	position: relative;
 }
 
@@ -1630,16 +1633,16 @@ export default {
 /* 同行人标识：仅在可删除的卡片（第 2 位起）显示，填补操作按钮左侧的空白 */
 .passenger-card-label {
 	font-size: 24rpx;
-	color: #8c9aa6;
+	color: #98A2A8;
 	letter-spacing: 1rpx;
 	padding-left: 14rpx;
-	border-left: 4rpx solid #cfe0ea;
+	border-left: 4rpx solid #CAD6DC;
 }
 
 .passenger-delete-btn {
 	font-size: 24rpx;
-	color: #ff4757;
-	border: 1.5rpx solid #ff4757;
+	color: #D94C4C;
+	border: 1.5rpx solid #D94C4C;
 	padding: 8rpx 24rpx;
 	border-radius: 8rpx;
 }
@@ -1665,7 +1668,7 @@ export default {
 .field-label {
 	display: block;
 	font-size: 26rpx;
-	color: #444;
+	color: #263238;
 	font-weight: 500;
 	margin-bottom: 14rpx;
 }
@@ -1674,7 +1677,7 @@ export default {
 .field-error-text {
 	display: block;
 	font-size: 26rpx;
-	color: #e64340;
+	color: #D94C4C;
 	margin-top: 8rpx;
 	line-height: 1.4;
 }
@@ -1692,7 +1695,7 @@ export default {
 }
 .profile-hint-text {
 	font-size: 26rpx;
-	color: #ffffff;
+	color: #FFFFFF;
 	font-weight: 500;
 	line-height: 1.4;
 	flex: 1;
@@ -1700,20 +1703,20 @@ export default {
 
 .required-star::before {
 	content: '* ';
-	color: #e53935;
+	color: #D94C4C;
 }
 
 /* ===== 输入框容器 ===== */
 .input-box {
 	width: 100%;
 	height: 80rpx;
-	border: 1.5rpx solid #E6E6E6;
+	border: 1.5rpx solid #DDE4E8;
 	border-radius: 12rpx;
 	padding: 0 20rpx;
 	box-sizing: border-box;
 	display: flex;
 	align-items: center;
-	background: #fff;
+	background: #FFFFFF;
 }
 
 .input-box--picker {
@@ -1730,7 +1733,7 @@ export default {
 	height: 80rpx;
 	line-height: 80rpx;
 	font-size: 28rpx;
-	color: #2F6E8E;
+	color: #263238;
 	background: transparent;
 	border: none;
 	padding: 0;
@@ -1740,16 +1743,16 @@ export default {
 .picker-text {
 	flex: 1;
 	font-size: 28rpx;
-	color: #333;
+	color: #263238;
 }
 
 .picker-text--filled {
-	color: #333;
+	color: #263238;
 }
 
 .picker-icon {
 	font-size: 32rpx;
-	color: #999;
+	color: #98A2A8;
 }
 
 .picker-icon-svg {
@@ -1760,7 +1763,7 @@ export default {
 
 .picker-arrow {
 	font-size: 36rpx;
-	color: #bbb;
+	color: #98A2A8;
 	font-weight: 300;
 }
 
@@ -1770,8 +1773,8 @@ export default {
 	align-items: center;
 	margin: 0 24rpx 24rpx;
 	padding: 20rpx 26rpx;
-	background: linear-gradient(135deg, #eaf4fe 0%, #e7faf5 100%);
-	border: 1.5rpx solid #c5e1fb;
+	background: #F7F9FA;
+	border: 1.5rpx solid #CAD6DC;
 	border-radius: 16rpx;
 }
 
@@ -1781,8 +1784,8 @@ export default {
 	line-height: 56rpx;
 	text-align: center;
 	border-radius: 12rpx;
-	background: linear-gradient(135deg, #3F99F6 0%, #33C5A0 100%);
-	color: #fff;
+	background: #2F9275;
+	color: #FFFFFF;
 	font-size: 28rpx;
 	font-weight: 700;
 	margin-right: 20rpx;
@@ -1798,27 +1801,27 @@ export default {
 .free-banner-title {
 	font-size: 30rpx;
 	font-weight: 700;
-	color: #3F99F6;
+	color: #2F9275;
 	margin-bottom: 6rpx;
 }
 
 .free-banner-desc {
 	font-size: 24rpx;
-	color: #7a9ab8;
+	color: #5F6B73;
 	line-height: 1.5;
 }
 
 /* 没有免费提示、只剩名额信息时转中性色，不蹭「免费」的蓝绿 ——
    否则「今日名额已满」会顶着一张渐变绿的卡 */
 .free-banner--plain {
-	background: #f5f6f8;
-	border-color: #e8e8e8;
+	background: #F7F9FA;
+	border-color: #CAD6DC;
 }
 
 /* 付费原因（preview 驱动），收进同一张卡后与名额行同一层级 */
 .free-banner-tip {
 	font-size: 26rpx;
-	color: #999;
+	color: #98A2A8;
 	line-height: 1.6;
 }
 
@@ -1830,34 +1833,34 @@ export default {
 	flex-wrap: wrap;
 	gap: 8rpx 16rpx;
 	font-size: 24rpx;
-	color: #888;
+	color: #5F6B73;
 }
 
 .count-text {
-	color: #666;
+	color: #5F6B73;
 }
 
 .count-number {
 	font-size: 34rpx;
 	font-weight: 800;
-	color: #3f99f6;
+	color: #2F6E8E;
 	margin: 0 4rpx;
 }
 
 .count-unit {
 	font-size: 24rpx;
-	color: #888;
+	color: #5F6B73;
 }
 
 .count-breakdown {
 	font-size: 22rpx;
-	color: #999;
+	color: #98A2A8;
 }
 
 .count-limit {
 	margin-left: auto;
 	font-size: 22rpx;
-	color: #bbb;
+	color: #98A2A8;
 }
 
 /* ===== 今日名额（信息卡下半部分；文案与展示条件见 todayQuotaItems）
@@ -1875,18 +1878,18 @@ export default {
 .quota-line--divided {
 	margin-top: 14rpx;
 	padding-top: 14rpx;
-	border-top: 1.5rpx solid rgba(0, 0, 0, 0.07);
+	border-top: 1.5rpx solid rgba(47, 110, 142, 0.10);
 }
 
 /* 两态：alert 名额不够了（红）/ free 还能免费（绿）。
    绿色由 .free-banner-icon 的 #33C5A0 压深一档 —— 那是给色块用的，
    这个字号下直接当正文色偏浅 */
 .quota-line-text--alert {
-	color: #e64340;
+	color: #D94C4C;
 }
 
 .quota-line-text--free {
-	color: #2FA98C;
+	color: #2F9275;
 }
 
 /* ===== 添加入口 ===== */
@@ -1899,26 +1902,40 @@ export default {
 .add-entry-btn {
 	flex: 1;
 	height: 76rpx;
-	line-height: 76rpx;
-	font-size: 26rpx;
-	border-radius: 12rpx;
-	border: 1.5rpx dashed #3f99f6;
-	background: #eef6ff;
-	color: #2f6e8e;
+	line-height: 1;
+	font-size: 28rpx;
+	font-weight: 600;
+	border-radius: 16rpx;
+	border: 1.5rpx solid #CAD6DC;
+	background: linear-gradient(135deg, #E2EFF8 0%, #E2F2EC 100%);
+	color: #263238;
+	box-shadow: 0 6rpx 16rpx rgba(31, 55, 68, 0.08);
 	margin:0 24rpx;
 	padding: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.add-entry-icon {
+	width: 28rpx;
+	height: 28rpx;
+	display: block;
+	flex-shrink: 0;
+	margin-right: 10rpx;
 }
 
 .add-entry-btn--secondary {
-	border-color: #cfcfcf;
-	background: #f7f8f9;
-	color: #666;
+	border-color: #DDE4E8;
+	background: #F7F9FA;
+	color: #5F6B73;
 }
 
 .add-entry-btn--disabled {
-	border-color: #e0e0e0;
-	background: #f4f4f4;
-	color: #bbb;
+	border-color: #DDE4E8;
+	background: #F5F8FA;
+	color: #98A2A8;
+	box-shadow: none;
 }
 
 .add-entry-btn::after {
@@ -1934,8 +1951,8 @@ export default {
 
 .passenger-edit-btn {
 	font-size: 24rpx;
-	color: #2f6e8e;
-	border: 1.5rpx solid #2f6e8e;
+	color: #2F6E8E;
+	border: 1.5rpx solid #2F6E8E;
 	padding: 8rpx 24rpx;
 	border-radius: 8rpx;
 }
@@ -1950,24 +1967,24 @@ export default {
 
 .passenger-age-free-tag {
 	font-size: 22rpx;
-	color: #2e9e5b;
-	background: #e8f7ee;
+	color: #2F9275;
+	background: #E8F4EF;
 	border-radius: 8rpx;
 	padding: 6rpx 16rpx;
 }
 
 .passenger-unavailable-tag {
 	font-size: 22rpx;
-	color: #a0761a;
-	background: #fff8e1;
+	color: #9A7424;
+	background: #FFF6E3;
 	border-radius: 8rpx;
 	padding: 6rpx 16rpx;
 }
 
 .passenger-age-mismatch-tag {
 	font-size: 22rpx;
-	color: #e64545;
-	background: #fdecec;
+	color: #D94C4C;
+	background: #FCECEC;
 	border-radius: 8rpx;
 	padding: 6rpx 16rpx;
 }
@@ -1975,12 +1992,12 @@ export default {
 /* ===== 底部价格状态文字 ===== */
 .price-status-text {
 	font-size: 26rpx;
-	color: #999;
+	color: #98A2A8;
 	line-height: 72rpx;
 }
 
 .price-status-text--error {
-	color: #e64545;
+	color: #D94C4C;
 	font-size: 24rpx;
 }
 
@@ -1996,15 +2013,15 @@ export default {
 	align-items: center;
 	justify-content: space-between;
 	padding: 22rpx 20rpx;
-	border: 1.5rpx solid #E6E6E6;
+	border: 1.5rpx solid #DDE4E8;
 	border-radius: 14rpx;
-	background: #fff;
+	background: #FFFFFF;
 	box-sizing: border-box;
 }
 
 .time-item--active {
-	border-color: #3F99F6;
-	background: #f0f2ff;
+	border-color: #2F6E8E;
+	background: #F7F9FA;
 }
 
 .time-item__info {
@@ -2015,21 +2032,21 @@ export default {
 .time-item__title {
 	font-size: 30rpx;
 	font-weight: 600;
-	color: #333;
+	color: #263238;
 	margin-bottom: 6rpx;
 }
 
 .time-item__title--active {
-	color: #3F99F6;
+	color: #2F6E8E;
 }
 
 .time-item__sub {
 	font-size: 26rpx;
-	color: #aaa;
+	color: #98A2A8;
 }
 
 .time-item__sub--active {
-	color: #3F99F6;
+	color: #2F6E8E;
 }
 
 /* 单选圆圈 */
@@ -2037,7 +2054,7 @@ export default {
 	width: 40rpx;
 	height: 40rpx;
 	border-radius: 50%;
-	border: 2rpx solid #d0d0d0;
+	border: 2rpx solid #CAD6DC;
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -2045,20 +2062,20 @@ export default {
 }
 
 .radio-circle--checked {
-	background: #3F99F6;
-	border-color: #3F99F6;
+	background: #2F6E8E;
+	border-color: #2F6E8E;
 }
 
 .radio-check {
 	font-size: 24rpx;
-	color: #fff;
+	color: #FFFFFF;
 	font-weight: bold;
 }
 
 /* ===== 卡片内分隔线 ===== */
 .section-divider {
 	height: 1.5rpx;
-	background: #f0f0f5;
+	background: #E9EEF1;
 	margin: 0 24rpx 24rpx;
 }
 
@@ -2083,16 +2100,16 @@ export default {
 
 .travel-select-value {
 	font-size: 28rpx;
-	color: #333;
+	color: #263238;
 }
 
 .travel-select-value--filled {
-	color: #333;
+	color: #263238;
 }
 
 .travel-arrow {
 	font-size: 36rpx;
-	color: #bbb;
+	color: #98A2A8;
 	font-weight: 300;
 }
 
@@ -2105,19 +2122,19 @@ export default {
 	width: 100%;
 	min-height: 160rpx;
 	padding: 20rpx;
-	border: 1.5rpx solid #E6E6E6;
+	border: 1.5rpx solid #DDE4E8;
 	border-radius: 12rpx;
 	font-size: 28rpx;
-	color: #2F6E8E;
+	color: #263238;
 	box-sizing: border-box;
-	background: #fff;
+	background: #FFFFFF;
 }
 
 .char-count {
 	display: block;
 	text-align: right;
 	font-size: 24rpx;
-	color: #bbb;
+	color: #98A2A8;
 	margin-top: 10rpx;
 }
 
@@ -2131,22 +2148,22 @@ export default {
 	flex-direction: column;
 	padding: 16rpx 30rpx;
 	padding-bottom: calc(16rpx + env(safe-area-inset-bottom));
-	background: #fff;
-	box-shadow: 0 -2rpx 20rpx rgba(0, 0, 0, 0.06);
+	background: #FFFFFF;
+	box-shadow: 0 -2rpx 20rpx rgba(31, 55, 68, 0.08);
 	z-index: 100;
 }
 
 .fee-tip {
 	display: block;
 	font-size: 26rpx;
-	color: #999;
+	color: #98A2A8;
 	padding: 0rpx 0 20rpx 0;
 	line-height: 40rpx;
 }
 
 .fee-tip-link {
 	font-size: 24rpx;
-	color: #3F99F6;
+	color: #2F6E8E;
 }
 
 /* 勾选行 */
@@ -2158,16 +2175,16 @@ export default {
 }
 
 .agree-checkbox--warn {
-	border-color: #ff4757 !important;
+	border-color: #D94C4C !important;
 }
 
 @keyframes flash-red {
-	0%, 100% { border-color: #ff4757; background: #fff; }
-	50%       { border-color: #ff4757; background: rgba(255, 71, 87, 0.15); }
+	0%, 100% { border-color: #D94C4C; background: #FFFFFF; }
+	50%       { border-color: #D94C4C; background: rgba(217, 76, 76, 0.14); }
 }
 
 .agree-checkbox--flash {
-	border-color: #ff4757 !important;
+	border-color: #D94C4C !important;
 	animation: flash-red 0.5s ease-in-out 2;
 }
 
@@ -2175,40 +2192,40 @@ export default {
 	width: 36rpx;
 	height: 36rpx;
 	border-radius: 8rpx;
-	border: 2rpx solid #E6E6E6;
+	border: 2rpx solid #DDE4E8;
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	margin-right: 12rpx;
 	flex-shrink: 0;
-	background: #fff;
+	background: #FFFFFF;
 }
 
 .agree-checkbox--checked {
-	background: #3F99F6;
-	border-color: #3F99F6;
+	background: #2F6E8E;
+	border-color: #2F6E8E;
 }
 
 .agree-check-icon {
 	font-size: 24rpx;
-	color: #fff;
+	color: #FFFFFF;
 	font-weight: bold;
 }
 
 .agree-text {
 	font-size: 26rpx;
-	color: #666;
+	color: #5F6B73;
 }
 
 .agree-text--warn {
-	color: #e53935;
+	color: #D94C4C;
 	font-weight: 500;
 	font-size: 24rpx;
 }
 
 .agree-link {
 	font-size: 26rpx;
-	color: #3F99F6;
+	color: #2F6E8E;
 	font-weight: 500;
 }
 
@@ -2234,14 +2251,14 @@ export default {
 
 .price-symbol {
 	font-size: 26rpx;
-	color: #3F99F6;
+	color: #2F6E8E;
 	font-weight: 600;
 	line-height: 1;
 }
 
 .price-value {
 	font-size: 56rpx;
-	color: #3F99F6;
+	color: #2F6E8E;
 	font-weight: 700;
 	line-height: 1;
 }
@@ -2249,7 +2266,7 @@ export default {
 .price-reason {
 	max-width: 100%;
 	font-size: 22rpx;
-	color: #a0761a;
+	color: #9A7424;
 	line-height: 1.3;
 	margin-bottom: 4rpx;
 	overflow: hidden;
@@ -2259,14 +2276,14 @@ export default {
 
 .price-tips {
 	font-size: 28rpx;
-	color: #666666;
+	color: #5F6B73;
 	font-weight: 400;
 	line-height: 1;
 }
 
 .price-value--free {
 	font-size: 44rpx;
-	color: #3F99F6;
+	color: #2F9275;
 }
 
 .submit-btn {
@@ -2276,7 +2293,7 @@ export default {
 	align-items: center;
 	justify-content: center;
 	background: linear-gradient(135deg, #3F99F6 0%, #33C5A0 100%);
-	color: #fff;
+	color: #FFFFFF;
 	font-size: 32rpx;
 	font-weight: bold;
 	border-radius: 45rpx;
@@ -2305,7 +2322,7 @@ export default {
 	left: 0;
 	right: 0;
 	bottom: 0;
-	background: #fff;
+	background: #FFFFFF;
 	border-radius: 32rpx 32rpx 0 0;
 	z-index: 201;
 	display: flex;
@@ -2324,7 +2341,7 @@ export default {
 	align-items: center;
 	justify-content: space-between;
 	padding: 36rpx 40rpx 24rpx;
-	border-bottom: 1.5rpx solid #f0f0f0;
+	border-bottom: 1.5rpx solid #E9EEF1;
 	flex-shrink: 0;
 }
 
@@ -2336,7 +2353,7 @@ export default {
 
 .notice-popup__close {
 	font-size: 36rpx;
-	color: #999;
+	color: #98A2A8;
 	padding: 8rpx;
 	line-height: 1;
 }
@@ -2353,7 +2370,7 @@ export default {
 .notice-intro {
 	display: block;
 	font-size: 26rpx;
-	color: #555;
+	color: #5F6B73;
 	line-height: 1.7;
 	margin-bottom: 32rpx;
 }
@@ -2370,7 +2387,7 @@ export default {
 .notice-body {
 	display: block;
 	font-size: 26rpx;
-	color: #555;
+	color: #5F6B73;
 	line-height: 1.7;
 	margin-bottom: 4rpx;
 }
@@ -2378,11 +2395,11 @@ export default {
 .notice-footer {
 	display: block;
 	font-size: 24rpx;
-	color: #999;
+	color: #98A2A8;
 	line-height: 1.7;
 	margin-top: 40rpx;
 	padding-top: 24rpx;
-	border-top: 1.5rpx solid #f0f0f0;
+	border-top: 1.5rpx solid #E9EEF1;
 }
 
 .notice-row {
@@ -2411,22 +2428,22 @@ export default {
 }
 
 .notice-tag--blue {
-	background: #e8ecff;
-	color: #3F99F6;
+	background: #F7F9FA;
+	color: #2F6E8E;
 }
 
 .notice-row__label {
 	flex-shrink: 0;
 	font-size: 26rpx;
 	font-weight: 600;
-	color: #333;
+	color: #263238;
 	min-width: 120rpx;
 }
 
 .notice-row__text {
 	flex: 1;
 	font-size: 26rpx;
-	color: #555;
+	color: #5F6B73;
 	line-height: 1.6;
 }
 
@@ -2437,7 +2454,7 @@ export default {
 	min-width: 168rpx;
 	margin-left: 12rpx;
 	padding-left: 20rpx;
-	border-left: 1.5rpx solid #E6E6E6;
+	border-left: 1.5rpx solid #DDE4E8;
 	display: flex;
 	align-items: center;
 	justify-content: flex-end;
@@ -2445,14 +2462,15 @@ export default {
 
 .name-picker-text {
 	font-size: 28rpx;
-	color: #3F99F6;
+	color: #2F6E8E;
 	line-height: 1;
 }
 
-.name-picker-caret {
-	font-size: 24rpx;
-	color: #3F99F6;
-	line-height: 1;
+.name-picker-chevron {
+	width: 28rpx;
+	height: 28rpx;
+	display: block;
+	flex-shrink: 0;
 	margin-left: 6rpx;
 }
 
@@ -2480,10 +2498,10 @@ export default {
 	top: calc(100% + 8rpx);
 	left: 0;
 	right: 0;
-	background: #fff;
-	border: 1.5rpx solid #E6E6E6;
+	background: #FFFFFF;
+	border: 1.5rpx solid #DDE4E8;
 	border-radius: 12rpx;
-	box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.16);
+	box-shadow: 0 8rpx 32rpx rgba(31, 55, 68, 0.16);
 	box-sizing: border-box;
 	overflow: hidden;
 	z-index: 195;
@@ -2493,7 +2511,7 @@ export default {
 	display: flex;
 	align-items: center;
 	padding: 22rpx 24rpx;
-	border-bottom: 1.5rpx solid #f2f2f2;
+	border-bottom: 1.5rpx solid #E9EEF1;
 	box-sizing: border-box;
 }
 
@@ -2505,7 +2523,7 @@ export default {
 	flex: 1;
 	font-size: 28rpx;
 	font-weight: 500;
-	color: #2F6E8E;
+	color: #263238;
 	overflow: hidden;
 	white-space: nowrap;
 	text-overflow: ellipsis;
@@ -2515,6 +2533,6 @@ export default {
 	flex-shrink: 0;
 	margin-left: 20rpx;
 	font-size: 26rpx;
-	color: #999;
+	color: #98A2A8;
 }
 </style>

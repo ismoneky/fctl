@@ -4,6 +4,7 @@
              没有消息时它也无事可做，跟着列表一起不渲染 -->
         <view class="top-bar" v-if="list.length > 0">
             <view class="mark-all" @click="markAllRead">
+                <image class="mark-all-icon" src="/static/svg/check-check.svg" mode="aspectFit" />
                 <text class="mark-all-text">全部已读</text>
             </view>
         </view>
@@ -15,14 +16,23 @@
                 class="msg-card"
                 @click="openMessage(item)"
             >
-                <view class="msg-head">
-                    <view class="msg-title-wrap">
+                <view class="msg-card-main">
+                    <view class="message-state-wrap">
+                        <image
+                            class="message-state-icon"
+                            :src="item.isRead ? '/static/svg/mail-open.svg' : '/static/svg/mail.svg'"
+                            mode="aspectFit"
+                        />
                         <view v-if="!item.isRead" class="unread-dot"></view>
-                        <text class="msg-title" :class="{ unread: !item.isRead }">{{ item.title }}</text>
                     </view>
-                    <text class="msg-time">{{ formatTime(item.createdAt) }}</text>
+                    <view class="msg-copy">
+                        <view class="msg-head">
+                            <text class="msg-title" :class="{ unread: !item.isRead }">{{ item.title }}</text>
+                            <text class="msg-time">{{ formatTime(item.createdAt) }}</text>
+                        </view>
+                        <text class="msg-content">{{ item.content }}</text>
+                    </view>
                 </view>
-                <text class="msg-content">{{ item.content }}</text>
             </view>
 
             <view class="list-footer">
@@ -32,7 +42,9 @@
         </view>
 
         <view class="empty" v-else-if="!loading">
-            <text class="empty-icon">📭</text>
+            <view class="empty-icon-shell">
+                <image class="empty-icon-svg" src="/static/svg/inbox.svg" mode="aspectFit" />
+            </view>
             <text class="empty-text">暂无消息</text>
         </view>
 
@@ -222,12 +234,21 @@ export default {
 
 /* 热区靠 padding 撑到约 44px 高：这是条里唯一的可点元素 */
 .mark-all {
+    display: flex;
+    align-items: center;
+    gap: 10rpx;
     padding: 26rpx 20rpx;
+}
+
+.mark-all-icon {
+    width: 36rpx;
+    height: 36rpx;
+    flex-shrink: 0;
 }
 
 .mark-all-text {
     font-size: 26rpx;
-    color: #2F6E8E;
+    color: #222;
 }
 
 /* 列表 */
@@ -242,32 +263,52 @@ export default {
     margin-bottom: 20rpx;
 }
 
+.msg-card-main {
+    display: flex;
+    align-items: flex-start;
+}
+
+.message-state-wrap {
+    position: relative;
+    flex-shrink: 0;
+    margin-right: 20rpx;
+    line-height: 0;
+}
+
+.message-state-icon {
+    width: 36rpx;
+    height: 36rpx;
+    opacity: 0.9;
+}
+
+.msg-copy {
+    min-width: 0;
+    flex: 1;
+}
+
 .msg-head {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
 }
 
-.msg-title-wrap {
-    display: flex;
-    align-items: center;
-    flex: 1;
-    margin-right: 16rpx;
-}
-
 .unread-dot {
-    width: 14rpx;
-    height: 14rpx;
+    position: absolute;
+    top: -5rpx;
+    right: -5rpx;
+    width: 12rpx;
+    height: 12rpx;
     border-radius: 50%;
     background: #ff4757;
-    margin-right: 12rpx;
-    flex-shrink: 0;
+    border: 3rpx solid #fff;
 }
 
 .msg-title {
     font-size: 30rpx;
     color: #333;
     flex: 1;
+    min-width: 0;
+    margin-right: 16rpx;
 }
 
 .msg-title.unread {
@@ -307,9 +348,21 @@ export default {
     padding-top: 200rpx;
 }
 
-.empty-icon {
-    font-size: 100rpx;
+.empty-icon-shell {
+    width: 96rpx;
+    height: 96rpx;
+    border-radius: 50%;
+    background: #e9e9e9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     margin-bottom: 20rpx;
+}
+
+.empty-icon-svg {
+    width: 36rpx;
+    height: 36rpx;
+    opacity: 0.72;
 }
 
 .empty-text {

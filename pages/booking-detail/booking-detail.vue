@@ -672,7 +672,21 @@
 			},
 			confirmDeletePreview() {
 				this.closeDeleteDialog();
-				uni.showToast({ title: '删除接口暂未接入', icon: 'none' });
+				// 软删除：只是用户自己看不到，后台与资金链路不受影响
+				request({
+					method: 'DELETE',
+					url: `/bookings/${this.formData.bookingId}`
+				}).then(() => {
+					uni.showToast({ title: '订单已删除', icon: 'success' });
+					// 本页已无对应订单，必须离开：详情每 5 秒轮询一次（loopDetail），
+					// 之后的 onShow、支付倒计时结束也会重新拉详情，留着只会一直拿到 404。
+					// 与退款成功后的处理一致，回订单列表
+					setTimeout(() => {
+						uni.reLaunch({ url: '/pages/booking/booking' });
+					}, 600);
+				}).catch(() => {
+					uni.showToast({ title: '删除失败，请稍后再试', icon: 'none' });
+				});
 			},
 			_doRefund() {
 				uni.showModal({

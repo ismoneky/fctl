@@ -13,11 +13,12 @@ export const PASSENGER_TYPES = {
 };
 
 /**
- * 年龄免费总开关：false 时儿童/老人一律正常收费（自动分类仅用于打标展示），
- * 会员/每日名额整单免费不受影响。与后端 nest/src/modules/booking/passenger-pricing.ts
- * 的 AGE_FREE_ENABLED 保持一致；金额以后端 preview 返回为准，本开关只影响 UI 文案。
+ * 年龄免费总开关：true 时 13 岁及以下儿童、70 岁及以上老人（须有合法身份证）
+ * 在人员卡片上显示绿色「年龄免费」标签，与后端计费口径一致。
+ * 与后端 nest/src/modules/booking/passenger-pricing.ts 的 AGE_FREE_ENABLED 保持一致；
+ * 金额以后端 preview 返回为准，本开关只影响 UI 文案。
  */
-export const AGE_FREE_ENABLED = false;
+export const AGE_FREE_ENABLED = true;
 
 /** 儿童年龄免费边界：年龄值 <= 13 */
 export const CHILD_MAX_AGE = 13;

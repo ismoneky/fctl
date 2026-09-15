@@ -397,6 +397,11 @@ function toFormPassenger(raw) {
 // 页面不再写「数据 90 秒更新一次」的小字：这是内部节流，不是用户要看的信息
 const TODAY_QUOTA_POLL_MS = 90 * 1000;
 
+// 价格预览在**传输层失败**后的重试阶梯（毫秒），取完最后一档后一直按最后一档重复。
+// 只对网络失败与 5xx 生效——4xx 是确定性结论，重发必然还是 4xx，见 runPreview。
+// 前两次（300/800ms）在 utils/request.js 里已经试过，所以这里从 2 秒起。
+const PREVIEW_RETRY_DELAYS_MS = [2000, 5000, 10000];
+
 // 不能免费时的提示文案（由后端 preview 的 reason 驱动），双端同源：
 //   tip   预约日期区块下的完整说明，面向“选日期时判断要不要花钱”的决策场景
 //   short 底部结算栏用，金额就在旁边，重复“本次预约需支付”反而啰嗦
@@ -484,7 +489,8 @@ export default {
 			maxDate: '',
 			_lastClickTime: 0,  // 防抖时间戳
 			_previewSeq: 0,     // preview 竞态序号，回调比对丢弃过期请求
-			_previewTimer: null, // preview debounce 定时器
+			_previewTimer: null, // preview 的定时器：正常时是 debounce，失败后是重试的等待
+			_previewAttempt: 0,  // 本轮已重试次数，用于取 PREVIEW_RETRY_DELAYS_MS 的档位
 			previewResult: null, // 后端费用预览结果（isFree/freeReason/reason/amount/freeQuotaInfo/memberInfo）
 			previewState: 'incomplete', // preview 状态机：incomplete | loading | success | error（不再使用本地金额兜底）
 			previewError: '', // preview 失败时的稳定错误码中文文案
@@ -700,19 +706,27 @@ export default {
 		// 门禁是「这块真在展示」：选了未来日期时整块不出现，回页也就没必要白刷一次。
 		// startQuotaPolling 先 stop 再启是幂等的，不会叠出两个请求
 		if (this.showTodayQuota) this.startQuotaPolling();
+		// 隐藏期间被停掉的价格请求在这里续上（判据就是 loading：成功/报错/表单不完整
+		// 都不是 loading，不会白刷一次）。少了这一段，用户切出去回个消息再回来，
+		// 「价格计算中…」会永远停在那儿 —— 既不再试，也不报错，提交按钮还一直是禁的
+		if (this.previewState === 'loading') {
+			this._previewSeq += 1;
+			this.runPreview();
+		}
 	},
 	onHide() {
 		// 页面被覆盖后必须停表：小程序隐藏页面不会销毁 JS 定时器，
 		// 只写 onUnload 会让被覆盖的实例一直空转
 		this.stopQuotaPolling();
+		// 价格重试同理。与 _quotaActive 的作用相同：++seq 让在途请求的回调不再续期，
+		// 否则它回来时又会排一个新定时器，等于没停
+		this.cancelPreviewRetry();
+		this._previewSeq += 1;
 	},
 	onUnload() {
 		this.stopQuotaPolling();
 		// 顺带补齐的既有清理（本页原先没有任何 cleanup 钩子）
-		if (this._previewTimer) {
-			clearTimeout(this._previewTimer);
-			this._previewTimer = null;
-		}
+		this.cancelPreviewRetry();
 		this._previewSeq += 1; // 作废在途 preview 响应，避免回调给已销毁实例赋值
 	},
 
@@ -956,30 +970,57 @@ export default {
 				this.previewResult = null;
 				this.previewState = 'incomplete';
 				this.previewError = '';
+				// 作废在途请求与待发的重试。原先这里直接 return，导致「表单填完发了一次
+				// preview → 用户把日期清掉」时，那个响应回来会把状态置成 success，
+				// 于是一个连完整都算不上的表单上挂着一个属于旧输入的金额
+				this._previewSeq += 1;
+				this.cancelPreviewRetry();
 				return;
 			}
-			const seq = ++this._previewSeq;
+			this._previewSeq += 1;
 			this.previewState = 'loading';
-			clearTimeout(this._previewTimer);
-			this._previewTimer = setTimeout(() => {
-				request({
-					method: 'POST',
-					url: '/bookings/preview',
-					data: {
-						passengers: ps,
-						bookingDate: this.formData.bookingDate,
-						travelMode: this.formData.travelMode,
-						vehicleType: this.formData.vehicleType,
-						licensePlate: this.formData.licensePlate || undefined,
-					}
-				}).then(res => {
-					// 过期请求结果丢弃，保证 UI 对应最新输入
-					if (seq !== this._previewSeq) return;
-					this.previewResult = (res && res.success && res.data) ? res.data : null;
-					this.previewState = this.previewResult ? 'success' : 'error';
-					this.previewError = this.previewResult ? '' : '价格计算失败，请重试';
-				}).catch(err => {
-					if (seq !== this._previewSeq) return;
+			this._previewAttempt = 0;
+			this.cancelPreviewRetry();
+			this._previewTimer = setTimeout(() => this.runPreview(), 100);
+		},
+
+		// 价格预览的一次尝试。
+		//
+		// 失败分两类，这是本方法唯一需要读懂的地方：
+		//   · 4xx：确定性结论（车牌格式、年龄与类型不符、超员…），同样的参数再发一次
+		//     必然还是 4xx。立即报错收手，**不许继续重试** —— 否则就是按秒往
+		//     SQLite 单写者上砸必然失败的请求。
+		//   · 网络失败 / 5xx：请求可能根本没到后端，或后端瞬时不稳。**保留「价格计算中…」**，
+		//     按 schedulePreviewRetry 的阶梯一直试到成功 —— 价格是下单的唯一金额来源，
+		//     提交按钮又被 previewState==='success' 把着，卡在这里等于用户下不了单，
+		//     能自愈就不要让他手动重来。
+		runPreview() {
+			const seq = this._previewSeq;
+			const ps = this.formData.passengers || [];
+			request({
+				method: 'POST',
+				url: '/bookings/preview',
+				// 幂等请求（纯读、无副作用），允许连接层失败与 5xx 快速重试两次（300/800ms）。
+				// 本仓所有写接口都不得开启它：重发等于重复下单 / 重复发起退款
+				retry: true,
+				data: {
+					passengers: ps,
+					bookingDate: this.formData.bookingDate,
+					travelMode: this.formData.travelMode,
+					vehicleType: this.formData.vehicleType,
+					licensePlate: this.formData.licensePlate || undefined,
+				}
+			}).then(res => {
+				// 过期请求结果丢弃，保证 UI 对应最新输入
+				if (seq !== this._previewSeq) return;
+				this.previewResult = (res && res.success && res.data) ? res.data : null;
+				this.previewState = this.previewResult ? 'success' : 'error';
+				this.previewError = this.previewResult ? '' : '价格计算失败，请重试';
+				this._previewAttempt = 0;
+			}).catch(err => {
+				if (seq !== this._previewSeq) return;
+				const httpStatus = err && typeof err.statusCode === 'number' ? err.statusCode : 0;
+				if (httpStatus >= 400 && httpStatus < 500) {
 					this.previewResult = null;
 					this.previewState = 'error';
 					// 优先读稳定业务错误码映射；未知 code 回退后端 message / 通用文案
@@ -989,8 +1030,37 @@ export default {
 					} else {
 						this.previewError = (raw && raw.message) || '价格计算失败，请重试';
 					}
-				});
-			}, 100);
+					return;
+				}
+				this.schedulePreviewRetry(seq);
+			});
+		},
+
+		// 传输层失败后的重试阶梯：2s → 5s → 10s，之后每 10s 一次，直到成功。
+		//
+		// 三个终止条件，缺一不可：
+		//   1. 成功 —— .then 分支复位 _previewAttempt 并停表；
+		//   2. 被新输入取代 —— fetchPreview 每次都 ++_previewSeq 并 clearTimeout，
+		//      在途回调与待发定时器都会发现 seq 变了而收手；
+		//   3. 页面隐藏/销毁 —— onHide / onUnload 调 cancelPreviewRetry 并 ++_previewSeq。
+		// 少了第 3 条，被覆盖的页面会留下一个永不停止的定时器空转（与 _quotaActive 同一课）。
+		schedulePreviewRetry(seq) {
+			const delays = PREVIEW_RETRY_DELAYS_MS;
+			const delay = delays[Math.min(this._previewAttempt, delays.length - 1)];
+			this._previewAttempt += 1;
+			this.cancelPreviewRetry();
+			this._previewTimer = setTimeout(() => {
+				if (seq !== this._previewSeq) return;
+				this.runPreview();
+			}, delay);
+		},
+
+		// 停掉待发的重试定时器。在途请求取消不了，靠回调里的 seq 比对自行作废
+		cancelPreviewRetry() {
+			if (this._previewTimer) {
+				clearTimeout(this._previewTimer);
+				this._previewTimer = null;
+			}
 		},
 		// ===== 今日名额轮询（90 秒，匿名接口 /bookings/today-quota）=====
 		// 完全独立的一条链，不碰 _previewSeq / _previewTimer / preview* 任何字段，

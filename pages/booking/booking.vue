@@ -408,8 +408,25 @@ export default {
             this.currentDeleteItem = null;
         },
         confirmDeletePreview() {
+            // ⚠️ 必须先取出订单再关弹窗：closeDeleteDialog() 会把 currentDeleteItem 置 null，
+            // 顺序反了会请求到 /bookings/undefined
+            const item = this.currentDeleteItem;
             this.closeDeleteDialog();
-            uni.showToast({ title: '删除接口暂未接入', icon: 'none' });
+            if (!item) return;
+            // 软删除：数据不真删，只是用户自己看不到；后台与资金链路不受影响，
+            // 因此不需要按状态做任何判断（任意状态都可删）
+            request({
+                url: `/bookings/${item.bookingId}`,
+                method: "DELETE"
+            }).then(() => {
+                uni.showToast({ title: '订单已删除', icon: 'success' });
+                // 重新拉列表而不是本地 splice，与取消订单同一约定（避免与服务端漂移）。
+                // getList() 内部会 resetBookingSwipe()，滑开的那一行不会留下
+                this.getList();
+            }).catch(() => {
+                uni.showToast({ title: '删除失败，请稍后再试', icon: 'none' });
+                this.resetBookingSwipe();
+            });
         },
         confirmCancel() {
             if (this.currentCancelItem) {

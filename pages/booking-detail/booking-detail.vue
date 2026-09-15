@@ -286,6 +286,13 @@
 			<view class="action-bar" v-if="formData.status === 'pending'">
 				<view class="pay-btn" :class="{ 'pay-btn--disabled': paymentLaunching }" @tap="onPay">{{ paymentLaunching ? '正在准备支付…' : '立即支付' }}</view>
 			</view>
+
+			<view class="delete-order-section" v-if="formData.bookingId">
+				<view class="delete-order-btn" @tap="openDeleteDialog">
+					<image class="delete-order-icon" src="/static/svg/trash-2-danger.svg" mode="aspectFit" />
+					<text>删除订单</text>
+				</view>
+			</view>
 		</view>
 
 		<!-- 导航目的地选择（地点数据见 utils/scenic-location.js） -->
@@ -324,6 +331,13 @@
 				</view>
 			</view>
 		</view>
+
+		<order-delete-confirm
+			:visible="deleteDialogVisible"
+			:status="formData.status"
+			@close="closeDeleteDialog"
+			@confirm="confirmDeletePreview"
+		/>
 	</view>
 </template>
 
@@ -335,10 +349,12 @@
 	import { SCENIC_LOCATIONS, openScenicLocation } from '../../utils/scenic-location.js';
 	import { normalizePassengerListForDisplay } from '../../utils/passenger-display.js';
 	import LocationPickerPopup from '../../components/location-picker-popup.vue';
+	import OrderDeleteConfirm from '../../components/order-delete-confirm.vue';
 
 	export default {
 		components: {
 			LocationPickerPopup,
+			OrderDeleteConfirm,
 		},
 		data() {
 			return {
@@ -386,7 +402,8 @@
 				// 退款申请弹窗
 				refundModalVisible: false,
 				refundReason: '',
-				refundSubmitting: false
+				refundSubmitting: false,
+				deleteDialogVisible: false
 			}
 		},
 		computed: {
@@ -646,6 +663,16 @@
 			},
 			onRefund() {
 				this._throttle(() => { this._doRefund(); });
+			},
+			openDeleteDialog() {
+				this.deleteDialogVisible = true;
+			},
+			closeDeleteDialog() {
+				this.deleteDialogVisible = false;
+			},
+			confirmDeletePreview() {
+				this.closeDeleteDialog();
+				uni.showToast({ title: '删除接口暂未接入', icon: 'none' });
 			},
 			_doRefund() {
 				uni.showModal({
@@ -1321,6 +1348,30 @@
 	.pay-btn--disabled {
 		opacity: 0.6;
 		pointer-events: none;
+	}
+
+	.delete-order-section {
+		padding: 20rpx 0 10rpx;
+	}
+
+	.delete-order-btn {
+		height: 76rpx;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 10rpx;
+		box-sizing: border-box;
+		border: 1.5rpx solid #D94C4C;
+		border-radius: 16rpx;
+		background: #FFFFFF;
+		color: #D94C4C;
+		font-size: 28rpx;
+		font-weight: 600;
+	}
+
+	.delete-order-icon {
+		width: 30rpx;
+		height: 30rpx;
 	}
 
 	.refund-btn {

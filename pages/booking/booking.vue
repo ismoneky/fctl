@@ -27,7 +27,39 @@
 
             <!-- 预约列表 -->
             <scroll-view scroll-y class="booking-list" v-if="bookingList.length > 0">
-                <view class="booking-item" v-for="(item, index) in bookingList" :key="item.id">
+                <view class="booking-swipe-shell" v-for="(item, index) in bookingList" :key="item.bookingId || item.id || index">
+                    <view class="booking-swipe-action">
+                        <view
+                            class="booking-swipe-delete"
+                            :style="getDeleteCircleStyle(item)"
+                            role="button"
+                            aria-label="删除订单"
+                            @click.stop="openDeleteDialog(item)"
+                        >
+                            <view class="booking-swipe-delete-fill" :style="getDeleteFillStyle(item)"></view>
+                            <image
+                                class="booking-swipe-delete-icon"
+                                src="/static/svg/trash-2-danger.svg"
+                                mode="aspectFit"
+                                :style="getDeleteIconStyle(item, false)"
+                            />
+                            <image
+                                class="booking-swipe-delete-icon"
+                                src="/static/svg/trash-2-white.svg"
+                                mode="aspectFit"
+                                :style="getDeleteIconStyle(item, true)"
+                            />
+                        </view>
+                    </view>
+
+                    <view
+                        class="booking-item booking-swipe-content"
+                        :style="getSwipeContentStyle(item)"
+                        @touchstart="onBookingTouchStart($event, item)"
+                        @touchmove="onBookingTouchMove($event, item)"
+                        @touchend="onBookingTouchEnd(item)"
+                        @touchcancel="onBookingTouchEnd(item)"
+                    >
                     <view class="booking-header">
                         <view class="booking-type">
                             <text class="iconfont icon-Energy- type-icon"></text>
@@ -77,6 +109,7 @@
                     <view class="booking-footer" v-else>
                         <button class="btn btn-default" @click="viewDetail(item)">查看详情</button>
                     </view>
+                    </view>
                 </view>
             </scroll-view>
 
@@ -104,6 +137,12 @@
                 </view>
             </view>
         </view>
+        <order-delete-confirm
+            :visible="deleteDialogVisible"
+            :status="currentDeleteItem ? currentDeleteItem.status : ''"
+            @close="closeDeleteDialog"
+            @confirm="confirmDeletePreview"
+        />
         <my-tab-bar :current="1" :unread="unreadCount"></my-tab-bar>
     </view>
 
@@ -111,11 +150,19 @@
 
 <script>
 import myTabBar from '@/components/my-tab-bar.vue';
+import OrderDeleteConfirm from '@/components/order-delete-confirm.vue';
 import { request } from '../../utils/request.js';
 import { fetchUnreadCount, getCachedUnreadCount } from '../../utils/message-center.js';
+import {
+    calculateSwipeOffset,
+    getDeleteFillProgress,
+    getSwipeProgress,
+    settleSwipeOffset
+} from '../../utils/order-swipe.js';
 export default {
     components: {
-        myTabBar
+        myTabBar,
+        OrderDeleteConfirm
     },
     data() {
         return {
@@ -124,6 +171,16 @@ export default {
             currentTab: 0,
             showCancel: false,
             currentCancelItem: null,
+            deleteDialogVisible: false,
+            currentDeleteItem: null,
+            swipeActionWidthPx: 68,
+            swipeOpenKey: '',
+            swipeActiveKey: '',
+            swipeOffsetPx: 0,
+            swipeTouchStartX: 0,
+            swipeTouchStartY: 0,
+            swipeTouchStartOffset: 0,
+            swipeGestureAxis: '',
             bookingList: []
         }
     },
@@ -146,6 +203,9 @@ export default {
     // 	}
     // },
     onLoad(options) {
+        if (typeof uni.upx2px === 'function') {
+            this.swipeActionWidthPx = Math.max(1, uni.upx2px(136));
+        }
         if (options.tab !== undefined) {
             this.currentTab = parseInt(options.tab) || 0;
         }
@@ -175,7 +235,108 @@ export default {
                 }
             });
         },
+        getBookingSwipeKey(item) {
+            return String((item && (item.bookingId || item.id)) || '');
+        },
+        getBookingSwipeOffset(item) {
+            const key = this.getBookingSwipeKey(item);
+            if (this.swipeActiveKey === key) return this.swipeOffsetPx;
+            return this.swipeOpenKey === key ? this.swipeActionWidthPx : 0;
+        },
+        getBookingSwipeProgress(item) {
+            return getSwipeProgress(this.getBookingSwipeOffset(item), this.swipeActionWidthPx);
+        },
+        getSwipeContentStyle(item) {
+            const key = this.getBookingSwipeKey(item);
+            const offset = this.getBookingSwipeOffset(item);
+            return {
+                transform: `translate3d(-${offset}px, 0, 0)`,
+                transition: this.swipeActiveKey === key
+                    ? 'none'
+                    : 'transform 260ms cubic-bezier(0.22, 0.8, 0.24, 1)'
+            };
+        },
+        getDeleteCircleStyle(item) {
+            const progress = this.getBookingSwipeProgress(item);
+            return {
+                opacity: String(0.35 + progress * 0.65),
+                transform: `scale(${(0.82 + progress * 0.18).toFixed(3)})`
+            };
+        },
+        getDeleteFillStyle(item) {
+            const fill = getDeleteFillProgress(this.getBookingSwipeOffset(item), this.swipeActionWidthPx);
+            return {
+                opacity: String(fill),
+                transform: `scale(${fill.toFixed(3)})`
+            };
+        },
+        getDeleteIconStyle(item, white) {
+            const progress = getDeleteFillProgress(this.getBookingSwipeOffset(item), this.swipeActionWidthPx);
+            return { opacity: String(white ? progress : 1 - progress) };
+        },
+        getTouchPoint(event) {
+            const points = event && (event.touches || event.changedTouches);
+            const touch = points && points[0];
+            if (!touch) return null;
+            return {
+                x: Number(touch.clientX !== undefined ? touch.clientX : touch.pageX),
+                y: Number(touch.clientY !== undefined ? touch.clientY : touch.pageY)
+            };
+        },
+        onBookingTouchStart(event, item) {
+            const touch = this.getTouchPoint(event);
+            if (!touch) return;
+
+            const key = this.getBookingSwipeKey(item);
+            const startOffset = this.swipeOpenKey === key ? this.swipeActionWidthPx : 0;
+            this.swipeOpenKey = '';
+            this.swipeActiveKey = key;
+            this.swipeOffsetPx = startOffset;
+            this.swipeTouchStartOffset = startOffset;
+            this.swipeTouchStartX = touch.x;
+            this.swipeTouchStartY = touch.y;
+            this.swipeGestureAxis = '';
+        },
+        onBookingTouchMove(event, item) {
+            if (this.swipeActiveKey !== this.getBookingSwipeKey(item)) return;
+            const touch = this.getTouchPoint(event);
+            if (!touch) return;
+
+            const deltaX = this.swipeTouchStartX - touch.x;
+            const deltaY = this.swipeTouchStartY - touch.y;
+            if (!this.swipeGestureAxis) {
+                if (Math.abs(deltaX) < 6 && Math.abs(deltaY) < 6) return;
+                this.swipeGestureAxis = Math.abs(deltaX) > Math.abs(deltaY) ? 'horizontal' : 'vertical';
+            }
+            if (this.swipeGestureAxis !== 'horizontal') return;
+
+            if (event && typeof event.preventDefault === 'function') event.preventDefault();
+            this.swipeOffsetPx = calculateSwipeOffset(
+                this.swipeTouchStartOffset,
+                deltaX,
+                this.swipeActionWidthPx
+            );
+        },
+        onBookingTouchEnd(item) {
+            const key = this.getBookingSwipeKey(item);
+            if (this.swipeActiveKey !== key) return;
+
+            const settledOffset = this.swipeGestureAxis === 'horizontal'
+                ? settleSwipeOffset(this.swipeOffsetPx, this.swipeActionWidthPx)
+                : this.swipeTouchStartOffset;
+            this.swipeOpenKey = settledOffset > 0 ? key : '';
+            this.swipeOffsetPx = settledOffset;
+            this.swipeActiveKey = '';
+            this.swipeGestureAxis = '';
+        },
+        resetBookingSwipe() {
+            this.swipeOpenKey = '';
+            this.swipeActiveKey = '';
+            this.swipeOffsetPx = 0;
+            this.swipeGestureAxis = '';
+        },
         getList() {
+            this.resetBookingSwipe();
             const openid = uni.getStorageSync('openid');
             let status = null;
             switch (this.currentTab) {
@@ -236,6 +397,19 @@ export default {
         showCancelDialog(item) {
             this.currentCancelItem = item;
             this.showCancel = true;
+        },
+        openDeleteDialog(item) {
+            this.resetBookingSwipe();
+            this.currentDeleteItem = item;
+            this.deleteDialogVisible = true;
+        },
+        closeDeleteDialog() {
+            this.deleteDialogVisible = false;
+            this.currentDeleteItem = null;
+        },
+        confirmDeletePreview() {
+            this.closeDeleteDialog();
+            uni.showToast({ title: '删除接口暂未接入', icon: 'none' });
         },
         confirmCancel() {
             if (this.currentCancelItem) {
@@ -378,11 +552,72 @@ export default {
 }
 
 .booking-item {
+    position: relative;
+    z-index: 2;
     background: #fff;
     border-radius: 20rpx;
     padding: 30rpx;
-    margin-bottom: 20rpx;
     box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.05);
+}
+
+.booking-swipe-shell {
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 20rpx;
+    border-radius: 20rpx;
+    background: #F5F8FA;
+}
+
+.booking-swipe-content {
+    touch-action: pan-y;
+    will-change: transform;
+}
+
+.booking-swipe-action {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1;
+    width: 136rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.booking-swipe-delete {
+    position: relative;
+    width: 84rpx;
+    height: 84rpx;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.5rpx solid rgba(217, 76, 76, 0.28);
+    border-radius: 50%;
+    background: #FCECEC;
+    box-shadow: 0 8rpx 18rpx rgba(217, 76, 76, 0.14);
+    transition: opacity 100ms linear, transform 100ms linear;
+}
+
+.booking-swipe-delete-fill {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    border-radius: 50%;
+    background: #D94C4C;
+    transform-origin: center;
+    transition: opacity 100ms linear, transform 100ms linear;
+}
+
+.booking-swipe-delete-icon {
+    position: absolute;
+    z-index: 1;
+    width: 34rpx;
+    height: 34rpx;
+    transition: opacity 100ms linear;
 }
 
 .booking-header {
@@ -510,6 +745,7 @@ export default {
 
 .booking-footer {
     display: flex;
+    align-items: center;
     gap: 20rpx;
     padding-top: 20rpx;
     border-top: 1rpx solid #f0f0f0;

@@ -26,6 +26,8 @@ const iconColors = {
   'shield-check-white.svg': '#FFFFFF',
   'circle-check-white.svg': '#FFFFFF',
   'circle-x-white.svg': '#FFFFFF',
+  'trash-2-danger.svg': '#D94C4C',
+  'trash-2-white.svg': '#FFFFFF',
   'tab-home-normal.svg': '#9A9A9A',
   'tab-home-active.svg': 'url(#tab-active-gradient)',
   'tab-booking-normal.svg': '#9A9A9A',
@@ -225,4 +227,28 @@ test('tab labels use the compact size and active gradient midpoint color', () =>
   assert.ok(rule, 'tab text style must exist');
   assert.match(rule[1], /font-size:\s*22rpx/);
   assert.match(rule[1], /&\.active\s*\{[^}]*color:\s*#357FAF/);
+});
+
+test('order list and detail share one status-aware delete confirmation surface', () => {
+  const list = fs.readFileSync(path.join(ROOT, 'pages/booking/booking.vue'), 'utf8');
+  const detail = fs.readFileSync(path.join(ROOT, 'pages/booking-detail/booking-detail.vue'), 'utf8');
+  const componentPath = path.join(ROOT, 'components/order-delete-confirm.vue');
+
+  assert.ok(fs.existsSync(componentPath), 'shared order delete confirmation component must exist');
+  const component = fs.readFileSync(componentPath, 'utf8');
+
+  assert.ok(list.includes('<order-delete-confirm'));
+  assert.ok(detail.includes('<order-delete-confirm'));
+  assert.ok(list.includes('class="booking-swipe-shell"'));
+  assert.match(list, /class="[^"]*\bbooking-swipe-content\b[^"]*"/);
+  assert.ok(list.includes('class="booking-swipe-delete"'));
+  assert.ok(list.includes('class="booking-swipe-delete-fill"'));
+  assert.ok(list.includes('/static/svg/trash-2-white.svg'));
+  assert.ok(list.includes('@touchstart="onBookingTouchStart($event, item)"'));
+  assert.ok(list.includes('@touchmove="onBookingTouchMove($event, item)"'));
+  assert.ok(list.includes('@touchend="onBookingTouchEnd(item)"'));
+  assert.doesNotMatch(list, /class="booking-delete-entry"/);
+  assert.ok(detail.includes('class="delete-order-btn"'));
+  assert.ok(component.includes('/static/svg/trash-2-danger.svg'));
+  assert.ok(component.includes('{{ promptText }}'));
 });

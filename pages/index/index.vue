@@ -236,49 +236,12 @@ export default {
       noticeList: [],
     };
   },
-  async onLoad() {
+  onLoad() {
+    // 登录不在这里：登录态刷新已统一交给 App.vue 的 onShow（冷启动与从后台恢复都覆盖到）。
+    // 此前只在首页 onLoad 登录，用户停在预约页从后台切回时页面栈保留、onLoad 不跑，
+    // 首页的 onLoad / onShow 也都不会执行，token 就没人刷新了。
     this.loadBanners();
     this.loadAnnouncements();
-    uni.login({
-      provider: "weixin",
-      success: async (loginRes) => {
-        try {
-          console.log("微信登录成功，code:", loginRes.code);
-          const res = await request({
-            url: "/users/wx-login", // 后端登录接口
-            method: "POST",
-            data: {
-              code: loginRes.code,
-            },
-          });
-          // 适配后端返回格式
-          if (res.success && res.data) {
-            uni.setStorageSync("token", res.data.token);
-            uni.setStorageSync("isAdmin", res.data.admin === true);
-            // 登录成功后才拿得到未读数。onShow 在 onLoad 之后立刻触发，
-            // 那时 token 还没写进来（本页正是登录的发起处），只靠 onShow 会漏掉第一次
-            this.refreshUnread(true);
-          } else {
-            uni.showToast({
-              title: "微信登录失败",
-              icon: "none",
-            });
-          }
-        } catch (err) {
-          uni.showToast({
-            title: "微信登录异常",
-            icon: "none",
-          });
-        }
-      },
-      fail: (err) => {
-        uni.showToast({
-          title: "微信授权失败",
-          icon: "none",
-        });
-        console.log("微信登录失败:", err);
-      },
-    });
   },
   /**
    * 切回首页时刷新未读红点。

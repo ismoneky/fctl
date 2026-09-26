@@ -61,6 +61,13 @@ export const request = (options) => {
                     setTimeout(() => send(attempt + 1).then(resolve, reject), RETRY_DELAYS_MS[attempt]);
                     return;
                 }
+                // 401 的 message 是后端 JwtAuthGuard 抛出的内部措辞（「token 无效或已过期」
+                // 「缺少认证 token」），而多个调用方会直接把它渲染给用户 —— 预约页底部结算栏
+                // 就曾把「token 无效或已过期」当成金额显示。这里统一换成用户看得懂、且指向
+                // 出路的一句话。只改 message，statusCode 与 data 的其余字段一字不动。
+                if (res.statusCode === 401 && res.data && typeof res.data === 'object') {
+                    res.data.message = '登录状态已失效，请返回重新进入';
+                }
                 reject(res);
             },
             fail: (err) => {

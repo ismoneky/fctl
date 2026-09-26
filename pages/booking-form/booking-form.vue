@@ -634,7 +634,15 @@ export default {
 		// 后端 dto/today-quota.dto.ts 顶部），没有数字可报的「充足」对用户也没有信息量；
 		// 免费名额用完也不提 —— preview 结算时会以「本次预约需支付」的口径讲同一件事，
 		// 在这里提前说一遍只是噪音。
-		// full 命中即止：都约不上了，再说免费名额没有意义
+		//
+		// 后端四档（顺序即紧张程度，判定见 BookingService.buildCapacityLevel）：
+		//   full    已满   —— 红，命中即止（都约不上了，再说免费名额没有意义）
+		//   limited 紧张   —— 红「仅剩」，剩下的不多了，该催
+		//   ample   宽裕   —— 【中性色】「今日剩余」，有数字但不该报警
+		//   plenty  充裕   —— 不显示，后端压根没给数字
+		// limited 与 ample 的差别只在措辞和配色：都在报数字，但一个催、一个只是告知。
+		// 运营把展示阈值调到 100% 后 ample 是常态，此时若沿用红色「仅剩」，
+		// 剩 3800 个名额也会被渲染成告急。
 		todayQuotaItems() {
 			const items = [];
 			const c = this.todayQuota && this.todayQuota.capacity;
@@ -646,6 +654,9 @@ export default {
 			}
 			if (c.level === 'limited') {
 				items.push({ tone: 'alert', text: `今日仅剩 ${c.remaining} 个名额` });
+			}
+			if (c.level === 'ample') {
+				items.push({ tone: 'info', text: `今日剩余 ${c.remaining} 个名额` });
 			}
 
 			// 免费名额项：preview 已就同一件事表过态时一律让位，否则同一张卡里会出现两种结论
@@ -1087,9 +1098,11 @@ export default {
 					// 收敛成前端自己的形状：后端改字段名时只在这里崩一处，不散落到模板
 					this.todayQuota = {
 						date: d.date || '',
-						// 只有 limited 才带 remaining，充足/已满时刻意不带（后端就不下发）
-						capacity: d.capacity.level === 'limited'
-							? { level: 'limited', remaining: Number(d.capacity.remaining) || 0 }
+						// 只有 limited / ample 带 remaining，plenty / full 刻意不带（后端就不下发）。
+						// 两个档位必须一起保留：漏掉 ample 会让数字在这一步被丢掉，
+						// 模板拿到 { level: 'ample' } 后取不到 remaining，渲染出「今日剩余 undefined 个名额」
+						capacity: (d.capacity.level === 'limited' || d.capacity.level === 'ample')
+							? { level: d.capacity.level, remaining: Number(d.capacity.remaining) || 0 }
 							: { level: d.capacity.level },
 						freeQuota: free
 					};
@@ -1951,15 +1964,21 @@ export default {
 	border-top: 1.5rpx solid rgba(47, 110, 142, 0.10);
 }
 
-/* 两态：alert 名额不够了（红）/ free 还能免费（绿）。
+/* 三态：alert 名额不够了（红）/ free 还能免费（绿）/ info 只是报数字（中性）。
    绿色由 .free-banner-icon 的 #33C5A0 压深一档 —— 那是给色块用的，
-   这个字号下直接当正文色偏浅 */
+   这个字号下直接当正文色偏浅。
+   info 复用 #5F6B73（.free-banner-desc 的正文色）：它和说明文字同层级，
+   不是强调，配色也不该抢 —— 用红会让「还很多」看起来像告急 */
 .quota-line-text--alert {
 	color: #D94C4C;
 }
 
 .quota-line-text--free {
 	color: #2F9275;
+}
+
+.quota-line-text--info {
+	color: #5F6B73;
 }
 
 /* ===== 添加入口 ===== */

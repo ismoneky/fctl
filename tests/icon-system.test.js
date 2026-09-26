@@ -192,6 +192,13 @@ test('booking form separates neutral information from error, success, and warnin
   assert.match(rule('passenger-unavailable-tag'), /background:\s*#FFF6E3/);
   assert.match(rule('passenger-age-mismatch-tag'), /color:\s*#D94C4C/);
   assert.match(rule('passenger-age-mismatch-tag'), /background:\s*#FCECEC/);
+
+  // 今日名额三态：紧张用红、还能免费用绿、只是报数字用中性。
+  // ample（宽裕）必须落在中性色上 —— 它和 limited 都在报数字，差别就在该不该催，
+  // 一旦 ample 也用红，运营把展示阈值调到 100% 后页面会整片告急
+  assert.match(rule('quota-line-text--alert'), /color:\s*#D94C4C/);
+  assert.match(rule('quota-line-text--free'), /color:\s*#2F9275/);
+  assert.match(rule('quota-line-text--info'), /color:\s*#5F6B73/);
 });
 
 test('non-tab glyphs use the compact 36rpx display size', () => {

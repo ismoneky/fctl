@@ -11,14 +11,12 @@
 				</view>
 
 				<view class="field-block">
-					<picker mode="date" :start="minDate" :end="maxDate" @change="onDateChange">
-						<view class="input-box input-box--picker">
-							<text class="picker-text" :class="formData.bookingDate ? 'picker-text--filled' : ''">
-								{{ formData.bookingDate || '请选择预约日期' }}
-							</text>
-							<image class="picker-icon-svg" src="/static/svg/rili.svg" mode="aspectFit" />
-						</view>
-					</picker>
+					<booking-date-picker
+						:value="formData.bookingDate"
+						:min-date="minDate"
+						:max-date="maxDate"
+						@change="onDateChange"
+					/>
 				</view>
 
 				<!-- 预约日期的信息卡：preview 的免费提示与 today-quota 的今日名额合成一张。
@@ -370,7 +368,9 @@ import {
 	getPassengerLimit,
 } from '../../utils/passenger-pricing.js';
 import { getPassengerErrorMessage } from '../../utils/passenger-error-messages.js';
+import { resolveInitialBookingDate } from '../../utils/booking-date-picker.js';
 import ChildSeniorPassengerPopup from '../../components/child-senior-passenger-popup.vue';
+import BookingDatePicker from '../../components/booking-date-picker.vue';
 
 // UI 稳定标识自增序号：保证同页新增人员 _key 唯一（仅前端列表渲染用，不提交后端）
 let passengerKeySeq = 0;
@@ -435,6 +435,7 @@ const MEMBER_REASONS = ['member_idcard_not_matched', 'member_plate_not_matched']
 export default {
 	components: {
 		ChildSeniorPassengerPopup,
+		BookingDatePicker,
 	},
 	data() {
 		return {
@@ -684,6 +685,8 @@ export default {
 		}
 		this.minDate = this.formatDate(today);
 		this.maxDate = this.formatDate(maxDay);
+		// 新建与“再次预约”都使用当前第一个可预约日期，不沿用可能已过期的旧订单日期。
+		this.formData.bookingDate = resolveInitialBookingDate(this.minDate, this.maxDate);
 		// 检查是否携带 bookingId 参数
 		if (options.bookingId) {
 			this.getBookingDetail(options.bookingId);
@@ -692,8 +695,8 @@ export default {
 		this.fetchPreview();
 		// 预加载常用人员列表
 		this.fetchProfiles();
-		// 今日名额不在这里取：接口只认「今天」，而进页面时用户还没选日期，
-		// 按当天默认发一次请求纯属凭空多出来的一次。启动点见 onDateChange
+		// 已有默认日期，按用户主动选择日期的同一规则启动今日名额查询。
+		if (this.formData.bookingDate) this.startQuotaPolling();
 		// 温馨提示弹窗（内容由后台系统配置，开关关闭则不弹）
 		request({ method: 'GET', url: '/system-config/notice' }).then(res => {
 			if (res.data && res.data.enabled && res.data.content) {

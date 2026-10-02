@@ -1,6 +1,11 @@
 <template>
   <view class="index">
-    <view class="container">
+    <scroll-view
+      class="container"
+      scroll-y
+      scroll-with-animation
+      :scroll-into-view="noticeScrollTarget"
+    >
       <!-- 顶部轮播图 -->
       <view class="banner-section">
         <swiper
@@ -137,25 +142,37 @@
         </scroll-view>
       </view>
 
-      <!-- 游玩须知 -->
-      <view class="section">
+      <!-- 游玩须知：不替公告概括标题；短文完整展示，长文保留三行原文预览 -->
+      <view class="section" v-if="noticeList.length > 0">
         <view class="section-header">
           <text class="section-title">游玩须知</text>
         </view>
         <view class="notice-list">
           <view
             class="notice-item"
-            v-for="(item, index) in noticeList"
-            :key="index"
-            @click="showNoticeDetail(item)"
+            :class="{ 'notice-item--highlight': noticeHighlightKey === item.key }"
+            v-for="item in noticeList"
+            :key="item.key"
+            :id="'notice-' + item.key"
           >
-            <view class="notice-dot"></view>
-            <text class="notice-text">{{ item.content }}</text>
-            <text class="notice-time">{{ item.time }}</text>
+            <text
+              class="notice-content"
+              :class="{
+                'notice-content--collapsed': item.collapsible && !isNoticeExpanded(item)
+              }"
+            >{{ item.displayContent }}</text>
+            <view class="notice-footer">
+              <text class="notice-time">{{ item.time }}</text>
+              <text
+                v-if="item.collapsible"
+                class="notice-toggle"
+                @click.stop="toggleNotice(item)"
+              >{{ isNoticeExpanded(item) ? '收起' : '展开全文' }}</text>
+            </view>
           </view>
         </view>
       </view>
-    </view>
+    </scroll-view>
     <my-tab-bar :current="0" :unread="unreadCount"></my-tab-bar>
   </view>
 </template>
@@ -166,6 +183,10 @@ import { request } from "../../utils/request.js";
 import { isWhitelistedUser } from "../../utils/whitelist.js";
 import { SCENIC_LOCATIONS, openScenicLocation } from "../../utils/scenic-location.js";
 import { fetchUnreadCount, getCachedUnreadCount } from "../../utils/message-center.js";
+import {
+  shouldCollapseAnnouncement,
+  splitAnnouncementParagraphs,
+} from "../../utils/announcement-display.js";
 import LocationPickerPopup from "../../components/location-picker-popup.vue";
 export default {
   components: {
@@ -178,6 +199,10 @@ export default {
       unreadCount: getCachedUnreadCount(),
       bannerList: [],
       noticeBarIndex: 0,
+      noticeExpandedKeys: {},
+      noticeScrollTarget: "",
+      noticeHighlightKey: "",
+      _noticeHighlightTimer: null,
       // 导航候选地点（来源见 utils/scenic-location.js）
       scenicLocations: SCENIC_LOCATIONS,
       locationPickerVisible: false,
@@ -252,6 +277,12 @@ export default {
   onShow() {
     this.refreshUnread();
   },
+  onUnload() {
+    if (this._noticeHighlightTimer) {
+      clearTimeout(this._noticeHighlightTimer);
+      this._noticeHighlightTimer = null;
+    }
+  },
   // 分享给好友
   onShareAppMessage() {
     return {
@@ -304,12 +335,18 @@ export default {
       request({ method: "GET", url: "/announcements" })
         .then((res) => {
           if (res.success && Array.isArray(res.data)) {
-            this.noticeList = res.data.map((item) => ({
-              content: item.content,
-              // 轮播条单行展示：折叠换行为空格（text 组件对 \n 是组件级换行，CSS nowrap 管不住）
-              oneline: this.toOnelineNotice(item.content),
-              time: this.formatNoticeDate(item.updatedAt),
-            }));
+            this.noticeList = res.data.map((item, index) => {
+              const paragraphs = splitAnnouncementParagraphs(item.content);
+              return {
+                key: String(item.announcementId || item.id || index),
+                displayContent: paragraphs.join("\n"),
+                collapsible: shouldCollapseAnnouncement(item.content),
+                // 轮播条单行展示：折叠换行为空格（text 组件对 \n 是组件级换行，CSS nowrap 管不住）
+                oneline: this.toOnelineNotice(item.content),
+                time: this.formatNoticeDate(item.updatedAt),
+              };
+            });
+            this.noticeExpandedKeys = {};
           }
         })
         .catch(() => {});
@@ -329,14 +366,34 @@ export default {
       const dd = String(d.getDate()).padStart(2, "0");
       return `${mm}-${dd}`;
     },
-    // 查看游玩须知详情
-    showNoticeDetail(item) {
-      uni.showModal({
-        title: "游玩须知",
-        content: item.content,
-        showCancel: false,
-        confirmText: "我知道了",
+    isNoticeExpanded(item) {
+      return !!(item && this.noticeExpandedKeys[item.key]);
+    },
+    toggleNotice(item) {
+      if (!item || !item.collapsible) return;
+      this.noticeExpandedKeys = {
+        ...this.noticeExpandedKeys,
+        [item.key]: !this.isNoticeExpanded(item),
+      };
+    },
+    focusNotice(item) {
+      if (!item) return;
+      if (item.collapsible && !this.isNoticeExpanded(item)) {
+        this.noticeExpandedKeys = {
+          ...this.noticeExpandedKeys,
+          [item.key]: true,
+        };
+      }
+      this.noticeHighlightKey = item.key;
+      this.noticeScrollTarget = "";
+      this.$nextTick(() => {
+        this.noticeScrollTarget = `notice-${item.key}`;
       });
+      if (this._noticeHighlightTimer) clearTimeout(this._noticeHighlightTimer);
+      this._noticeHighlightTimer = setTimeout(() => {
+        if (this.noticeHighlightKey === item.key) this.noticeHighlightKey = "";
+        this._noticeHighlightTimer = null;
+      }, 1600);
     },
     // 公告轮播切换
     onNoticeSwiperChange(e) {
@@ -345,9 +402,7 @@ export default {
     // 点击公告轮播条，查看当前轮播到的公告详情
     onNoticeBarClick() {
       const item = this.noticeList[this.noticeBarIndex];
-      if (item) {
-        this.showNoticeDetail(item);
-      }
+      this.focusNotice(item);
     },
     // 点击导航条：有多个目的地，先弹窗选择，不直接跳转
     onLocationBarClick() {
@@ -419,8 +474,7 @@ export default {
   height: calc(100vh - 100rpx - env(safe-area-inset-bottom));
   background-color: #f5f5f5;
   padding-bottom: 0px;
-  overflow: hidden;
-  overflow-y: auto;
+  box-sizing: border-box;
 }
 
 /* 轮播图 */
@@ -776,43 +830,71 @@ export default {
 /* 公告列表 */
 .notice-list {
   background: #fff;
-  border-radius: 16rpx;
-  padding: 20rpx 30rpx;
+  border-radius: 20rpx;
+  padding: 0 30rpx;
+  box-shadow: 0 4rpx 20rpx rgba(31, 55, 68, 0.05);
 }
 
 .notice-item {
-  display: flex;
-  align-items: center;
-  padding: 20rpx 0;
-  border-bottom: 1rpx solid #f0f0f0;
+  display: block;
+  padding: 28rpx 0;
+  border-bottom: 1rpx solid #E9EEF1;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .notice-item:last-child {
   border-bottom: none;
 }
 
-.notice-dot {
-  width: 12rpx;
-  height: 12rpx;
-  background: #4a90e2;
-  border-radius: 50%;
-  margin-right: 20rpx;
-  flex-shrink: 0;
+.notice-item--highlight {
+  background: #EDF5F8;
+  box-shadow: inset 5rpx 0 0 #3F99F6;
+  animation: notice-focus 0.8s ease-in-out 2;
 }
 
-.notice-text {
-  flex: 1;
-  font-size: 28rpx;
-  color: #666;
+@keyframes notice-focus {
+  0%, 100% { background: #EDF5F8; }
+  50% { background: #DDEEF5; }
+}
+
+.notice-content {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 26rpx;
+  line-height: 1.65;
+  color: #5F6B73;
+  word-break: break-all;
+  white-space: pre-line;
+}
+
+.notice-content--collapsed {
+  display: -webkit-box;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.notice-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 34rpx;
+  margin-top: 10rpx;
 }
 
 .notice-time {
-  font-size: 24rpx;
-  color: #999;
-  margin-left: 20rpx;
-  flex-shrink: 0;
+  font-size: 23rpx;
+  line-height: 1.45;
+  color: #98A2A8;
+}
+
+.notice-toggle {
+  font-size: 23rpx;
+  line-height: 1.45;
+  color: #2F6E8E;
+  font-weight: 600;
+  margin-left: 24rpx;
+  padding: 6rpx 0 6rpx 12rpx;
 }
 </style>

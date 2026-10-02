@@ -20,7 +20,7 @@
 			</view>
 
 			<!-- 待使用：状态条 -->
-			<view class="status-bar status-bar-confirmed" v-if="formData.status === 'confirmed'">
+			<view class="status-bar status-bar-confirmed" v-if="canShowQr">
 				<view class="status-bar-info">
 					<text class="status-bar-label">{{ formData.isFree ? '免费预约' : '待使用' }}</text>
 					<text class="status-bar-desc" v-if="formData.isFree">
@@ -47,9 +47,14 @@
 			</view>
 
 			<!-- 已退款 -->
-			<view class="status-hero status-hero--refunded" v-if="formData.status === 'refunded'">
+			<view class="status-hero status-hero--refunded" v-if="!refundPending && bookingDisplayStatus === 'refunded'">
 				<text class="hero-title hero-title--refunded">退款成功</text>
 				<text class="hero-desc">款项将原路退回，请耐心等待到账</text>
+			</view>
+			<view class="status-hero status-hero--refunded" v-if="refundPending || bookingDisplayStatus === 'refunding'">
+				<text class="hero-title hero-title--refunded">{{ refundPending ? '退款状态确认中' : '退款中' }}</text>
+				<text class="hero-desc">{{ refundPending ? '正在提交或确认退款结果，核验码已暂停展示' : '退款申请已提交，核验码已失效，无法入场' }}</text>
+				<view class="refund-btn" v-if="refundPending && !refundInFlight" @tap="getBookingDetail(formData.bookingId)">重新查询状态</view>
 			</view>
 
 			<!-- 已过期 —— 展示态由「订单状态 + 最新一条退款申请」组合而来（§4.3.5）
@@ -116,7 +121,7 @@
 			<!-- 核验二维码 - 仅待使用状态显示。
 			     前置于详情卡片之前：支付成功跳转回本页时，用户无需下滑即可看到核验码，
 			     订单详情属于低频查阅信息，放在下方不影响核销主路径 -->
-			<view class="qr-section" v-if="formData.status === 'confirmed' && formData.bookingId">
+			<view class="qr-section" v-if="canShowQr">
 				<view class="qr-card">
 					<view v-if="isMotorcycleMember" class="qr-member-badge">会员</view>
 					<!-- 预约人数醒目展示（二维码上方，半透明白底胶囊 + 大号数字） -->
@@ -346,6 +351,7 @@
 		request
 	} from '../../utils/request';
 	import { handlePayment } from '../../utils/payment';
+	import { getBookingDisplayStatus, getRequestFailureMessage } from '../../utils/booking-status.js';
 	import { SCENIC_LOCATIONS, openScenicLocation } from '../../utils/scenic-location.js';
 	import { normalizePassengerListForDisplay } from '../../utils/passenger-display.js';
 	import LocationPickerPopup from '../../components/location-picker-popup.vue';
@@ -372,6 +378,8 @@
 					personCount: 1,
 					remarks: '',
 					status: '',
+					refundStatus: 'none',
+					paymentStatus: '',
 					bookingId: '',
 					paymentExpiredAt: null,
 					// 退款入口（§4.3.5，后端在 /bookings/:bookingId 下发的派生字段）。
@@ -403,10 +411,19 @@
 				refundModalVisible: false,
 				refundReason: '',
 				refundSubmitting: false,
+				refundPending: false,
+				refundInFlight: false,
+				detailRequestId: 0,
 				deleteDialogVisible: false
 			}
 		},
 		computed: {
+			bookingDisplayStatus() {
+				return getBookingDisplayStatus(this.formData);
+			},
+			canShowQr() {
+				return !this.refundPending && getBookingDisplayStatus(this.formData) === 'confirmed' && !!this.formData.bookingId;
+			},
 			countdownDisplay() {
 				const total = Math.max(0, this.countdown);
 				const mm = String(Math.floor(total / 60)).padStart(2, '0');
@@ -536,6 +553,7 @@
 			}
 		},
 		onUnload() {
+			this.detailRequestId++;
 			this.clearCountdown();
 			this.clearDetailTimer();
 		},
@@ -689,6 +707,7 @@
 				});
 			},
 			_doRefund() {
+				if (this.refundPending || getBookingDisplayStatus(this.formData) !== 'confirmed') return;
 				uni.showModal({
 					title: '申请退款',
 					content: '确认申请退款？退款将原路返回，请耐心等待',
@@ -696,6 +715,11 @@
 					confirmColor: '#f5515f',
 					success: (res) => {
 						if (!res.confirm) return;
+						if (this.refundPending) return;
+						this.refundPending = true;
+						this.refundInFlight = true;
+						this.detailRequestId++;
+						this.clearDetailTimer();
 						uni.showLoading({ title: '退款申请中...' });
 						request({
 							method: 'POST',
@@ -704,30 +728,29 @@
 							if (res.success) {
 								uni.showModal({
 									title: '退款申请已提交',
-									content: '退款成功！微信将自动返还回您的账户，请您耐心等待。',
+									content: '退款申请已提交，核验码已失效。款项将原路退回，请留意到账通知。',
 									showCancel: false,
 									confirmText: '我知道了',
-									success: () => {
-										uni.reLaunch({ url: '/pages/booking/booking' });
-									}
 								});
 							} else {
 								uni.showModal({
-									title: '退款失败',
-									content: res.data?.message || '退款申请失败，请稍后重试',
+									title: '请确认退款状态',
+									content: getRequestFailureMessage(res, '退款结果未确认，请查询订单状态'),
 									showCancel: false,
 									confirmText: '我知道了'
 								});
 							}
 						}).catch(err => {
 							uni.showModal({
-								title: '退款失败',
-								content: err.data?.message || '退款申请失败，请稍后重试',
+									title: '请确认退款状态',
+									content: getRequestFailureMessage(err, '退款结果未确认，请查询订单状态'),
 								showCancel: false,
 								confirmText: '我知道了'
 							});
 						}).finally(() => {
+							this.refundInFlight = false;
 							uni.hideLoading();
+							this.getBookingDetail(this.formData.bookingId);
 						});
 					}
 				});
@@ -784,17 +807,21 @@
 			},
 
 			// 获取预约详情
-			getBookingDetail(bookingId) {
-				uni.showLoading({
+			getBookingDetail(bookingId, silent = false) {
+				const requestId = ++this.detailRequestId;
+				if (!silent) uni.showLoading({
 					title: '加载中...'
 				});
-				request({
+				return request({
 					method: 'GET',
 					url: `/bookings/${bookingId}`
 				}).then(res => {
+					if (requestId !== this.detailRequestId || this.refundInFlight) return;
 					if (res.success && res.data) {
 						// 保留 Vue 已观察的 formData 对象，避免小程序端整体替换对象后视图不刷新。
 						Object.assign(this.formData, res.data);
+						// 明确收到退款字段后才解除暂停；失败/不完整响应不能恢复旧码。
+						if (typeof res.data.refundStatus === 'string') this.refundPending = false;
 						// 解析出行人员列表
 						this.passengerList = normalizePassengerListForDisplay(res.data.passengers, res.data);
 						this.startCountdown();
@@ -805,28 +832,20 @@
 						uni.showToast({ title: '加载详情失败', icon: 'none' });
 					}
 				}).catch(() => {
+					if (requestId !== this.detailRequestId) return;
 					uni.showToast({ title: '加载详情失败', icon: 'none' });
 				}).finally(() => {
-					uni.hideLoading();
+					if (!silent && requestId === this.detailRequestId) uni.hideLoading();
 				});
 			},
 			loopDetail() {
-				if(this.formData.status === 'confirmed') {
+				if(!this.refundInFlight && (this.formData.status === 'confirmed' || this.refundPending)) {
 					// 创建新五秒定时器前先清理旧定时器
 					this.clearDetailTimer();
 					this.timer = setTimeout(() => {
 						// 定时器触发时先把当前 timer 置空，再请求详情并决定是否继续下一轮
 						this.timer = null;
-						request({
-							method: 'GET',
-							url: `/bookings/${this.formData.bookingId}`
-						}).then(res => {
-							if (res.success && res.data) {
-								Object.assign(this.formData, res.data);
-								this.passengerList = normalizePassengerListForDisplay(res.data.passengers, res.data);
-								this.loopDetail();
-							}
-						})
+						this.getBookingDetail(this.formData.bookingId, true);
 					}, 5000)
 				}
 			}

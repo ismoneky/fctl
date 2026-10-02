@@ -67,7 +67,9 @@
         >
           {{ verifyModal.success ? "核验成功" : "核验失败" }}
         </text>
-        <text class="verify-modal-msg">{{ verifyModal.message }}</text>
+        <scroll-view scroll-y class="verify-modal-msg-scroll" :style="{ height: verifyModal.success ? '100rpx' : '280rpx' }">
+          <text class="verify-modal-msg">{{ verifyModal.message }}</text>
+        </scroll-view>
         <view
           class="verify-modal-btn"
           :class="verifyModal.success ? 'btn-success' : 'btn-fail'"
@@ -174,6 +176,7 @@
 <script>
 import myTabBar from "@/components/my-tab-bar.vue";
 import { request } from "@/utils/request.js";
+import { getRequestFailureMessage } from "@/utils/booking-status.js";
 import { fetchUnreadCount, getCachedUnreadCount } from "@/utils/message-center.js";
 export default {
   components: {
@@ -334,18 +337,19 @@ export default {
             method: "POST",
             url: `bookings/${bookingId}/verify`,
           })
-            .then(() => {
+            .then((response) => {
+              if (!response || response.success !== true) throw response || {};
               this.verifyModal = {
                 show: true,
                 success: true,
                 message: "订单核验通过，祝您游玩愉快！",
               };
             })
-            .catch(() => {
+            .catch((error) => {
               this.verifyModal = {
                 show: true,
                 success: false,
-                message: "订单核验失败，请检查订单状态",
+                message: `订单号：${bookingId}\n${getRequestFailureMessage(error, '未能确认核验结果，请检查网络后重试或查询订单状态。')}\n请以系统核验结果为准，截图不能作为放行凭证。`,
               };
             })
             .finally(() => {
@@ -821,12 +825,19 @@ export default {
   color: #f5515f;
 }
 
+.verify-modal-msg-scroll {
+  max-height: 45vh;
+  margin-bottom: 50rpx;
+  width: 100%;
+}
 .verify-modal-msg {
   font-size: 28rpx;
-  color: #999;
   text-align: center;
-  margin-bottom: 50rpx;
+  display: block;
   line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: #555;
 }
 
 .verify-modal-btn {

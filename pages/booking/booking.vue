@@ -67,8 +67,8 @@
                         </view>
                         <view class="booking-status-wrap">
                             <text class="booking-free-tag" v-if="item.isFree">{{ item.freeReason === 'member' ? '会员免费' : '免费预约' }}</text>
-                            <view class="booking-status" :class="'status-' + item.status">
-                                {{ getStatusText(item.status) }}
+                            <view class="booking-status" :class="'status-' + getBookingDisplayStatus(item)">
+                                {{ getStatusText(getBookingDisplayStatus(item)) }}
                             </view>
                         </view>
                     </view>
@@ -152,6 +152,7 @@
 import myTabBar from '@/components/my-tab-bar.vue';
 import OrderDeleteConfirm from '@/components/order-delete-confirm.vue';
 import { request } from '../../utils/request.js';
+import { getBookingDisplayStatus } from '../../utils/booking-status.js';
 import { fetchUnreadCount, getCachedUnreadCount } from '../../utils/message-center.js';
 import {
     calculateSwipeOffset,
@@ -221,6 +222,7 @@ export default {
         this.refreshUnread();
     },
     methods: {
+        getBookingDisplayStatus,
         /** 刷新未读红点（30 秒节流，见 utils/message-center.js），失败静默 */
         refreshUnread() {
             fetchUnreadCount().then((n) => {
@@ -389,6 +391,7 @@ export default {
                 completed: '已完成',
                 cancelled: '已取消',
                 refunded: '已退款',
+                refunding: '退款中',
                 // 后端 2026-09-13 起由 T1 扫描写入。不加这条时此处返回 ''，状态标签会是一片空白
                 expired: '已过期'
             };
@@ -722,6 +725,7 @@ export default {
     color: #e91e63;
 }
 
+.status-refunding,
 .status-refunded {
     background: #f3e5f5;
     color: #9c27b0;

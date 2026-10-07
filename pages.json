@@ -9,6 +9,14 @@
 			}
 		},
 		{
+			"path": "pages/guide/guide",
+			"style": {
+				"navigationBarTitleText": "景区导览",
+				"navigationBarBackgroundColor": "#2F6E8E",
+				"navigationBarTextStyle": "white"
+			}
+		},
+		{
 			"path": "pages/booking/booking",
 			"style": {
 				"navigationBarTitleText": "预约记录",

@@ -43,6 +43,12 @@ export default {
                     iconActive: "/static/svg/tab-home-active.svg"
                 },
                 {
+                    pagePath: "/pages/guide/guide",
+                    text: "导览",
+                    iconNormal: "/static/svg/tab-guide-normal.svg",
+                    iconActive: "/static/svg/tab-guide-active.svg"
+                },
+                {
                     pagePath: "/pages/booking/booking",
                     text: "预约",
                     iconNormal: "/static/svg/tab-booking-normal.svg",

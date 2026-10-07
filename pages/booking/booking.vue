@@ -143,7 +143,7 @@
             @close="closeDeleteDialog"
             @confirm="confirmDeletePreview"
         />
-        <my-tab-bar :current="1" :unread="unreadCount"></my-tab-bar>
+        <my-tab-bar :current="2" :unread="unreadCount"></my-tab-bar>
     </view>
 
 </template>

@@ -130,3 +130,64 @@ test('订单详情人员列表：一次归一化出模板可直接渲染的字�
 		ageFreeStatusText: '',
 	});
 });
+
+test('默认车牌和同行人默认证件同时命中时显示 --，保留联系人和真实同行人证件', () => {
+	const passengers = [
+		{ name: '联系人', idCard: '410621199908042035' },
+		{ name: '同行甲', idCard: '410621199908042035' },
+		{ name: '同行乙', idCard: VALID_CARD },
+	];
+	const original = JSON.stringify(passengers);
+	const booking = { licensePlate: '豫F8M100', isFree: false };
+	const list = passengerDisplay.normalizePassengerListForDisplay(original, booking);
+	assert.equal(list[0].maskedIdCardText, '4106**********2035');
+	assert.equal(list[1].maskedIdCardText, '--');
+	assert.equal(list[1].idCardText, '--');
+	assert.equal(list[1].idCard, '410621199908042035', '仅调整显示，保留原始字段');
+	assert.equal(list[2].maskedIdCardText, '1101**********1237');
+	assert.equal(typeof passengerDisplay.getBookingLicensePlateText, 'function');
+	assert.equal(passengerDisplay.getBookingLicensePlateText(booking, list), '--');
+	assert.equal(JSON.stringify(passengers), original);
+});
+
+test('仅车牌或仅同行人身份证命中默认值时，保持原有展示', () => {
+	for (const [plate, card, expectedCard] of [
+		['豫F8M100', VALID_CARD, '1101**********1237'],
+		['京A12345', '410621199908042035', '4106**********2035'],
+		['', '410621199908042035', '4106**********2035'],
+	]) {
+		const booking = { licensePlate: plate };
+		const list = passengerDisplay.normalizePassengerListForDisplay([
+			{ name: '联系人', idCard: VALID_CARD },
+			{ name: '同行人', idCard: card },
+		], booking);
+		assert.equal(list[1].maskedIdCardText, expectedCard);
+		assert.equal(typeof passengerDisplay.getBookingLicensePlateText, 'function');
+		assert.equal(passengerDisplay.getBookingLicensePlateText(booking, list), plate);
+	}
+});
+
+test('没有同行人时只按默认车牌显示 --，主联系人真实证件正常展示', () => {
+	const booking = { licensePlate: '豫F8M100' };
+	for (const passengers of [
+		[],
+		[{ name: '联系人', idCard: VALID_CARD }],
+		[{ name: '联系人', idCard: '410621199908042035' }],
+	]) {
+		const list = passengerDisplay.normalizePassengerListForDisplay(passengers, booking);
+		assert.equal(passengerDisplay.getBookingLicensePlateText(booking, list), '--');
+		if (list.length) assert.notEqual(list[0].maskedIdCardText, '--');
+		assert.equal(passengerDisplay.getBookingLicensePlateText({ licensePlate: '京A12345' }, list), '京A12345');
+	}
+});
+
+test('有同行人时仍要双匹配，联系人证件不能替代同行人参与判断', () => {
+	const booking = { licensePlate: '豫F8M100' };
+	const list = passengerDisplay.normalizePassengerListForDisplay([
+		{ name: '联系人', idCard: '410621199908042035' },
+		{ name: '同行人', idCard: VALID_CARD },
+	], booking);
+	assert.equal(passengerDisplay.getBookingLicensePlateText(booking, list), '豫F8M100');
+	assert.equal(list[0].maskedIdCardText, '4106**********2035');
+	assert.equal(list[1].maskedIdCardText, '1101**********1237');
+});

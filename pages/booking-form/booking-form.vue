@@ -74,7 +74,7 @@
 					</view>
 				</picker>
 
-				<!-- 自驾：车辆类型 + 车牌号 -->
+				<!-- 自驾：仅选择车辆类型，车牌在请求中使用临时默认值 -->
 				<template v-if="formData.travelMode === 'selfDriving'">
 					<view class="section-divider"></view>
 					<view class="field-block">
@@ -87,16 +87,6 @@
 								<text class="picker-arrow">›</text>
 							</view>
 						</picker>
-					</view>
-					<view class="field-block" v-if="formData.vehicleType !== 'nonMotorized'">
-						<text class="field-label required-star">车牌号</text>
-						<view class="input-box input-box--picker" @click="showPlateKeyboard">
-							<text class="picker-text" :class="formData.licensePlate ? 'picker-text--filled' : ''">
-								{{ formData.licensePlate ? formatPlate(formData.licensePlate) : '请输入车牌号' }}
-							</text>
-							<text class="picker-arrow">›</text>
-						</view>
-						<xm-keyboard-v2 ref="plateKeyboard" title="请输入车牌号" type="plate" :max="8" :cursor="true" @confirm="onPlateConfirm"></xm-keyboard-v2>
 					</view>
 				</template>
 
@@ -134,13 +124,11 @@
 					<view class="passenger-card-header" v-if="idx > 0">
 						<text class="passenger-card-label">同行人</text>
 						<view class="passenger-card-actions">
-							<!-- 儿童/老人：编辑（重开弹窗原位替换） -->
-							<text v-if="p.passengerType === 'child' || p.passengerType === 'senior'" class="passenger-edit-btn" @click="openChildSeniorPopup('edit', p._key)">编辑</text>
 							<text class="passenger-delete-btn" @click="removePassenger(p._key)">删除</text>
 						</view>
 					</view>
 					<!-- 身份证与年龄状态标签（人员类型标签不在页面展示） -->
-					<view class="passenger-tags" v-if="getAgeFreeLabel(p) || p.idCardUnavailable || ageMismatchMap[p._key]">
+					<view class="passenger-tags" v-if="idx === 0 && (getAgeFreeLabel(p) || p.idCardUnavailable || ageMismatchMap[p._key])">
 						<text v-if="getAgeFreeLabel(p)" class="passenger-age-free-tag">{{ getAgeFreeLabel(p) }}</text>
 						<text v-if="p.idCardUnavailable" class="passenger-unavailable-tag">未提供身份证号 · 按正常价格收费 · 暂时无法投保</text>
 						<!-- 类型与年龄不符（含预约日期变化后的重算）：标红并阻止提交 -->
@@ -177,14 +165,14 @@
 					<view class="field-block" v-if="idx === 0">
 						<text class="field-label required-star">手机号码</text>
 						<view class="input-box" v-if="!profilePanelKey">
-							<input class="field-input" type="number" maxlength="11" v-model="p.phone" placeholder="请输入手机号码" placeholder-style="color:#98A2A8" />
+							<input class="field-input" type="number" maxlength="11" v-model="p.phone" placeholder="请输入手机号码" placeholder-style="color:#98A2A8" @input="fetchPreview" />
 						</view>
 						<!-- 内嵌下拉展开期间降级为静态文本：让浮层下方不存在原生组件，规避遮挡 -->
 						<view class="input-box" v-else>
 							<text class="field-input field-input--static">{{ p.phone }}</text>
 						</view>
 					</view>
-					<view class="field-block" style="margin-bottom:0">
+					<view class="field-block" style="margin-bottom:0" v-if="idx === 0">
 						<text class="field-label required-star">身份证号</text>
 						<view class="input-box" v-if="!profilePanelKey">
 							<input class="field-input" maxlength="18" :value="p.idCard" :disabled="p.idCardUnavailable === true" placeholder="请输入18位身份证号码" placeholder-style="color:#98A2A8" @input="onIdCardInput($event, p._key)" @blur="onIdCardBlur($event, p._key)" />
@@ -371,6 +359,7 @@ import { getPassengerErrorMessage } from '../../utils/passenger-error-messages.j
 import { resolveInitialBookingDate } from '../../utils/booking-date-picker.js';
 import ChildSeniorPassengerPopup from '../../components/child-senior-passenger-popup.vue';
 import BookingDatePicker from '../../components/booking-date-picker.vue';
+import { TEMPORARY_LICENSE_PLATE, TEMPORARY_COMPANION_ID_CARD } from '../../utils/booking-defaults.js';
 
 // UI 稳定标识自增序号：保证同页新增人员 _key 唯一（仅前端列表渲染用，不提交后端）
 let passengerKeySeq = 0;
@@ -446,7 +435,6 @@ export default {
 				bookingDate: '',
 				timeSlot: 'morning',
 				travelMode: 'selfDriving',
-				licensePlate: '',
 				vehicleType: 'smallCar',
 				tourGroupName: '',
 				tourOrderNumber: '',
@@ -511,9 +499,25 @@ export default {
 		}
 	},
 	computed: {
+		// 校验、预览、人数汇总、下单共用同一份人员数据，避免常用人员或再次预约带回旧证件。
+		bookingPassengers() {
+			const mainPhone = this.contactPhone || '';
+			return this.formData.passengers.map((p, index) => ({
+				name: String(p.name || '').trim(),
+				phone: index === 0 ? String(p.phone || '').trim() : mainPhone,
+				idCard: index === 0 ? (p.idCard || '') : TEMPORARY_COMPANION_ID_CARD,
+				passengerType: index === 0 && (p.passengerType === 'child' || p.passengerType === 'senior') ? p.passengerType : 'adult',
+				idCardUnavailable: index === 0 && p.idCardUnavailable === true,
+			}));
+		},
+		bookingLicensePlate() {
+			return this.formData.travelMode === 'selfDriving'
+				&& this.formData.vehicleType && this.formData.vehicleType !== 'nonMotorized'
+				? TEMPORARY_LICENSE_PLATE : undefined;
+		},
 		// 人数区域只读汇总（人数唯一来源为 passengers.length）
 		personSummary() {
-			return summarizePassengers(this.formData.passengers, this.formData.bookingDate);
+			return summarizePassengers(this.bookingPassengers, this.formData.bookingDate);
 		},
 		// 姓名栏下拉浮层的列表：同名匹配项排在最前，其余常用人员依次跟在后面；
 		// 匹配项与列表同源（引用相等），无需额外去重键
@@ -563,11 +567,13 @@ export default {
 		// 各人员类型与年龄一致性错误（随人员/日期变化自动重算，不会保留过期错误）
 		ageMismatchMap() {
 			const map = {};
-			for (const p of this.formData.passengers) {
-				if (!p._key) continue;
+			for (let i = 0; i < this.bookingPassengers.length; i++) {
+				const p = this.bookingPassengers[i];
+				const key = this.formData.passengers[i]._key;
+				if (!key) continue;
 				const err = getPassengerTypeError(p, this.formData.bookingDate);
 				if (err) {
-					map[p._key] = err;
+					map[key] = err;
 				}
 			}
 			return map;
@@ -902,6 +908,8 @@ export default {
 			if (this.profileMatchesByKey[key] && this.profileMatchesByKey[key].length) {
 				delete this.profileMatchesByKey[key];
 			}
+			// 同行人仅输入姓名；姓名变化即刷新/作废预览，不能再依赖身份证失焦触发。
+			this.fetchPreview();
 		},
 		// 姓名失焦：仅在手机号与身份证号均为空时建立匹配结果，避免覆盖用户已手动填写的内容
 		onPassengerNameBlur(key) {
@@ -962,9 +970,7 @@ export default {
 			// 选了非今天时，响应回来会自行停表（见 pollTodayQuota）
 			this.startQuotaPolling();
 		},
-		// 单名乘客是否满足 preview 完整条件：姓名必填；手机号仅主出行人（首位）必填，
-		// 同行人不填手机号、提交时统一采用主出行人的号码，故不参与完整性判断；
-		// 无身份证儿童/老人可预览（正常收费）；其余人员身份证必须通过已落地的严格校验
+		// 校验统一请求数据：主联系人填写真实证件，同行人已补临时证件与联系人手机号。
 		isPassengerCompleteForPreview(p, isMain) {
 			if (!p || !p.name || !p.name.trim()) return false;
 			if (isMain && (!p.phone || !this.validatePhone(p.phone))) return false;
@@ -978,7 +984,7 @@ export default {
 		// 竞态锁：序号法（每次自增，回调比对丢弃过期请求）+ 100ms debounce 合并连续输入
 		// 未完整时不请求后端（半成品身份证只有前端即时提示）；失败时展示稳定错误码文案并禁止提交
 		fetchPreview() {
-			const ps = this.formData.passengers || [];
+			const ps = this.bookingPassengers;
 			const allComplete = ps.length > 0 && ps.every((p, i) => this.isPassengerCompleteForPreview(p, i === 0));
 			if (!allComplete || !this.formData.bookingDate) {
 				this.previewResult = null;
@@ -1010,7 +1016,7 @@ export default {
 		//     能自愈就不要让他手动重来。
 		runPreview() {
 			const seq = this._previewSeq;
-			const ps = this.formData.passengers || [];
+			const ps = this.bookingPassengers;
 			request({
 				method: 'POST',
 				url: '/bookings/preview',
@@ -1022,7 +1028,7 @@ export default {
 					bookingDate: this.formData.bookingDate,
 					travelMode: this.formData.travelMode,
 					vehicleType: this.formData.vehicleType,
-					licensePlate: this.formData.licensePlate || undefined,
+					licensePlate: this.bookingLicensePlate,
 				}
 			}).then(res => {
 				// 过期请求结果丢弃，保证 UI 对应最新输入
@@ -1200,26 +1206,8 @@ export default {
 				return;
 			}
 			this.formData.vehicleType = newType;
-			if (newType === 'nonMotorized') {
-				this.formData.licensePlate = '';
-			}
 			// 出行方式/车型变化后重新预览费用（会员免费仅摩托车命中）
 			this.fetchPreview();
-		},
-		// 显示车牌键盘
-		showPlateKeyboard() {
-			this.$refs.plateKeyboard.toShow(this.formData.licensePlate);
-		},
-		// 车牌号确认
-		onPlateConfirm(value) {
-			this.formData.licensePlate = value;
-			// 车牌变化后重新预览费用（会员命中需车牌匹配）
-			this.fetchPreview();
-		},
-		// 车牌号格式化显示（省份·号码）
-		formatPlate(value) {
-			if (!value) return '';
-			return [value.substring(0, 2), value.substring(2)].filter(x => x).join('·');
 		},
 		// 获取车辆类型标签
 		getVehicleTypeLabel() {
@@ -1281,10 +1269,9 @@ export default {
 				return false;
 			}
 
-			// 验证每位出行人员（主出行人手机号与身份证必填；同行人只需姓名+身份证，手机号提交时补主出行人的；
-			// 儿童/老人按身份证或暂时无法提供二选一）
-			for (let i = 0; i < this.formData.passengers.length; i++) {
-				const p = this.formData.passengers[i];
+			// 同行人仅填写姓名，身份证与手机号取统一请求数据；联系人仍严格校验真实信息。
+			for (let i = 0; i < this.bookingPassengers.length; i++) {
+				const p = this.bookingPassengers[i];
 				const label = `第${i + 1}位出行人`;
 				if (!p.name || !p.name.trim()) {
 					uni.showToast({ title: `请输入${label}姓名`, icon: 'none' });
@@ -1307,7 +1294,7 @@ export default {
 						return false;
 					}
 					// 类型与年龄不符（含日期变化后的重算结果）时禁止提交，要求修改身份证或切换类型
-					const typeErr = this.ageMismatchMap[p._key];
+					const typeErr = this.ageMismatchMap[this.formData.passengers[i]._key];
 					if (typeErr) {
 						uni.showToast({ title: typeErr, icon: 'none', duration: 2000 });
 						return false;
@@ -1326,11 +1313,11 @@ export default {
 					return false;
 				}
 				if (this.formData.vehicleType !== 'nonMotorized') {
-					if (!this.formData.licensePlate) {
+					if (!this.bookingLicensePlate) {
 						uni.showToast({ title: '请输入车牌号', icon: 'none' });
 						return false;
 					}
-					if (!this.validatePlateNumber(this.formData.licensePlate)) {
+					if (!this.validatePlateNumber(this.bookingLicensePlate)) {
 						uni.showToast({ title: '请输入正确的车牌号', icon: 'none' });
 						return false;
 					}
@@ -1393,27 +1380,23 @@ export default {
 
 			// 快照提交前的 preview 状态，用于判定是否需要二次确认（preview 免费 vs 创建收费）
 			const previewSnapshot = this.previewResult;
-			// 提交净化：白名单字段，不提交 _key、idCardError 等 UI 状态；人数始终为净化后数组长度
-			// 同行人不填写手机号，统一补充主出行人的号码（contactPhone 即主出行人的有效号码）
-			const mainPhone = this.contactPhone || '';
-			const sanitizedPassengers = this.formData.passengers.map((p, i) => ({
-				name: String(p.name || '').trim(),
-				phone: i === 0 ? String(p.phone || '').trim() : mainPhone,
-				idCard: p.idCard || '',
-				passengerType: p.passengerType === 'child' || p.passengerType === 'senior' ? p.passengerType : 'adult',
-				idCardUnavailable: p.idCardUnavailable === true,
-			}));
+			// 与价格预览使用相同的白名单及临时默认值，不提交 UI 状态或旧证件。
+			const sanitizedPassengers = this.bookingPassengers;
 			const submitData = {
 				passengers: sanitizedPassengers,
 				bookingDate: this.formData.bookingDate,
 				timeSlot: this.formData.timeSlot,
 				travelMode: this.formData.travelMode,
-				licensePlate: this.formData.licensePlate || undefined,
+				licensePlate: this.bookingLicensePlate,
 				vehicleType: this.formData.vehicleType || undefined,
 				tourGroupName: this.formData.tourGroupName || undefined,
 				tourOrderNumber: this.formData.tourOrderNumber || undefined,
 				personCount: sanitizedPassengers.length,
-				remarks: this.formData.remarks || '',
+				remarks: [
+					this.formData.remarks,
+					this.bookingLicensePlate ? '车牌号为系统默认值' : '',
+					sanitizedPassengers.length > 1 ? '同行人身份证为系统占位，未采集真实证件' : '',
+				].filter(Boolean).join('；'),
 				wechatOpenId: uni.getStorageSync('openid'),
 				isAdmin: uni.getStorageSync('isAdmin') === true,
 			};
@@ -1554,8 +1537,8 @@ export default {
 					this.syncPersonCount();
 					// 切换订单/重新进入页面时清空旧匹配状态
 					this.profileMatchesByKey = {};
-					this.formData.licensePlate = d.licensePlate || '';
 					this.formData.vehicleType = d.vehicleType || 'smallCar';
+					this.fetchPreview();
 				}
 			})
 		}

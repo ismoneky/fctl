@@ -2,6 +2,19 @@
 
 // 订单详情人员快照归一化与展示辅助（小程序表单与详情共用口径）。
 // 历史详情使用订单保存的计费快照，绝不按当前年份重新计算年龄。
+import { TEMPORARY_LICENSE_PLATE, TEMPORARY_COMPANION_ID_CARD } from './booking-defaults.js';
+
+// 无同行人只看车牌；有同行人还需命中占位证件。主联系人证件始终不参与判断。
+function isSystemDefaultBooking(booking, passengers) {
+	if (!booking || booking.licensePlate !== TEMPORARY_LICENSE_PLATE) return false;
+	const companions = Array.isArray(passengers) ? passengers.slice(1) : [];
+	return companions.length === 0
+		|| companions.some((p) => p && p.idCard === TEMPORARY_COMPANION_ID_CARD);
+}
+
+export function getBookingLicensePlateText(booking, passengers) {
+	return isSystemDefaultBooking(booking, passengers) ? '--' : ((booking && booking.licensePlate) || '');
+}
 
 /**
  * 身份证展示文本：有值原样，空值显示「未提供」。
@@ -105,12 +118,15 @@ export function normalizePassengerListForDisplay(passengers, booking) {
 		}
 	}
 	if (!Array.isArray(rawList)) return [];
+	const isDefaultBooking = isSystemDefaultBooking(booking, rawList);
 	return rawList.map((raw, index) => {
 		const passenger = normalizePassengerForDisplay(raw, booking);
+		const isDefaultIdCard = isDefaultBooking && index > 0 && passenger.idCard === TEMPORARY_COMPANION_ID_CARD;
 		return {
 			...passenger,
+			idCardText: isDefaultIdCard ? '--' : passenger.idCardText,
 			typeLabel: getPassengerTypeLabel(passenger.passengerType, index),
-			maskedIdCardText: maskIdCardText(passenger.idCard),
+			maskedIdCardText: isDefaultIdCard ? '--' : maskIdCardText(passenger.idCard),
 			ageFreeStatusText: getAgeFreeStatusText(passenger),
 		};
 	});

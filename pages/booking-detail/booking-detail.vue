@@ -189,7 +189,7 @@
 						</view>
 						<view class="form-item passenger-sub-item" style="margin-bottom:0">
 							<text class="label">身份证号</text>
-							<!-- 掩码展示；未提供身份证时显示「未提供」 -->
+							<!-- 系统占位证件显示 --；真实证件掩码展示，缺失时显示「未提供」 -->
 							<view class="detail-value">{{ p.maskedIdCardText }}</view>
 						</view>
 						<!-- 计费状态：年龄免费（绿）/ 暂时无法投保（黄）/ 整单免费 / 正常收费 -->
@@ -263,7 +263,7 @@
 					</view>
 					<view class="form-item" v-if="formData.vehicleType !== 'nonMotorized'">
 						<text class="label">车牌号</text>
-						<view class="detail-value">{{ formData.licensePlate }}</view>
+						<view class="detail-value">{{ licensePlateText }}</view>
 					</view>
 				</template>
 
@@ -353,7 +353,7 @@
 	import { handlePayment } from '../../utils/payment';
 	import { getBookingDisplayStatus, getRequestFailureMessage } from '../../utils/booking-status.js';
 	import { SCENIC_LOCATIONS, openScenicLocation } from '../../utils/scenic-location.js';
-	import { normalizePassengerListForDisplay } from '../../utils/passenger-display.js';
+	import { normalizePassengerListForDisplay, getBookingLicensePlateText } from '../../utils/passenger-display.js';
 	import LocationPickerPopup from '../../components/location-picker-popup.vue';
 	import OrderDeleteConfirm from '../../components/order-delete-confirm.vue';
 
@@ -418,6 +418,9 @@
 			}
 		},
 		computed: {
+			licensePlateText() {
+				return getBookingLicensePlateText(this.formData, this.passengerList);
+			},
 			bookingDisplayStatus() {
 				return getBookingDisplayStatus(this.formData);
 			},

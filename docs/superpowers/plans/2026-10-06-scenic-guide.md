@@ -10,7 +10,7 @@
 ## Global Constraints
 
 - 保留既有预约相关未提交改动。
-- 上传 JPEG/PNG/WebP 最大 10 MiB；坐标 x/y 在 0..1；latitude/longitude 同时设置或同时缺省。
+- 上传 JPEG/PNG/WebP 最大 10 MiB；坐标 x/y 在 0..1；每个地点必须同时设置有效的 latitude/longitude。
 - 第一版不显示真实地图、不获取游客定位。
 - 不部署、不推送、不操作线上数据。
 

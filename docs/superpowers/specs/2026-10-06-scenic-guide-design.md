@@ -8,7 +8,7 @@
 - 点击“保存并更新”一次性保存整个导览配置；未保存修改不影响游客。
 - 小程序底部调整为“首页 / 导览 / 预约 / 我的”，保留原有未读消息红点。
 - 导览页可拖动、双指缩放、查看全图、分类筛选、点选标记查看地点详情；列表与点位联动。
-- 预留可选 GCJ-02 经纬度和地址；只有有效坐标的地点出现导航入口。第一版不显示真实地图、不获取游客定位。
+- 每个地点必须配置 GCJ-02 经纬度，地址可选；有效地点始终提供导航入口。第一版不显示真实地图、不获取游客定位。
 - 用户后续明确：资源使用现有腾讯云 COS bucket，不接受业务服务器存储上传文件。后台直传 COS 后保存 CDN 链接；未配置底图时小程序显示准备中。原图在 docs/scenic-guide/reference.jpg，配置 COS 后由后台上传。
 - 现有文字/红点属于图片内容，无法由点位开关移除。交互地点由管理员添加，避免未经核对的点位自动发布。
 
@@ -19,7 +19,7 @@
 新增独立 `scenic_guides` 表，单条 id=1 配置，正文 JSON 保存底图与点位，并有 revision、updatedAt。生产库通过 SQL 建表，开发测试沿用 TypeORM synchronize。所有写入使用现有 serialTransaction，防止参与其他业务事务。
 
 统一配置：`title, imageUrl, imageWidth, imageHeight, points, revision, updatedAt`。
-地点：`id, name, categories[], description, imageUrl, x, y, visible, sortOrder, latitude?, longitude?, address`。
+地点：`id, name, categories[], description, imageUrl, x, y, visible, sortOrder, latitude, longitude, address`。
 图片点坐标 x/y 是 0..1 的原图比例，和地理经纬度分开保存。分类固定为景点、驿站、露营、停车场、卫生间、出入口（spot/station/camp/parking/toilet/entrance）。
 
 - `GET /scenic-guide`：无需登录，仅返回 visible=true 的点位，按 sortOrder 排序。

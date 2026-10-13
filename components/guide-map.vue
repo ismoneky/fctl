@@ -4,7 +4,7 @@
     <view class="guide-map-canvas" :style="canvasStyle">
       <image :key="imageUrl + '-' + retryCount" class="guide-map-image" :src="imageUrl" mode="scaleToFill"
         :style="{ width: imageSize.width + 'px', height: imageSize.height + 'px' }" @load="onImageLoad" @error="onImageError" />
-      <view v-for="point in points" :key="point.id" v-show="loaded && !failed" class="guide-map-marker"
+      <view v-for="point in displayPoints" :key="point.id" v-show="loaded && !failed" class="guide-map-marker"
         :class="{ 'is-selected': point.id === selectedId }" :style="markerStyle(point)" @tap.stop="selectPoint(point)">
         <text>{{ point.number }}</text>
       </view>
@@ -13,17 +13,16 @@
       <text>{{ failed ? '导览图加载失败' : '正在加载导览图…' }}</text>
       <button v-if="failed" size="mini" @tap.stop="retryImage">重新加载</button>
     </view>
-    <view v-if="loaded && !failed" class="guide-map-tools" @touchstart.stop @touchmove.stop>
-      <button class="guide-map-tool guide-map-tool--reset" @tap.stop="reset">全图</button>
-      <button class="guide-map-tool" aria-label="放大导览图" @tap.stop="zoom(1.4)">＋</button>
-      <button class="guide-map-tool" aria-label="缩小导览图" @tap.stop="zoom(1 / 1.4)">−</button>
+    <view v-if="loaded && !failed" class="guide-map-tools" :data-guide-map-control="true">
+      <button class="guide-map-tool guide-map-tool--reset" :data-guide-map-control="true" aria-label="显示完整导览图" @tap.stop="reset">全</button>
+      <button class="guide-map-tool" :data-guide-map-control="true" aria-label="放大导览图" @tap.stop="zoom(1.4)">＋</button>
+      <button class="guide-map-tool guide-map-tool--last" :data-guide-map-control="true" aria-label="缩小导览图" @tap.stop="zoom(1 / 1.4)">−</button>
     </view>
-    <view v-if="loaded && !failed" class="guide-map-tip"><text>双指缩放 · 拖动查看 · 点击标记</text></view>
   </view>
 </template>
 
 <script>
-import { fitGuideImage, clampGuideTransform, focusGuidePoint, pinchGuideTransform } from '../utils/scenic-guide.js';
+import { fitGuideImage, clampGuideTransform, focusGuidePoint, pinchGuideTransform, shouldStartGuideGesture, spreadGuideMarkers } from '../utils/scenic-guide.js';
 
 export default {
   name: 'GuideMap',
@@ -47,6 +46,7 @@ export default {
   computed: {
     imageSize() { return fitGuideImage(this.naturalWidth, this.naturalHeight, this.viewport); },
     canvasStyle() { return { width: this.imageSize.width + 'px', height: this.imageSize.height + 'px', transform: `translate(${this.transform.x}px, ${this.transform.y}px) scale(${this.transform.scale})` }; },
+    displayPoints() { return spreadGuideMarkers(this.points, this.imageSize.width * this.transform.scale, this.imageSize.height * this.transform.scale, 14); },
   },
   watch: {
     imageUrl() { this.loaded = false; this.failed = false; this.naturalWidth = this.imageWidth; this.naturalHeight = this.imageHeight; this.$nextTick(() => this.measure()); },
@@ -71,7 +71,8 @@ export default {
     onImageError() { this.failed = true; this.loaded = false; },
     retryImage() { this.failed = false; this.loaded = false; this.retryCount++; },
     markerStyle(point) {
-      return { left: (point.x * this.imageSize.width) + 'px', top: (point.y * this.imageSize.height) + 'px', transform: `translate(-50%, -50%) scale(${1 / this.transform.scale})` };
+      const scale = this.transform.scale || 1;
+      return { left: (point.x * this.imageSize.width + point.offsetX / scale) + 'px', top: (point.y * this.imageSize.height + point.offsetY / scale) + 'px', transform: `translate(-50%, -50%) scale(${1 / scale})` };
     },
     selectPoint(point) { if (Date.now() - this.lastGestureAt > 180) this.$emit('select', point); },
     focusPoint(point) { this.transform = focusGuidePoint(point, this.imageSize, this.viewport, Math.max(2.5, this.transform.scale)); },
@@ -88,7 +89,11 @@ export default {
         this.gesture = { type: 'pinch', start: { ...this.transform }, midpoint: { x: (first.x + second.x) / 2, y: (first.y + second.y) / 2 }, distance: Math.max(1, Math.hypot(first.x - second.x, first.y - second.y)) };
       } else this.gesture = { type: 'pan', start: { ...this.transform }, point: first };
     },
-    onTouchStart(event) { this.moved = false; this.beginGesture(event.touches); },
+    onTouchStart(event) {
+      this.moved = false;
+      if (!shouldStartGuideGesture(event)) { this.gesture = null; return; }
+      this.beginGesture(event.touches);
+    },
     onTouchMove(event) {
       if (!this.loaded || this.failed || !this.gesture || !event.touches.length) return;
       const first = this.touch(event.touches[0]);
@@ -111,18 +116,18 @@ export default {
 </script>
 
 <style scoped>
-.guide-map { position: relative; width: 100%; overflow: hidden; background: #e8eff0; border-radius: 24rpx; touch-action: none; }
+.guide-map { position: relative; width: 100%; overflow: hidden; box-sizing: border-box; background: #edf1f0; border: 1rpx solid rgba(35, 67, 78, .08); border-radius: 18rpx; touch-action: none; box-shadow: 0 10rpx 32rpx rgba(37, 61, 69, .07); }
 .guide-map-canvas { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; }
 .guide-map-image { display: block; }
-.guide-map-marker { position: absolute; width: 38px; height: 38px; display: flex; justify-content: center; align-items: center; padding: 4px; }
-.guide-map-marker text { width: 28px; height: 28px; line-height: 24px; border: 2px solid #fff; text-align: center; border-radius: 50%; color: #fff; font-size: 12px; font-weight: 700; background: #357faf; box-shadow: 0 2px 7px rgba(20, 49, 68, .35); }
-.guide-map-marker.is-selected { z-index: 2; }
-.guide-map-marker.is-selected text { background: #e79243; box-shadow: 0 0 0 4px rgba(231, 146, 67, .28), 0 2px 7px rgba(20, 49, 68, .35); }
-.guide-map-tools { position: absolute; right: 12px; top: 12px; display: flex; flex-direction: column; gap: 7px; }
-.guide-map-tool { width: 38px; height: 38px; line-height: 38px; padding: 0; background: rgba(255,255,255,.95); color: #2f6e8e; border-radius: 10px; font-size: 23px; box-shadow: 0 2px 9px rgba(25,60,75,.1); }
+.guide-map-marker { position: absolute; width: 14px; height: 14px; display: flex; justify-content: center; align-items: center; box-sizing: border-box; }
+.guide-map-marker text { width: 100%; height: 100%; line-height: 12px; box-sizing: border-box; border: 1px solid rgba(255,255,255,.95); text-align: center; border-radius: 50%; color: #fff; font-size: 8px; font-weight: 700; background: #267397; box-shadow: 0 1px 4px rgba(15, 40, 51, .28); }
+.guide-map-marker.is-selected { width: 18px; height: 18px; z-index: 2; }
+.guide-map-marker.is-selected text { line-height: 16px; background: #df8b3d; box-shadow: 0 0 0 2px rgba(255,255,255,.88), 0 2px 6px rgba(77, 48, 19, .25); }
+.guide-map-tools { position: absolute; right: 10px; top: 10px; display: flex; flex-direction: column; overflow: hidden; border: 1px solid rgba(41, 75, 86, .1); border-radius: 9px; background: rgba(255,255,255,.9); box-shadow: 0 4px 14px rgba(28,53,61,.1); backdrop-filter: blur(8px); }
+.guide-map-tool { display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; min-height: 30px; line-height: 1; margin: 0; padding: 0; background: transparent; color: #285f77; border-radius: 0; border-bottom: 1px solid rgba(41, 75, 86, .09); font-size: 18px; font-weight: 400; }
+.guide-map-tool--last { border-bottom: 0; }
 .guide-map-tool::after { border: none; }
-.guide-map-tool--reset { font-size: 12px; }
-.guide-map-tip { position: absolute; bottom: 10px; left: 12px; pointer-events: none; background: rgba(255,255,255,.88); border-radius: 6px; padding: 4px 7px; color: #637b88; font-size: 10px; }
+.guide-map-tool--reset { font-size: 11px; font-weight: 600; }
 .guide-map-status { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 14px; color: #738995; font-size: 14px; background: #edf3f4; }
 .guide-map-status button { color: #2f6e8e; background: white; }
 </style>

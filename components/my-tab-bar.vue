@@ -42,12 +42,15 @@ export default {
                     iconNormal: "/static/svg/tab-home-normal.svg",
                     iconActive: "/static/svg/tab-home-active.svg"
                 },
-                {
-                    pagePath: "/pages/guide/guide",
-                    text: "导览",
-                    iconNormal: "/static/svg/tab-guide-normal.svg",
-                    iconActive: "/static/svg/tab-guide-active.svg"
-                },
+                // 导览入口暂时隐藏（页面本身仍在 pages.json 注册，可直接访问）。
+                // 恢复时取消下面注释，并把 pages/booking/booking.vue 的 :current 改回 2、
+                // pages/profile/profile.vue 的 :current 改回 3 —— 当前下标按「去掉导览后的顺序」排布。
+                // {
+                //     pagePath: "/pages/guide/guide",
+                //     text: "导览",
+                //     iconNormal: "/static/svg/tab-guide-normal.svg",
+                //     iconActive: "/static/svg/tab-guide-active.svg"
+                // },
                 {
                     pagePath: "/pages/booking/booking",
                     text: "预约",

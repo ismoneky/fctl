@@ -143,7 +143,8 @@
             @close="closeDeleteDialog"
             @confirm="confirmDeletePreview"
         />
-        <my-tab-bar :current="2" :unread="unreadCount"></my-tab-bar>
+        <!-- 导览 tab 暂时隐藏后，预约的下标由 2 变为 1（恢复导览时改回 2） -->
+        <my-tab-bar :current="1" :unread="unreadCount"></my-tab-bar>
     </view>
 
 </template>
